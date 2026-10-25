@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kesir Boyama Sanatı - Serbest Fırça & Kova</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap');
+
+        body {
+            font-family: 'Baloo 2', cursive;
+            margin: 0;
+            background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: #2c3e50;
+            user-select: none;
+        }
+
+        /* Üst Menü */
+        #hud {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 30px;
+            box-sizing: border-box;
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: rgba(255, 255, 255, 0.8);
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .hud-score { color: #27ae60; }
+        .hud-level { color: #8e44ad; }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 20px 0 5px 0;
+            color: #2c3e50;
+            text-shadow: 2px 2px white;
+            text-align: center;
+        }
+
+        .instruction {
+            font-size: 1.2rem;
+            color: #34495e;
+            margin-bottom: 20px;
+            background: white;
+            padding: 8px 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-weight: 700;
+            text-align: center;
+        }
+
+        /* Oyun Alanı */
+        .workspace {
+            display: flex;
+            gap: 30px;
+            width: 100%;
+            max-width: 900px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        /* Sol Panel (Soru ve Araçlar) */
+        .tools-panel {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 25px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            min-width: 280px;
+        }
+
+        /* Değişken Formatlı Soru Kutusu */
+        .fraction-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #e74c3c;
+            line-height: 1.1;
+            background: #fdf2f1;
+            padding: 10px 25px;
+            border-radius: 20px;
+            border: 4px dashed #e74c3c;
+            width: 140px;
+            min-height: 110px;
+            text-align: center;
+        }
+        .numerator { border-bottom: 6px solid #e74c3c; padding: 0 10px; width: 100%; }
+        .denominator { padding: 0 10px; width: 100%; }
+
+        .target-percentage { display: none; }
+
+        .tool-title { font-weight: 800; color: #34495e; font-size: 1.2rem; border-bottom: 2px solid #eee; width: 100%; text-align: center; padding-bottom: 5px;}
+
+        /* Araç Kutusu */
+        .tool-group { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;}
+        .tool-btn {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1.1rem; font-weight: bold;
+            background: #ecf0f1; border: 3px solid #dfe4ea;
+            padding: 8px 12px; border-radius: 12px;
+            cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; gap: 5px;
+            color: #2c3e50;
+        }
+        .tool-btn.active { background: #3498db; color: white; border-color: #2980b9; }
+        .tool-btn.active img { filter: brightness(0) invert(1); }
+
+        /* Renk Paleti */
+        .palette { display: flex; gap: 10px; }
+        .color-swatch {
+            width: 35px; height: 35px; border-radius: 50%;
+            cursor: pointer; border: 3px solid transparent; transition: 0.2s;
+        }
+        .color-swatch.active { transform: scale(1.2); border-color: #2c3e50; }
+
+        /* Fırça Boyutları */
+        .brush-sizes { display: flex; gap: 15px; align-items: center; }
+        .brush-btn {
+            background: #ecf0f1; border: none; border-radius: 50%;
+            cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        .brush-btn.active { background: #bdc3c7; box-shadow: 0 0 10px rgba(0,0,0,0.2); }
+
+        .btn-clear {
+            font-family: 'Baloo 2', cursive;
+            background: #e74c3c; color: white; border: none;
+            padding: 8px 20px; border-radius: 10px; font-size: 1.2rem;
+            cursor: pointer; box-shadow: 0 4px 0 #c0392b; width: 100%;
+        }
+        .btn-clear:active { transform: translateY(4px); box-shadow: none; }
+
+        /* Sağ Panel (Tuval) */
+        .canvas-panel {
+            background: rgba(255, 255, 255, 0.4);
+            padding: 20px;
+            border-radius: 25px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            background-color: #ecf0f1; 
+            filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.2)); 
+            cursor: crosshair;
+            border-radius: 10px;
+            border: 4px solid #bdc3c7;
+        }
+
+        /* Kontrol Bölümü ve Devam Butonu */
+        .controls {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            max-width: 900px;
+            position: relative;
+            min-height: 80px;
+        }
+
+        .btn-check {
+            font-family: 'Baloo 2', cursive;
+            font-size: 2rem;
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 60px;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #219a52;
+            transition: 0.1s;
+        }
+        .btn-check:active { transform: translateY(6px); box-shadow: none; }
+
+        .btn-continue {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1.5rem;
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 40px;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #2980b9;
+            transition: 0.1s;
+            position: absolute;
+            right: 0;
+            top: 0;
+            display: none;
+        }
+        .btn-continue:active { transform: translateY(6px); box-shadow: none; }
+
+        #message-box {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 1.5rem;
+            font-weight: 800;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            border: 4px solid #27ae60;
+        }
+
+        .stat-row { display: flex; gap: 20px; font-size: 1.2rem; color: #34495e; flex-wrap: wrap; justify-content: center;}
+        .pulse { animation: pulseAnim 0.5s; }
+        @keyframes pulseAnim { 50% { transform: scale(1.1); } }
+        
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #e74c3c; color: white; padding: 10px 20px; border-radius: 15px;
+            font-size: 1.2rem; font-weight: bold; pointer-events: none; opacity: 0; transition: 0.3s; z-index: 200;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div class="hud-level">Seviye: <span id="level-display">1</span></div>
+        <div class="hud-score">Toplam Puan: <span id="score-display">0</span></div>
+    </div>
+
+    <h1>Kesir Boyama Sanatı</h1>
+    <div class="instruction">Alanı fırçayla böl, kovayla boya! Boyadığın alan hedeflenen değere tam denk gelsin.</div>
+
+    <div class="workspace">
+        <!-- Sol Panel -->
+        <div class="tools-panel">
+            <div class="fraction-box" id="question-display"></div>
+
+            <span class="tool-title" style="margin-top: 5px;">Araç Seçimi</span>
+            <div class="tool-group">
+                <button class="tool-btn active" onclick="setTool('brush', this)">🖌️ Fırça</button>
+                <button class="tool-btn" onclick="setTool('bucket', this)">
+                    <img src="image_82cf26.png" alt="Kova" width="24" height="24" style="pointer-events: none;"> Kova
+                </button>
+                <button class="tool-btn" onclick="setTool('eraser', this)">🧽 Silgi</button>
+            </div>
+
+            <span class="tool-title" style="margin-top: 5px;">Renk Seç</span>
+            <div class="palette">
+                <div class="color-swatch active" style="background:#e74c3c;" onclick="setColor('#e74c3c', this)"></div>
+                <div class="color-swatch" style="background:#3498db;" onclick="setColor('#3498db', this)"></div>
+                <div class="color-swatch" style="background:#f1c40f;" onclick="setColor('#f1c40f', this)"></div>
+                <div class="color-swatch" style="background:#9b59b6;" onclick="setColor('#9b59b6', this)"></div>
+            </div>
+
+            <span class="tool-title" style="margin-top: 5px;">Fırça Boyutu</span>
+            <div class="brush-sizes">
+                <button class="brush-btn" style="width: 15px; height: 15px;" onclick="setSize(5, this)"></button>
+                <button class="brush-btn active" style="width: 25px; height: 25px;" onclick="setSize(10, this)"></button>
+                <button class="brush-btn" style="width: 35px; height: 35px;" onclick="setSize(20, this)"></button>
+            </div>
+
+            <button class="btn-clear" onclick="drawBaseShape()">Tümünü Temizle</button>
+        </div>
+
+        <!-- Sağ Panel (Tuval) -->
+        <div class="canvas-panel">
+            <canvas id="paintCanvas" width="400" height="400"></canvas>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-check" onclick="checkAnswer()" id="btn-check">Sonuca Bak</button>
+        
+        <div id="message-box">
+            <div id="main-msg">Mükemmel!</div>
+            <div class="stat-row">
+                <span>Hedef: <span id="stat-target" style="color:#2980b9; font-weight:900;">1/4 (%25)</span></span>
+                <span>Senin Boyadığın: <span id="stat-painted" style="color:#8e44ad; font-weight:900;">%27</span></span>
+                <span>Fark: <span id="stat-error" style="color:#e74c3c; font-weight:900;">%2</span></span>
+            </div>
+        </div>
+
+        <button class="btn-continue" onclick="generateQuestion()" id="btn-continue">Devam Et ➔</button>
+    </div>
+
+    <div class="toast" id="toast-msg">Biraz daha boyamalısın!</div>
+
+    <script>
+        let score = 0;
+        let level = 1;
+        let targetRatio = 0; 
+        let currentLvlData = {};
+        
+        const canvas = document.getElementById('paintCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        let isDrawing = false;
+        let currentTool = 'brush'; 
+        let brushColor = '#e74c3c';
+        let brushSize = 10;
+        let currentShapeType = '';
+        let maskPath = new Path2D();
+
+        function getLevelFraction() {
+            let fractions = [];
+            if (level === 1) fractions = [[1,2], [1,4], [3,4]]; 
+            else if (level === 2) fractions = [[1,5], [2,5], [3,5], [4,5], [1,10], [3,10], [7,10], [9,10]]; 
+            else fractions = [[1,8], [3,8], [5,8], [7,8], [1,20], [3,20], [7,20]]; 
+            
+            let f = fractions[Math.floor(Math.random() * fractions.length)];
+            let num = f[0], den = f[1];
+            let ratio = num / den;
+            return {
+                num: num, den: den, ratio: ratio,
+                frac: num + "/" + den,
+                pct: "%" + Math.round(ratio * 100),
+                dec: ratio.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 3 })
+            };
+        }
+
+        function generateQuestion() {
+            document.getElementById('message-box').style.display = 'none';
+            document.getElementById('btn-continue').style.display = 'none';
+            document.getElementById('btn-check').style.display = 'block';
+
+            currentLvlData = getLevelFraction();
+            targetRatio = currentLvlData.ratio;
+
+            const representations = ['fraction', 'percentage', 'decimal'];
+            let rep = representations[Math.floor(Math.random() * representations.length)];
+            
+            const qBox = document.getElementById('question-display');
+            
+            if (rep === 'fraction') {
+                qBox.innerHTML = `<span class="numerator">${currentLvlData.num}</span><span class="denominator">${currentLvlData.den}</span>`;
+                qBox.style.fontSize = '3.5rem';
+            } else if (rep === 'percentage') {
+                qBox.innerHTML = `<span>${currentLvlData.pct}</span>`;
+                qBox.style.fontSize = '3rem';
+            } else if (rep === 'decimal') {
+                qBox.innerHTML = `<span>${currentLvlData.dec}</span>`;
+                qBox.style.fontSize = '3rem';
+            }
+
+            const shapes = ['circle', 'rect', 'triangle'];
+            currentShapeType = shapes[Math.floor(Math.random() * shapes.length)];
+            
+            drawBaseShape();
+        }
+
+        function traceShapePath() {
+            maskPath = new Path2D();
+            if (currentShapeType === 'circle') {
+                maskPath.arc(200, 200, 170, 0, Math.PI * 2);
+            } else if (currentShapeType === 'rect') {
+                maskPath.rect(30, 50, 340, 300);
+            } else if (currentShapeType === 'triangle') {
+                maskPath.moveTo(200, 30);
+                maskPath.lineTo(370, 350);
+                maskPath.lineTo(30, 350);
+                maskPath.closePath();
+            }
+        }
+
+        function drawBaseShape() {
+            canvas.width = 400;
+            canvas.height = 400;
+            
+            // Tüm tuvali açık gri yap (boyanamaz alan)
+            ctx.fillStyle = '#ecf0f1';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            traceShapePath();
+            
+            // Şeklin içini beyaz yap
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fill(maskPath);
+            
+            // Sınırları net çiz
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#2c3e50';
+            ctx.stroke(maskPath);
+        }
+
+        function setTool(tool, el) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            el.classList.add('active');
+            
+            if (tool === 'eraser') {
+                canvas.style.cursor = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><text y='20' font-size='20'>🧽</text></svg>") 0 20, pointer`;
+            } else if (tool === 'bucket') {
+                canvas.style.cursor = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><text y='20' font-size='20'>🪣</text></svg>") 0 20, pointer`;
+            } else {
+                canvas.style.cursor = 'crosshair';
+            }
+        }
+
+        function setColor(color, el) {
+            brushColor = color;
+            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            el.classList.add('active');
+            if (currentTool === 'eraser') setTool('brush', document.querySelector('.tool-btn')); 
+        }
+
+        function setSize(size, el) {
+            brushSize = size;
+            document.querySelectorAll('.brush-btn').forEach(s => s.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function hexToRgb(hex) {
+            let bigint = parseInt(hex.substring(1), 16);
+            return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+        }
+
+        function getMousePos(e) {
+            let rect = canvas.getBoundingClientRect();
+            let scaleX = canvas.width / rect.width;
+            let scaleY = canvas.height / rect.height;
+            
+            let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        // TAŞMAYI ÖNLEYEN VE HIZLI ÇALIŞAN BOYA KUTUSU
+        function floodFill(startX, startY, fillColorHex) {
+            // Şeklin dışına tıklandıysa iptal
+            if (!ctx.isPointInPath(maskPath, startX, startY)) return;
+
+            const rgb = hexToRgb(fillColorHex);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            const width = canvas.width;
+            const height = canvas.height;
+            const sx = Math.round(startX);
+            const sy = Math.round(startY);
+
+            const startPos = (sy * width + sx) * 4;
+            const startR = data[startPos], startG = data[startPos+1], startB = data[startPos+2];
+
+            // Çizgiye (koyu gri/siyah) veya aynı renge tıklanırsa çık
+            if (startR < 50 && startG < 50 && startB < 50) return;
+            if (Math.abs(startR - rgb[0]) < 10 && Math.abs(startG - rgb[1]) < 10 && Math.abs(startB - rgb[2]) < 10) return;
+
+            const stack = [[sx, sy]];
+
+            function matchStartColor(pixelPos) {
+                return (Math.abs(data[pixelPos] - startR) < 30 &&
+                        Math.abs(data[pixelPos+1] - startG) < 30 &&
+                        Math.abs(data[pixelPos+2] - startB) < 30);
+            }
+
+            while (stack.length > 0) {
+                const [x, y] = stack.pop();
+                let pixelPos = (y * width + x) * 4;
+                let currentY = y;
+
+                while (currentY >= 0 && matchStartColor(pixelPos)) {
+                    currentY--;
+                    pixelPos -= width * 4;
+                }
+                pixelPos += width * 4;
+                currentY++;
+
+                let reachLeft = false;
+                let reachRight = false;
+
+                while (currentY < height && matchStartColor(pixelPos)) {
+                    data[pixelPos] = rgb[0];
+                    data[pixelPos+1] = rgb[1];
+                    data[pixelPos+2] = rgb[2];
+                    data[pixelPos+3] = 255;
+
+                    if (x > 0) {
+                        if (matchStartColor(pixelPos - 4)) {
+                            if (!reachLeft) { stack.push([x - 1, currentY]); reachLeft = true; }
+                        } else if (reachLeft) { reachLeft = false; }
+                    }
+
+                    if (x < width - 1) {
+                        if (matchStartColor(pixelPos + 4)) {
+                            if (!reachRight) { stack.push([x + 1, currentY]); reachRight = true; }
+                        } else if (reachRight) { reachRight = false; }
+                    }
+
+                    currentY++;
+                    pixelPos += width * 4;
+                }
+            }
+            
+            ctx.putImageData(imgData, 0, 0);
+            
+            // Boya işlemi bitince dış siyah çerçevenin üstte kalmasını sağla
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#2c3e50';
+            ctx.stroke(maskPath);
+        }
+
+        function startAction(e) {
+            e.preventDefault();
+            let pos = getMousePos(e);
+
+            if (currentTool === 'bucket') {
+                floodFill(pos.x, pos.y, brushColor);
+            } else {
+                isDrawing = true;
+                ctx.save();
+                ctx.clip(maskPath); // Sadece şeklin içini boyatır
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+            }
+        }
+
+        function drawAction(e) {
+            if (!isDrawing || (currentTool !== 'brush' && currentTool !== 'eraser')) return;
+            e.preventDefault();
+            let pos = getMousePos(e);
+            
+            ctx.lineWidth = brushSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = (currentTool === 'eraser') ? '#FFFFFF' : brushColor;
+
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        }
+
+        function endAction(e) {
+            if (currentTool === 'brush' || currentTool === 'eraser') {
+                isDrawing = false;
+                ctx.restore(); // Kırpmayı kaldır
+                // Sınırların hep belirgin kalması için üstünden geç
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = '#2c3e50';
+                ctx.stroke(maskPath);
+            }
+        }
+
+        canvas.addEventListener('mousedown', startAction);
+        window.addEventListener('mousemove', drawAction);
+        window.addEventListener('mouseup', endAction);
+        canvas.addEventListener('mouseleave', endAction);
+
+        canvas.addEventListener('touchstart', startAction, {passive: false});
+        window.addEventListener('touchmove', drawAction, {passive: false});
+        window.addEventListener('touchend', endAction);
+
+        function showToast(msg) {
+            let toast = document.getElementById('toast-msg');
+            toast.innerText = msg;
+            toast.style.opacity = 1;
+            setTimeout(() => { toast.style.opacity = 0; }, 2500);
+        }
+
+        function checkAnswer() {
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            
+            let totalShapePixels = 0;
+            let paintedPixels = 0;
+
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    if (ctx.isPointInPath(maskPath, x, y)) {
+                        let idx = (y * canvas.width + x) * 4;
+                        let r = data[idx], g = data[idx+1], b = data[idx+2];
+                        
+                        // Koyu çerçeve rengini sayıma dahil etme
+                        let isBorder = (r < 60 && g < 80 && b < 100);
+                        
+                        if (!isBorder) {
+                            totalShapePixels++;
+                            // Beyaz değilse boyalıdır
+                            if (r < 240 || g < 240 || b < 240) { 
+                                paintedPixels++; 
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (totalShapePixels === 0) return; 
+
+            let paintedRatio = paintedPixels / totalShapePixels;
+            let error = Math.abs(targetRatio - paintedRatio);
+            
+            let points = 0;
+            
+            // Fırça taşmaları için %4 tolerans bırakıyoruz
+            if (error <= 0.04) {
+                points = 1000;
+            } else if (error < 0.25) { 
+                let adjustedError = error - 0.04;
+                points = Math.round(1000 - (adjustedError * 4500)); 
+            }
+            
+            if (points < 0) points = 0;
+            if (points > 1000) points = 1000;
+
+            score += points;
+            
+            let scoreEl = document.getElementById('score-display');
+            scoreEl.innerText = score;
+            scoreEl.classList.add('pulse');
+            setTimeout(() => scoreEl.classList.remove('pulse'), 500);
+
+            let newLevel = Math.floor(score / 3000) + 1;
+            if(newLevel > level) {
+                level = newLevel;
+                document.getElementById('level-display').innerText = level;
+            }
+
+            // Geri bildirim panelini ve devam butonunu göster, kontrol butonunu gizle
+            document.getElementById('btn-check').style.display = 'none';
+            document.getElementById('btn-continue').style.display = 'block';
+            
+            let msgBox = document.getElementById('message-box');
+            msgBox.style.display = 'flex';
+            
+            // --- YENİ GERİ BİLDİRİM VERİLERİ (Öğrencinin Gerçek Boyaması) ---
+            document.getElementById('stat-target').innerText = currentLvlData.frac + " (" + currentLvlData.pct + ")";
+            document.getElementById('stat-painted').innerText = "%" + Math.round(paintedRatio * 100);
+            document.getElementById('stat-error').innerText = "%" + Math.round(error * 100);
+
+            let mainMsg = document.getElementById('main-msg');
+            
+            if (points === 1000) {
+                mainMsg.innerText = "🎯 KUSURSUZ! Tam İstenen Alan! (+1000 Puan)";
+                mainMsg.style.color = "#27ae60";
+                msgBox.style.borderColor = "#27ae60";
+            } else if (points >= 700) {
+                mainMsg.innerText = "Harika! Çok yakın bir boyama. (+" + points + ")";
+                mainMsg.style.color = "#2980b9";
+                msgBox.style.borderColor = "#2980b9";
+            } else if (points >= 400) {
+                mainMsg.innerText = "Güzel, ama biraz daha dikkat edebilirsin. (+" + points + ")";
+                mainMsg.style.color = "#f39c12";
+                msgBox.style.borderColor = "#f39c12";
+            } else if (points > 0) {
+                mainMsg.innerText = "Ucu ucuna kabul! Hedef alana dikkat et. (+" + points + ")";
+                mainMsg.style.color = "#e67e22";
+                msgBox.style.borderColor = "#e67e22";
+            } else {
+                mainMsg.innerText = "Hatalı Boyama! Hedef alandan çok uzaksın. (0 Puan)";
+                mainMsg.style.color = "#e74c3c";
+                msgBox.style.borderColor = "#e74c3c";
+            }
+        }
+
+        generateQuestion();
+    </script>
+</body>
+</html>

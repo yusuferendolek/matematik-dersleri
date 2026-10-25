@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Çark</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: Arial; text-align: center; }
+  canvas { margin: 20px; }
+  button { margin: 5px; padding: 10px; }
+</style>
+</head>
+<body>
+
+<h2>🎡 Çark</h2>
+
+<canvas id="wheel" width="300" height="300"></canvas>
+<br>
+<button onclick="spin()">Çevir</button>
+<button onclick="add100()">100 Veri Ekle</button>
+
+<h3 id="result">Sonuç:</h3>
+
+<h2>📊 Sonuç Grafiği</h2>
+<canvas id="chart" width="300" height="300"></canvas>
+
+<script>
+const colors = ["red", "blue", "green", "yellow"];
+const labels = ["Kırmızı", "Mavi", "Yeşil", "Sarı"];
+
+let results = [];
+
+// 🎯 Weighted seçim
+function pickColor() {
+  let rand = Math.random() * 100;
+
+  if (rand < 40) return 0;
+  else if (rand < 60) return 1;
+  else if (rand < 80) return 2;
+  else return 3;
+}
+
+// 🎡 Çark çizimi
+const wheel = document.getElementById("wheel");
+const ctx = wheel.getContext("2d");
+
+function drawWheel(rot) {
+  ctx.clearRect(0, 0, 300, 300);
+
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(150,150);
+    ctx.arc(
+      150,150,150,
+      (i*90 + rot) * Math.PI/180,
+      ((i+1)*90 + rot) * Math.PI/180
+    );
+    ctx.fillStyle = colors[i];
+    ctx.fill();
+  }
+
+  // 👉 SAĞDA OK
+  ctx.fillStyle = "black";
+  ctx.beginPath();
+  ctx.moveTo(150,60);
+  ctx.lineTo(140,-30);
+  ctx.lineTo(160,-30);
+  ctx.fill();
+}
+
+// 📊 Grafik
+const chartCtx = document.getElementById("chart").getContext("2d");
+
+const chart = new Chart(chartCtx, {
+  type: "pie",
+  data: {
+    labels: labels,
+    datasets: [{
+      data: [0,0,0,0],
+      backgroundColor: colors
+    }]
+  }
+});
+
+function updateChart() {
+  let counts = [0,0,0,0];
+
+  results.forEach(r => counts[r]++);
+
+  chart.data.datasets[0].data = counts;
+  chart.update();
+}
+
+// 🎬 Hızlı animasyon
+function spin() {
+  let selected = pickColor();
+  results.push(selected);
+
+  // 👉 SAĞ OKA GÖRE DÜZELTİLDİ
+  let targetAngle = 270 - (selected * 90 + 45);
+  targetAngle += Math.floor(Math.random() * 3 + 3) * 360;
+
+  let current = 0;
+
+  let anim = setInterval(() => {
+    current += 25;
+    drawWheel(current % 360);
+
+    if (current >= targetAngle) {
+      clearInterval(anim);
+
+      document.getElementById("result").innerText =
+        "Sonuç: " + labels[selected];
+
+      updateChart();
+    }
+  }, 10);
+}
+
+// ⚡ 100 veri ekleme
+function add100() {
+  for (let i = 0; i < 100; i++) {
+    results.push(pickColor());
+  }
+
+  updateChart();
+
+  document.getElementById("result").innerText =
+    "100 veri eklendi!";
+}
+
+// başlangıç
+drawWheel(0);
+
+</script>
+
+</body>
+</html>

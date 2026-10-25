@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uzay Geometrisi: Meteor Avcısı</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap');
+
+        body {
+            margin: 0;
+            background-color: #0b0c10;
+            color: #66fcf1;
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+        }
+
+        #hud {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 30px;
+            box-sizing: border-box;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: rgba(31, 40, 51, 0.8);
+            border-bottom: 2px solid #45a29e;
+            box-shadow: 0 5px 15px rgba(69, 162, 158, 0.2);
+            z-index: 100;
+        }
+
+        .hud-score { color: #c5c6c7; }
+        .hud-lives { color: #e74c3c; }
+
+        #game-area {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            flex: 1;
+            min-height: 400px;
+            margin-top: 15px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(69, 162, 158, 0.3);
+            border: 2px solid #1f2833;
+            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute; 
+            top: 0; left: 0;
+        }
+
+        /* --- ŞEFFAF AÇIÖLÇER (İLETKİ) --- */
+        #protractor-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 320px; /* Sayılar sığsın diye biraz büyüttük */
+            height: 160px;
+            transform-origin: 160px 150px; 
+            z-index: 50;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+        }
+
+        #protractor-svg {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        #protractor-svg:active { cursor: grabbing; }
+
+        #rotate-handle {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 50px;
+            background: #e74c3c;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 0 10px #e74c3c;
+            z-index: 60;
+        }
+        #rotate-handle::after {
+            content: '↻';
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        #pivot {
+            position: absolute;
+            left: 160px; /* SVG cx ile aynı */
+            top: 150px;  /* SVG cy ile aynı */
+            width: 1px;
+            height: 1px;
+        }
+
+        #controls {
+            width: 100%;
+            max-width: 900px;
+            background: #1f2833;
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            border-top: 2px solid #45a29e;
+            z-index: 100;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.2rem;
+            color: white;
+            background: #0b0c10;
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 2px solid #45a29e;
+        }
+
+        input[type="number"] {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            width: 90px;
+            text-align: center;
+            background: #1f2833;
+            color: #66fcf1;
+            border: 2px solid #66fcf1;
+            border-radius: 10px;
+            padding: 5px;
+            outline: none;
+            box-shadow: inset 0 0 10px rgba(69, 162, 158, 0.5);
+        }
+
+        .btn-fire {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            font-size: 1.2rem;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            transition: 0.1s;
+        }
+        .btn-fire span { font-size: 0.9rem; font-weight: 700; opacity: 0.9; }
+        
+        .btn-ccw { background: #3498db; box-shadow: 0 5px 0 #2980b9; }
+        .btn-ccw:active { transform: translateY(5px); box-shadow: none; }
+        .btn-cw { background: #e67e22; box-shadow: 0 5px 0 #d35400; }
+        .btn-cw:active { transform: translateY(5px); box-shadow: none; }
+        
+        .btn-fire:disabled { background: #7f8c8d; box-shadow: none; cursor: not-allowed; transform: none; }
+
+        #msg {
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: 900;
+            text-shadow: 0 0 20px #000;
+            z-index: 200;
+            pointer-events: none;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div class="hud-score">Puan: <span id="score-display">0</span></div>
+        <div style="font-size:1.1rem; color:#45a29e; text-align: center;">İletkinin tabanını mekiğin silik çizgisinden başlat!</div>
+        <div class="hud-lives">Can: <span id="lives-display">❤️❤️❤️</span></div>
+    </div>
+
+    <div id="game-area">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="protractor-container">
+            <div id="rotate-handle"></div>
+            <div id="pivot"></div> 
+            <svg id="protractor-svg" viewBox="0 0 320 160">
+                <!-- Arka plan Camı -->
+                <path d="M 10 150 A 150 150 0 0 1 310 150 Z" fill="rgba(69, 162, 158, 0.2)" stroke="#66fcf1" stroke-width="2"/>
+                <!-- İç Daire Kılavuzu -->
+                <path d="M 50 150 A 110 110 0 0 1 270 150 Z" fill="transparent" stroke="#66fcf1" stroke-width="1" stroke-dasharray="4"/>
+                <!-- Taban Çizgisi -->
+                <line x1="10" y1="150" x2="310" y2="150" stroke="#66fcf1" stroke-width="3"/>
+                <!-- Merkez Noktası (Kırmızı Menteşe) -->
+                <circle cx="160" cy="150" r="6" fill="#e74c3c" stroke="#fff" stroke-width="2"/>
+                
+                <g id="ticks-group"></g>
+            </svg>
+        </div>
+        
+        <div id="msg">VURULDU!</div>
+    </div>
+
+    <div id="controls">
+        <div class="input-group">
+            <label>Dönüş Miktarı:</label>
+            <input type="number" id="angle-input" placeholder="0" autocomplete="off">
+            <label>Derece</label>
+        </div>
+        <button class="btn-fire btn-ccw" id="btn-ccw" onclick="fireLaser('CCW')">
+            🚀 ATEŞLE
+            <span>↺ Saat Yönünün Tersi</span>
+        </button>
+        <button class="btn-fire btn-cw" id="btn-cw" onclick="fireLaser('CW')">
+            🚀 ATEŞLE
+            <span>↻ Saat Yönü</span>
+        </button>
+    </div>
+
+    <script>
+        // --- 1. AÇIÖLÇER ÇİZİMİ (ÇİFT TARAFLI VE 10 DERECE) ---
+        const ticksGroup = document.getElementById('ticks-group');
+        const cxSvg = 160;
+        const cySvg = 150;
+
+        for (let i = 0; i <= 180; i += 5) {
+            let rad = i * Math.PI / 180;
+            let rOuter = 150; 
+            // Her 10 derecede çentik uzun olur, 5 derecede kısa olur
+            let rInner = (i % 10 === 0) ? 130 : 140;
+            
+            // X ekseninde 0 derecenin sol tarafta olmasını sağlamak için eksi kullanıyoruz
+            let x1 = cxSvg - rOuter * Math.cos(rad);
+            let y1 = cySvg - rOuter * Math.sin(rad);
+            let x2 = cxSvg - rInner * Math.cos(rad);
+            let y2 = cySvg - rInner * Math.sin(rad);
+            
+            let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1); line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#66fcf1"); 
+            line.setAttribute("stroke-width", (i % 10 === 0) ? "2" : "1");
+            ticksGroup.appendChild(line);
+
+            // Sayıları Sadece Her 10 Derecede Bir Yaz
+            if (i % 10 === 0) {
+                // DIŞ YÖRÜNGE RAKAMLARI (Soldan Sağa: 0'dan 180'e)
+                let txOuter = cxSvg - 122 * Math.cos(rad);
+                let tyOuter = cySvg - 122 * Math.sin(rad);
+                let textOuter = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                textOuter.setAttribute("x", txOuter); textOuter.setAttribute("y", tyOuter);
+                textOuter.setAttribute("fill", "#fff"); textOuter.setAttribute("font-size", "10px");
+                textOuter.setAttribute("font-weight", "bold");
+                textOuter.setAttribute("font-family", "Nunito");
+                textOuter.setAttribute("text-anchor", "middle"); textOuter.setAttribute("dominant-baseline", "central");
+                textOuter.textContent = i;
+                ticksGroup.appendChild(textOuter);
+
+                // İÇ YÖRÜNGE RAKAMLARI (Sağdan Sola: 0'dan 180'e)
+                let txInner = cxSvg - 105 * Math.cos(rad);
+                let tyInner = cySvg - 105 * Math.sin(rad);
+                let textInner = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                textInner.setAttribute("x", txInner); textInner.setAttribute("y", tyInner);
+                textInner.setAttribute("fill", "#f39c12"); // İç kısım turuncu renkle ayırt ediliyor
+                textInner.setAttribute("font-size", "10px");
+                textInner.setAttribute("font-weight", "bold");
+                textInner.setAttribute("font-family", "Nunito");
+                textInner.setAttribute("text-anchor", "middle"); textInner.setAttribute("dominant-baseline", "central");
+                textInner.textContent = 180 - i;
+                ticksGroup.appendChild(textInner);
+            }
+        }
+
+        const protractor = document.getElementById('protractor-container');
+        const protractorSvg = document.getElementById('protractor-svg');
+        const rotateHandle = document.getElementById('rotate-handle');
+        const pivot = document.getElementById('pivot');
+
+        let isDragging = false, isRotating = false;
+        let pLeft = 50, pTop = 50, pAngle = 0;
+        let startX, startY, initialLeft, initialTop, initialAngle;
+
+        function startDrag(e) {
+            isDragging = true;
+            let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            startX = clientX; 
+            startY = clientY;
+            initialLeft = protractor.offsetLeft;
+            initialTop = protractor.offsetTop;
+        }
+
+        function startRotate(e) {
+            e.stopPropagation();
+            isRotating = true;
+            
+            let pivotRect = pivot.getBoundingClientRect();
+            let p_cx = pivotRect.left;
+            let p_cy = pivotRect.top;
+            
+            let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            initialAngle = Math.atan2(clientY - p_cy, clientX - p_cx) * 180 / Math.PI;
+            initialAngle = initialAngle - pAngle; 
+        }
+
+        function onMove(e) {
+            if (!isDragging && !isRotating) return;
+            if (e.cancelable) e.preventDefault(); 
+            
+            let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+            if (isDragging) {
+                let dx = clientX - startX;
+                let dy = clientY - startY;
+                protractor.style.left = (initialLeft + dx) + 'px';
+                protractor.style.top = (initialTop + dy) + 'px';
+            }
+            
+            if (isRotating) {
+                let pivotRect = pivot.getBoundingClientRect();
+                let p_cx = pivotRect.left;
+                let p_cy = pivotRect.top;
+                
+                let currentAngle = Math.atan2(clientY - p_cy, clientX - p_cx) * 180 / Math.PI;
+                pAngle = currentAngle - initialAngle;
+                protractor.style.transform = `rotate(${pAngle}deg)`;
+            }
+        }
+
+        function endAction() {
+            isDragging = false; 
+            isRotating = false;
+        }
+
+        protractorSvg.addEventListener('mousedown', startDrag);
+        rotateHandle.addEventListener('mousedown', startRotate);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', endAction);
+
+        protractorSvg.addEventListener('touchstart', startDrag, {passive: false});
+        rotateHandle.addEventListener('touchstart', startRotate, {passive: false});
+        window.addEventListener('touchmove', onMove, {passive: false});
+        window.addEventListener('touchend', endAction);
+
+        // --- OYUN MOTORU ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameArea = document.getElementById('game-area');
+        
+        let width, height, targetCx, targetCy;
+        let score = 0, lives = 3;
+        let targetMeteor = null;
+        let shipAngle = 0; 
+        let isFiring = false, laserProgress = 0;
+        let stars = [];
+        
+        function resize() {
+            width = gameArea.clientWidth; 
+            height = gameArea.clientHeight;
+            if (height < 400) height = 400; 
+            
+            canvas.width = width; 
+            canvas.height = height;
+            targetCx = width / 2; 
+            targetCy = height / 2;
+        }
+        window.addEventListener('resize', resize);
+
+        function spawnMeteor() {
+            let newAngle;
+            let currentNorm = ((shipAngle % 360) + 360) % 360; 
+            
+            do { newAngle = Math.floor(Math.random() * 72) * 5; } 
+            while (Math.abs(newAngle - currentNorm) < 15 || Math.abs(newAngle - currentNorm) > 345);
+            
+            let angleRad = newAngle * Math.PI / 180;
+            let radius = Math.min(width, height) * 0.4;
+            
+            targetMeteor = {
+                angle: newAngle, distance: radius,
+                x: targetCx + radius * Math.cos(angleRad), y: targetCy - radius * Math.sin(angleRad),
+                radius: 30, isExploding: false, explosionFrames: 0
+            };
+            document.getElementById('angle-input').value = "";
+            document.getElementById('angle-input').focus();
+        }
+
+        function initStars() {
+            stars = Array.from({length: 100}).map(() => ({
+                x: Math.random() * 2000 - 500, y: Math.random() * 2000 - 500, size: Math.random() * 2
+            }));
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, width, height);
+
+            ctx.fillStyle = '#fff';
+            stars.forEach(s => {
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
+            });
+
+            if (targetMeteor) {
+                if (!targetMeteor.isExploding) {
+                    ctx.fillStyle = '#f39c12'; ctx.shadowBlur = 20; ctx.shadowColor = '#e67e22';
+                    ctx.beginPath(); ctx.arc(targetMeteor.x, targetMeteor.y, targetMeteor.radius, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#d35400';
+                    ctx.beginPath(); ctx.arc(targetMeteor.x - 10, targetMeteor.y - 5, 5, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(targetMeteor.x + 8, targetMeteor.y + 10, 7, 0, Math.PI*2); ctx.fill();
+                    ctx.shadowBlur = 0;
+                } else {
+                    ctx.fillStyle = `rgba(231, 76, 60, ${1 - targetMeteor.explosionFrames/30})`;
+                    ctx.beginPath(); ctx.arc(targetMeteor.x, targetMeteor.y, targetMeteor.radius + targetMeteor.explosionFrames*2, 0, Math.PI*2); ctx.fill();
+                    targetMeteor.explosionFrames++;
+                    if(targetMeteor.explosionFrames > 30) { targetMeteor = null; if(lives > 0) spawnMeteor(); }
+                }
+            }
+
+            ctx.save();
+            ctx.translate(targetCx, targetCy);
+            ctx.rotate(-shipAngle * Math.PI / 180); 
+            
+            // Silik İşaret Çizgisi
+            ctx.strokeStyle = "rgba(102, 252, 241, 0.5)";
+            ctx.lineWidth = 2; ctx.setLineDash([10, 15]);
+            ctx.beginPath(); ctx.moveTo(35, 0); ctx.lineTo(Math.max(width, height), 0); ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Mekik
+            ctx.fillStyle = '#c5c6c7';
+            ctx.beginPath(); ctx.moveTo(30, 0); ctx.lineTo(-20, 20); ctx.lineTo(-10, 0); ctx.lineTo(-20, -20); ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#66fcf1'; ctx.lineWidth = 2; ctx.stroke();
+
+            // Lazer
+            if (isFiring) {
+                ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 6; ctx.shadowBlur = 20; ctx.shadowColor = '#e74c3c';
+                ctx.beginPath(); ctx.moveTo(35, 0); ctx.lineTo(35 + laserProgress, 0); ctx.stroke();
+                ctx.shadowBlur = 0;
+                laserProgress += 40; 
+                if (laserProgress > Math.max(width, height)) { isFiring = false; checkHit(); }
+            }
+            ctx.restore();
+            requestAnimationFrame(drawGame);
+        }
+
+        function fireLaser(direction) {
+            let inputVal = document.getElementById('angle-input').value;
+            if (inputVal === "" || isFiring || !targetMeteor || targetMeteor.isExploding) return;
+            
+            let turnAngle = parseFloat(inputVal);
+            if (direction === 'CCW') shipAngle += turnAngle;
+            else if (direction === 'CW') shipAngle -= turnAngle;
+
+            document.getElementById('btn-ccw').disabled = true;
+            document.getElementById('btn-cw').disabled = true;
+            
+            setTimeout(() => { isFiring = true; laserProgress = 0; }, 300);
+        }
+
+        function checkHit() {
+            document.getElementById('btn-ccw').disabled = false;
+            document.getElementById('btn-cw').disabled = false;
+            
+            let errorDeg = Math.abs(shipAngle - targetMeteor.angle);
+            let errorRad = errorDeg * Math.PI / 180;
+            
+            let shortestDistance = targetMeteor.distance * Math.sin(errorRad);
+            let isPointingTowards = Math.cos(errorRad) > 0;
+            
+            if (shortestDistance <= targetMeteor.radius && isPointingTowards) {
+                targetMeteor.isExploding = true; score += 1000;
+                document.getElementById('score-display').innerText = score;
+                showMessage("🎯 TAM İSABET!", "#2ecc71");
+            } else {
+                lives--; updateLives();
+                showMessage("❌ ISKALADIN!", "#e74c3c");
+                if (lives <= 0) setTimeout(() => { alert("OYUN BİTTİ! Toplam Puanın: " + score); location.reload(); }, 1000);
+            }
+        }
+
+        function showMessage(text, color) {
+            let msg = document.getElementById('msg');
+            msg.innerText = text; msg.style.color = color; msg.style.display = 'block';
+            setTimeout(() => { msg.style.display = 'none'; }, 1500);
+        }
+
+        function updateLives() {
+            let h = "";
+            for(let i=0; i<lives; i++) h+="❤️";
+            for(let i=lives; i<3; i++) h+="🖤";
+            document.getElementById('lives-display').innerText = h;
+        }
+
+        window.onload = function() {
+            resize();
+            initStars();
+            spawnMeteor();
+            drawGame();
+        };
+
+    </script>
+</body>
+</html>

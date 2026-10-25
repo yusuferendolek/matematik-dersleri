@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Açı Tahmin Oyunu</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap');
+
+        body {
+            font-family: 'Baloo 2', cursive;
+            margin: 0;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: #ecf0f1;
+            user-select: none;
+            touch-action: none;
+        }
+
+        #hud {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 30px;
+            box-sizing: border-box;
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .hud-score { color: #2ecc71; text-shadow: 1px 1px 2px #000; }
+        .hud-level { color: #f1c40f; text-shadow: 1px 1px 2px #000; }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 15px 0 5px 0;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .instruction {
+            font-size: 1.2rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            background: #f1c40f;
+            padding: 8px 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            gap: 15px;
+            padding-bottom: 30px;
+        }
+
+        .target-box {
+            background: #e74c3c;
+            padding: 10px 40px;
+            border-radius: 25px;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: white;
+            box-shadow: 0 6px 0 #c0392b;
+            border: 4px solid #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.2;
+        }
+        .target-subtitle { font-size: 1.1rem; opacity: 0.9; }
+
+        .canvas-container {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 50%;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3), inset 0 0 50px rgba(0,0,0,0.5);
+            border: 4px dashed rgba(255,255,255,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .btn-check {
+            font-family: 'Baloo 2', cursive;
+            font-size: 2rem;
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 15px 60px;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #219a52;
+            transition: 0.1s;
+            margin-top: 10px;
+        }
+        .btn-check:active { transform: translateY(6px); box-shadow: none; }
+
+        /* YENİ NESİL GERİ BİLDİRİM PANELİ (Ekranı kapatmaz, butona dönüşür) */
+        #feedback-panel {
+            background: rgba(255, 255, 255, 0.98); 
+            padding: 20px 40px; 
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
+            text-align: center;
+            border: 5px solid #3498db; 
+            display: none; 
+            flex-direction: column; 
+            gap: 10px;
+            color: #2c3e50;
+            width: 90%;
+            max-width: 500px;
+            animation: slideUp 0.4s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fb-title { font-size: 2rem; font-weight: 900; color: #3498db; }
+        .fb-stats { font-size: 1.3rem; color: #34495e; font-weight: 700; background: #ecf0f1; padding: 15px; border-radius: 15px; margin: 5px 0;}
+        .fb-stats span { font-weight: 900; font-size: 1.6rem; }
+        
+        /* Geri Bildirimdeki Renk Uyumu */
+        .color-target { color: #3498db; } /* Mavi Doğru Açı */
+        .color-user { color: #e74c3c; }   /* Kırmızı Kullanıcı Açısı */
+        .color-error { color: #f39c12; }  /* Turuncu Hata Payı */
+
+        .btn-continue {
+            background: #9b59b6; color: white; border: none; padding: 12px 25px;
+            border-radius: 12px; font-size: 1.5rem; font-weight: 900; cursor: pointer;
+            box-shadow: 0 5px 0 #8e44ad; font-family: 'Baloo 2', cursive;
+            margin-top: 5px;
+        }
+        .btn-continue:active { transform: translateY(5px); box-shadow: none; }
+
+        .pulse { animation: pulseAnim 0.5s; }
+        @keyframes pulseAnim { 50% { transform: scale(1.2); } }
+
+        .legend {
+            display: none;
+            font-size: 1.1rem;
+            gap: 15px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .legend span { display: flex; align-items: center; gap: 5px; }
+        .dot-blue { width: 12px; height: 12px; background: #3498db; border-radius: 50%; display: inline-block; }
+        .dot-red { width: 12px; height: 12px; background: #e74c3c; border-radius: 50%; display: inline-block; }
+
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div class="hud-level">Soru: <span id="level-display">1</span></div>
+        <div class="hud-score">Puan: <span id="score-display">0</span></div>
+    </div>
+
+    <h1>Açı Tahmincisi</h1>
+    <div class="instruction">Hareketli ışını sürükleyerek hedeflenen açıyı göz kararı oluştur!</div>
+
+    <div class="workspace">
+        <div class="target-box">
+            <span class="target-subtitle">Oluşturman Gereken Açı</span>
+            <span id="target-angle">45°</span>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="angleCanvas" width="400" height="400"></canvas>
+        </div>
+        
+        <!-- Renk açıklaması (Sadece sonuca bakıldığında görünür) -->
+        <div class="legend" id="legend">
+            <span><div class="dot-blue"></div> Gerçek Hedef</span>
+            <span><div class="dot-red" id="legend-user-dot"></div> Senin Çizdiğin</span>
+        </div>
+
+        <button class="btn-check" onclick="checkAngle()" id="btn-check">Açıyı Sabitle & Kontrol Et</button>
+        
+        <!-- ALT KISMA AÇILAN GERİ BİLDİRİM PANELİ -->
+        <div id="feedback-panel">
+            <div class="fb-title" id="fb-title">HARİKA!</div>
+            <div class="fb-stats">
+                Gerçek Hedef: <span class="color-target" id="fb-target">45°</span><br>
+                Senin Çizdiğin: <span class="color-user" id="fb-actual">48°</span><br>
+                Hata Payı: <span class="color-error" id="fb-error">3°</span>
+            </div>
+            <button class="btn-continue" onclick="nextQuestion()">Sıradaki Soru ➔</button>
+        </div>
+    </div>
+
+    <script>
+        let score = 0;
+        let questionIndex = 1;
+        let targetAngle = 0;
+        let currentAngle = 0; 
+        
+        const canvas = document.getElementById('angleCanvas');
+        const ctx = canvas.getContext('2d');
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const radius = 150;
+
+        let isDragging = false;
+        let isResultShowing = false;
+
+        function generateTargetAngle() {
+            let min = 0, max = 0;
+          
+            if (questionIndex <= 3) {
+                // Soru 1-3: Dar ve Dik açılar (15° - 90°)
+                min = 0; max = 90;
+            } else if (questionIndex <= 6) {
+                // Soru 4-6: Geniş ve Doğru açılar (95° - 180°)
+                min = 91; max = 180;
+            } else if (questionIndex <= 9) {
+                // Soru 7-9: Taşkın (Refleks) açılar (185° - 270°)
+                min = 181; max = 270;
+            } else {
+                // Soru 10+: Tam açıya yaklaşanlar (275° - 355°)
+                min = 271; max = 359;
+            }
+
+            // Açıların 5'in katı olması çocuklar için daha kavranabilirdir
+            let rangeOpts = [];
+            for (let i = min; i <= max; i += 1) {
+                rangeOpts.push(i);
+            }
+            
+            targetAngle = rangeOpts[Math.floor(Math.random() * rangeOpts.length)];
+            document.getElementById('target-angle').innerText = targetAngle + "°";
+        }
+
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Arka Plan Kılavuz Çemberi
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Merkez Noktası
+            ctx.beginPath();
+            ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff";
+            ctx.fill();
+
+            // 2. SABİT IŞIN (0 Derece çizgisi)
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + radius, cy);
+            ctx.strokeStyle = "#ecf0f1";
+            ctx.lineWidth = 6;
+            ctx.lineCap = "round";
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(cx + radius + 10, cy);
+            ctx.lineTo(cx + radius - 10, cy - 10);
+            ctx.lineTo(cx + radius - 10, cy + 10);
+            ctx.fillStyle = "#ecf0f1";
+            ctx.fill();
+
+            // 3. YENİ EKLENTİ: GERÇEK HEDEFİ GÖSTERME (Sadece sonuç açıklandığında)
+            if (isResultShowing) {
+                let targetRad = targetAngle * Math.PI / 180;
+                let correctX = cx + radius * Math.cos(targetRad);
+                let correctY = cy - radius * Math.sin(targetRad);
+
+                // Hedef Açının Mavi Yayı
+                ctx.beginPath();
+                ctx.arc(cx, cy, 65, 0, -targetAngle * Math.PI / 180, true);
+                ctx.strokeStyle = "rgba(52, 152, 219, 0.6)"; // Açık mavi, biraz şeffaf
+                ctx.lineWidth = 15;
+                ctx.stroke();
+
+                // Hedef Işın (Kesik Çizgili Mavi)
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(correctX, correctY);
+                ctx.strokeStyle = "#3498db"; 
+                ctx.lineWidth = 5;
+                ctx.lineCap = "round";
+                ctx.setLineDash([10, 10]); // Kesik çizgi efekti
+                ctx.stroke();
+                ctx.setLineDash([]); // Diğer çizimleri etkilemesin diye sıfırlıyoruz
+                
+                // Gerçek hedefin ucu
+                ctx.beginPath();
+                ctx.arc(correctX, correctY, 6, 0, Math.PI * 2);
+                ctx.fillStyle = "#3498db";
+                ctx.fill();
+            }
+
+            // 4. KULLANICININ OLUŞTURDUĞU AÇI (Yay)
+            if (currentAngle > 0) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, 40, 0, -currentAngle * Math.PI / 180, true);
+                // Sonuç gösteriliyorsa, kullanıcı tam bildiyse yeşil, bilemediyse kendi rengi kalır
+                ctx.strokeStyle = (isResultShowing && currentAngle === targetAngle) ? "rgba(46, 204, 113, 0.6)" : "rgba(241, 196, 15, 0.6)";
+                ctx.lineWidth = 25;
+                ctx.stroke();
+            }
+
+            // 5. KULLANICININ HAREKETLİ IŞINI
+            let rad = currentAngle * Math.PI / 180;
+            let targetX = cx + radius * Math.cos(rad);
+            let targetY = cy - radius * Math.sin(rad);
+
+            let userColor = isResultShowing ? 
+                (currentAngle === targetAngle ? "#2ecc71" : "#e74c3c") // Tam isabetse yeşil, yoksa kırmızı
+                : "#e74c3c"; // Hareket ederken kırmızı
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(targetX, targetY);
+            ctx.strokeStyle = userColor;
+            ctx.lineWidth = 8;
+            ctx.lineCap = "round";
+            ctx.stroke();
+
+            // Kullanıcı Işının Tutma Kolu
+            ctx.beginPath();
+            ctx.arc(targetX, targetY, 15, 0, Math.PI * 2);
+            ctx.fillStyle = userColor;
+            ctx.fill();
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        function calculateAngle(clientX, clientY) {
+            let rect = canvas.getBoundingClientRect();
+            let x = clientX - rect.left;
+            let y = clientY - rect.top;
+
+            let dx = x - cx;
+            let dy = cy - y; 
+
+            let angleRad = Math.atan2(dy, dx);
+            let angleDeg = angleRad * 180 / Math.PI;
+
+            if (angleDeg < 0) angleDeg += 360;
+            return Math.round(angleDeg);
+        }
+
+        function startDrag(e) {
+            if (isResultShowing) return;
+            e.preventDefault();
+            isDragging = true;
+            let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            currentAngle = calculateAngle(clientX, clientY);
+            drawScene();
+        }
+
+        function onDrag(e) {
+            if (!isDragging || isResultShowing) return;
+            e.preventDefault();
+            let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            currentAngle = calculateAngle(clientX, clientY);
+            drawScene();
+        }
+
+        function endDrag(e) { isDragging = false; }
+
+        canvas.addEventListener('mousedown', startDrag);
+        window.addEventListener('mousemove', onDrag);
+        window.addEventListener('mouseup', endDrag);
+        canvas.addEventListener('mouseleave', endDrag);
+        canvas.addEventListener('touchstart', startDrag, {passive: false});
+        window.addEventListener('touchmove', onDrag, {passive: false});
+        window.addEventListener('touchend', endDrag);
+
+        function checkAngle() {
+            if (isResultShowing) return;
+            isResultShowing = true;
+            
+            document.getElementById('btn-check').style.display = 'none';
+
+            let error = Math.abs(targetAngle - currentAngle);
+            if (error > 180) error = 360 - error;
+
+            let points = 0; let title = ""; let color = "";
+
+       if (error === 0) {
+                points = 1000;
+                title = "🎯 KUSURSUZ! Tıpatıp Aynı!";
+                color = "#27ae60";
+            } else if (error <= 3) {
+                points = 900;
+                title = "🎉 MÜKEMMEL! Çok Yaklaştın!";
+                color = "#2980b9";
+            } else if (error <= 5) {
+                points = 800;
+                title = "👍 GÜZEL TAHMİN!";
+                color = "#f39c12";
+ 	    } else if (error <= 10) {
+                points = 700;
+                title = "😊 GAYET İYİ";
+                color = "#f39c12";
+            } else if (error <= 25) {
+                points = 500;
+                title = "🤔 FENA DEĞİL!";
+                color = "#e67e22";
+            } else {
+                points = 0;
+                title = "❌ ISKALADIN! Biraz Daha Pratik!";
+                color = "#e74c3c";
+            }
+
+            score += points;
+            let scoreEl = document.getElementById('score-display');
+            scoreEl.innerText = score;
+            scoreEl.classList.add('pulse');
+            setTimeout(() => scoreEl.classList.remove('pulse'), 500);
+
+            // Paneli güncelle
+            let fbPanel = document.getElementById('feedback-panel');
+            document.getElementById('fb-title').innerText = title + " (+" + points + " Puan)";
+            document.getElementById('fb-title').style.color = color;
+            fbPanel.style.borderColor = color;
+
+            document.getElementById('fb-target').innerText = targetAngle + "°";
+            
+            // Eğer tam isabetse kırmızı yerine yeşil yazsın
+            let userStatColor = (error === 0) ? "#27ae60" : "#e74c3c";
+            document.getElementById('fb-actual').innerText = currentAngle + "°";
+            document.getElementById('fb-actual').style.color = userStatColor;
+            document.getElementById('legend-user-dot').style.background = userStatColor;
+            
+            document.getElementById('fb-error').innerText = error + "°";
+
+            document.getElementById('legend').style.display = 'flex'; // Renk açıklamasını göster
+            
+            drawScene(); // Gerçek açıyı çizdirmek için tetikliyoruz
+            fbPanel.style.display = 'flex';
+        }
+
+        function nextQuestion() {
+            document.getElementById('feedback-panel').style.display = 'none';
+            document.getElementById('legend').style.display = 'none';
+            document.getElementById('btn-check').style.display = 'block';
+            
+            questionIndex++;
+            document.getElementById('level-display').innerText = questionIndex;
+            
+            isResultShowing = false;
+            currentAngle = 0; 
+            
+            generateTargetAngle();
+            drawScene();
+        }
+
+        generateTargetAngle();
+        drawScene();
+    </script>
+</body>
+</html>

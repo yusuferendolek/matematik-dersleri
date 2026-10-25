@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kesir Avcısı: Sayı Doğrusu</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap');
+
+        body {
+            font-family: 'Baloo 2', cursive;
+            margin: 0;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            color: #2c3e50;
+        }
+
+        /* HUD (Menü) */
+        #hud {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 20px;
+            box-sizing: border-box;
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        .hud-score { color: #27ae60; font-size: 1.8rem; }
+        .hud-level { color: #8e44ad; }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin: 10px 0 0 0;
+            color: #34495e;
+            text-shadow: 2px 2px white;
+        }
+
+        .instruction {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        /* Soru Kutusu */
+        .question-box {
+            background: white;
+            padding: 20px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            border: 4px dashed #3498db;
+            transition: all 0.3s;
+        }
+
+        .question-text {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        /* Kesir Görünümü */
+        .fraction-container {
+            display: flex;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #e74c3c;
+        }
+        .whole-number { margin-right: 8px; }
+        .fraction {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.1;
+        }
+        .numerator { border-bottom: 4px solid #e74c3c; padding: 0 5px; }
+        .denominator { padding: 0 5px; }
+
+        /* Sayı Doğrusu Alanı */
+        .number-line-container {
+            width: 100%;
+            max-width: 900px;
+            height: 120px;
+            position: relative;
+            margin-top: 40px;
+        }
+
+        /* Tıklanabilir geniş alan (Sadece %5 ile %95 arası - sayılar arası) */
+        .click-area {
+            position: absolute;
+            top: 20px;
+            left: 5%;
+            right: 5%;
+            height: 80px;
+            z-index: 10;
+            cursor: crosshair;
+        }
+
+        /* Ana Çizgi ve Oklar (Okları uzaklaştırmak için %5 yerine %1.5 genişliğe çekildi) */
+        .main-line {
+            position: absolute;
+            top: 60px;
+            left: 1.5%;
+            right: 1.5%;
+            height: 6px;
+            background: #34495e;
+            border-radius: 3px;
+        }
+
+        /* Sayı doğrusunun sonsuza uzadığını belirten oklar */
+        .main-line::before {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: -7px;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-right: 15px solid #34495e;
+        }
+        .main-line::after {
+            content: '';
+            position: absolute;
+            right: -15px;
+            top: -7px;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-left: 15px solid #34495e;
+        }
+
+        /* Çentikler ve Rakamlar */
+        .tick {
+            position: absolute;
+            top: 45px;
+            width: 6px;
+            height: 36px;
+            background: #34495e;
+            border-radius: 3px;
+            transform: translateX(-50%);
+            transition: all 0.5s ease;
+        }
+
+        .tick-label {
+            position: absolute;
+            top: 90px;
+            transform: translateX(-50%);
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #2c3e50;
+            transition: all 0.5s ease;
+        }
+
+        /* İğne (Kullanıcının Tahmini) */
+        .pin {
+            position: absolute;
+            top: 58px; 
+            font-size: 3rem;
+            transform: translate(-50%, -100%);
+            pointer-events: none;
+            transition: left 0.1s ease-out;
+            z-index: 20;
+            display: none;
+            text-shadow: 0 5px 10px rgba(0,0,0,0.3);
+        }
+
+        /* Kesin Sonuç Çizgisi (Sayı doğrusunu kesen küçük doğru parçası) */
+        .exact-mark {
+            position: absolute;
+            top: 40px;
+            width: 6px;
+            height: 46px; 
+            background-color: #27ae60;
+            transform: translateX(-50%);
+            display: none;
+            z-index: 15;
+            box-shadow: 0 0 10px #27ae60;
+            border-radius: 3px;
+        }
+
+        .btn-check {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1.8rem;
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 40px;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #2980b9;
+            margin-top: 20px;
+            transition: 0.1s;
+        }
+
+        .btn-check:active { transform: translateY(6px); box-shadow: none; }
+        .btn-check:disabled { background: #95a5a6; box-shadow: 0 6px 0 #7f8c8d; cursor: not-allowed; }
+
+        #message {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-top: 15px;
+            min-height: 35px;
+            text-align: center;
+        }
+
+        /* Oyun Sonu Ekranı */
+        #game-over {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(44, 62, 80, 0.98); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 100; color: white; text-align: center;
+        }
+        
+        .hidden { display: none !important; }
+        #game-over h2 { font-size: 5rem; color: #f1c40f; margin: 0 0 20px 0; text-shadow: 0 0 20px #f39c12; }
+        #game-over p { font-size: 2.2rem; margin: 10px 0; }
+        
+        /* Seviye atlama bildirimi */
+        .level-up-anim { animation: flashLevel 1s; }
+        @keyframes flashLevel {
+            0% { transform: scale(1); color: #8e44ad; }
+            50% { transform: scale(1.3); color: #f1c40f; text-shadow: 0 0 10px #f1c40f;}
+            100% { transform: scale(1); color: #8e44ad; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div class="hud-level" id="level-container">Aralık: <span id="range-display">0 - 1</span></div>
+        <div class="hud-score">Toplam Puan: <span id="score-display">0</span></div>
+    </div>
+
+    <h1>Kesir Avcısı</h1>
+    <div class="instruction">Tıklayarak iğneyi kesrin olduğu yere tam olarak yerleştirmeye çalış! (Max 1000 Puan)</div>
+
+    <div class="question-box" id="q-box">
+        <div class="question-text">Sayı doğrusunda bul:</div>
+        <div id="fraction-display" class="fraction-container"></div>
+    </div>
+
+    <div class="number-line-container">
+        <!-- Tıklama alanı (Sayı doğrusunun görünür uzunluğu kadar) -->
+        <div class="click-area" id="click-area"></div>
+        
+        <!-- Çizgi ve Oklar (Sayılardan daha geniş) -->
+        <div class="main-line"></div>
+        
+        <!-- Çentikler JS ile eklenecek -->
+        <div id="ticks-container"></div>
+
+        <!-- Öğrencinin İğnesi -->
+        <div class="pin" id="user-pin">📍</div>
+        <!-- Tam Sonucu Gösteren Doğru Parçası -->
+        <div class="exact-mark" id="exact-mark"></div>
+    </div>
+
+    <button class="btn-check" id="btn-check" onclick="checkAnswer()" disabled>Tahmin Et!</button>
+    <div id="message"></div>
+
+    <!-- Kazanma / Oyun Sonu Ekranı -->
+    <div id="game-over" class="hidden">
+        <h2>🎉 KAZANDINIZ! 🎉</h2>
+        <p>Tüm sayı doğrusu aralıklarını başarıyla tamamladın!</p>
+        <p>Muhteşem Puanın: <span id="final-score">0</span></p>
+        <button class="btn-check" onclick="location.reload()" style="margin-top: 40px;">Yeniden Başla</button>
+    </div>
+
+    <script>
+        let score = 0;
+        let maxVal = 1; // Sayı doğrusunun sağ ucu (Başlangıçta 0-1)
+        let isChecking = false;
+        
+        let targetValue = 0; 
+        let userGuessValue = null; 
+
+        const clickArea = document.getElementById('click-area');
+        const userPin = document.getElementById('user-pin');
+        const exactMark = document.getElementById('exact-mark');
+        const btnCheck = document.getElementById('btn-check');
+        const messageDisplay = document.getElementById('message');
+        const ticksContainer = document.getElementById('ticks-container');
+
+        // Sayı doğrusunun çentiklerini dinamik oluşturma
+        function drawNumberLine() {
+            ticksContainer.innerHTML = '';
+            for (let i = 0; i <= maxVal; i++) {
+                // Sayıların %5 ile %95 arasında dizilimi devam ediyor
+                let pct = 5 + (i / maxVal) * 90; 
+                ticksContainer.innerHTML += `
+                    <div class="tick" style="left: ${pct}%;"></div>
+                    <div class="tick-label" style="left: ${pct}%;">${i}</div>
+                `;
+            }
+            document.getElementById('range-display').innerText = `0 - ${maxVal}`;
+        }
+
+        // Farenin tıklandığı yeri hesaplama
+        clickArea.addEventListener('mousedown', function(e) {
+            if (isChecking) return;
+
+            const rect = clickArea.getBoundingClientRect();
+            let clickX = e.clientX - rect.left;
+            
+            if(clickX < 0) clickX = 0;
+            if(clickX > rect.width) clickX = rect.width;
+
+            // X pozisyonunu % olarak hesapla (Tıklama alanı 0'dan 1'e)
+            let percentage = (clickX / rect.width);
+            
+            // İğneyi yerleştir (%5 - %95 aralığına oturtarak)
+            let visualLeft = 5 + (percentage * 90);
+            userPin.style.left = visualLeft + '%';
+            userPin.style.display = 'block';
+
+            // Tahmin edilen gerçek matematiksel değer
+            userGuessValue = percentage * maxVal;
+            
+            btnCheck.disabled = false; 
+        });
+
+        function generateQuestion() {
+            isChecking = false;
+            userGuessValue = null;
+            userPin.style.display = 'none';
+            exactMark.style.display = 'none';
+            btnCheck.disabled = true;
+            messageDisplay.innerText = "";
+
+            // --- ZORLUK (ARALIK) KONTROLÜ ---
+            // Her 5000 puanda sayı doğrusu 1 birim uzar. (Maksimum 5'e kadar)
+            let newMaxVal = Math.floor(score / 5000) + 1;
+            if (newMaxVal > 5) {
+                // 25.000 puan veya üstü ise KAZANDINIZ ekranı
+                document.getElementById('final-score').innerText = score;
+                document.getElementById('game-over').classList.remove('hidden');
+                return;
+            }
+
+            // Sayı doğrusu genişliyorsa arayüzü güncelle
+            if (newMaxVal !== maxVal) {
+                maxVal = newMaxVal;
+                drawNumberLine();
+                let lvl = document.getElementById('level-container');
+                lvl.classList.remove('level-up-anim');
+                void lvl.offsetWidth; // Reflow
+                lvl.classList.add('level-up-anim');
+            }
+
+            // --- KESİR ÜRETİMİ ---
+            let denominators = [2, 3, 4, 5, 6, 8, 10];
+            let den = denominators[Math.floor(Math.random() * denominators.length)];
+            let num;
+            
+            do {
+                // Eğer maxVal = 1 ise sadece basit kesir üretir (num < den).
+                // MaxVal > 1 ise bileşik kesirler de üretebilir.
+                num = Math.floor(Math.random() * (maxVal * den - 1)) + 1;
+            } while (num % den === 0); // Tam sayılara denk gelmesin
+
+            targetValue = num / den;
+
+            // Kesri Ekrana Yazdırma (Bileşik veya Tam Sayılı olarak rastgele)
+            let showAsMixed = (maxVal > 1 && num > den && Math.random() > 0.4);
+            let fractionHTML = "";
+
+            if (showAsMixed) {
+                let whole = Math.floor(num / den);
+                let remainder = num % den;
+                fractionHTML = `
+                    <div class="whole-number">${whole}</div>
+                    <div class="fraction">
+                        <span class="numerator">${remainder}</span>
+                        <span class="denominator">${den}</span>
+                    </div>
+                `;
+            } else {
+                fractionHTML = `
+                    <div class="fraction">
+                        <span class="numerator">${num}</span>
+                        <span class="denominator">${den}</span>
+                    </div>
+                `;
+            }
+
+            document.getElementById('fraction-display').innerHTML = fractionHTML;
+        }
+
+        function checkAnswer() {
+            isChecking = true;
+            btnCheck.disabled = true;
+
+            // 1. TAM SONUCU (Yeşil Doğru Parçasını) GÖSTER
+            let correctVisualLeft = 5 + ((targetValue / maxVal) * 90);
+            exactMark.style.left = correctVisualLeft + '%';
+            exactMark.style.display = 'block';
+
+            // 2. HATA PAYI VE PUAN HESAPLAMA (Max 1000 Puan)
+            let error = Math.abs(userGuessValue - targetValue);
+            
+            // Tolerans: Sayı doğrusunun %25'inden fazla saparsa 0 puan alır.
+            let maxErrorAllowed = maxVal * 0.25; 
+            let points = 0;
+
+            if (error <= maxVal * 0.01) {
+                // %1'lik hata payı içinde ise "Kusursuz!" sayılır
+                points = 1000;
+            } else if (error < maxErrorAllowed) {
+                // Hata ne kadar küçükse puan o kadar 1000'e yakın olur
+                let errorRatio = error / maxErrorAllowed; 
+                points = Math.round(1000 * (1 - errorRatio));
+            }
+
+            // Puanı Ekle
+            score += points;
+            
+            // Skoru animasyonla artır
+            let scoreEl = document.getElementById('score-display');
+            scoreEl.innerText = score;
+            scoreEl.style.transform = "scale(1.3)";
+            scoreEl.style.color = "#f39c12";
+            setTimeout(() => {
+                scoreEl.style.transform = "scale(1)";
+                scoreEl.style.color = "#27ae60";
+            }, 300);
+
+            // Geri Bildirim Mesajı
+            if (points === 1000) {
+                messageDisplay.style.color = '#27ae60';
+                messageDisplay.innerText = "🎯 KUSURSUZ! Tam Üstüne Bastın! (+1000 Puan)";
+            } else if (points >= 700) {
+                messageDisplay.style.color = '#2980b9';
+                messageDisplay.innerText = `Harika tahmin! Çok yaklaştın. (+${points} Puan)`;
+            } else if (points >= 300) {
+                messageDisplay.style.color = '#f39c12';
+                messageDisplay.innerText = `Fena değil, ama biraz daha dikkatli olmalısın. (+${points} Puan)`;
+            } else if (points > 0) {
+                messageDisplay.style.color = '#e67e22';
+                messageDisplay.innerText = `Ucu ucuna puan kaptın. Kesirlerin yerini iyi düşün! (+${points} Puan)`;
+            } else {
+                messageDisplay.style.color = '#e74c3c';
+                messageDisplay.innerText = `Maalesef çok uzak kaldın... Yeşil çizgiye bak! (0 Puan)`;
+            }
+
+            // 3 saniye sonra yeni soruya geç
+            setTimeout(generateQuestion, 3000);
+        }
+
+        // Oyunu Başlat
+        drawNumberLine();
+        generateQuestion();
+    </script>
+</body>
+</html>

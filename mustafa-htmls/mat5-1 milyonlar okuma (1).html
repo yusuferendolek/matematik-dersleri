@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uzay Savunması: Milyonlar</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0b0c10;
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            height: 90vh;
+            background: radial-gradient(circle at bottom, #1f2833 0%, #0b0c10 100%);
+            position: relative;
+            border: 2px solid #45a29e;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 20px #45a29e;
+        }
+
+        /* Yıldızlar Efekti */
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: transparent url('https://www.transparenttextures.com/patterns/stardust.png') repeat top center;
+            animation: moveStars 50s linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes moveStars {
+            from { background-position: 0 0; }
+            to { background-position: 0 1000px; }
+        }
+
+        /* Arayüz (HUD) */
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+            font-size: 16px;
+            text-shadow: 0 0 5px #66fcf1;
+        }
+
+        .level-text { color: #f39c12; }
+        .high-score-text { color: #f1c40f; text-shadow: 0 0 8px #f1c40f; }
+        
+        /* Uzay Gemisi */
+        #ship {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 50px;
+            z-index: 5;
+            transition: transform 0.1s;
+        }
+
+        /* Göktaşı */
+        .asteroid {
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(31, 40, 51, 0.9);
+            border: 2px dashed #e74c3c;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            width: 80%;
+            font-size: 18px;
+            z-index: 4;
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
+            transition: top 0.1s linear;
+        }
+
+        .asteroid::before {
+            content: '☄️';
+            font-size: 30px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* Lazer */
+        .laser {
+            position: absolute;
+            width: 6px;
+            height: 30px;
+            background-color: #66fcf1;
+            box-shadow: 0 0 10px #66fcf1;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 120px;
+            z-index: 3;
+            display: none;
+        }
+
+        /* Kontrol Paneli (Cevap Girişi) */
+        #controls {
+            position: absolute;
+            bottom: 15px;
+            width: 100%;
+            text-align: center;
+            z-index: 10;
+        }
+
+        input[type="number"] {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            padding: 10px;
+            width: 70%;
+            background: rgba(11, 12, 16, 0.8);
+            color: #66fcf1;
+            border: 2px solid #45a29e;
+            border-radius: 10px;
+            text-align: center;
+            outline: none;
+            box-shadow: 0 0 10px #45a29e;
+        }
+
+        input[type="number"]:focus {
+            border-color: #66fcf1;
+            box-shadow: 0 0 20px #66fcf1;
+        }
+
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Menü Ekranları */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 12, 16, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        h1 { color: #66fcf1; text-align: center; text-shadow: 0 0 15px #45a29e; margin-bottom: 10px; }
+        h2 { margin: 10px 0; }
+        h3 { margin: 5px 0; font-size: 18px; }
+        
+        .correct-answer-box {
+            background-color: rgba(243, 156, 18, 0.2);
+            border: 2px solid #f39c12;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 22px;
+            color: #f39c12;
+            box-shadow: 0 0 15px rgba(243, 156, 18, 0.5);
+        }
+
+        button {
+            font-family: 'Orbitron', sans-serif;
+            background: #45a29e;
+            color: #0b0c10;
+            font-size: 20px;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #66fcf1;
+            box-shadow: 0 0 20px #66fcf1;
+        }
+
+        #game-over { display: none; }
+        
+        .new-record-msg {
+            color: #78e08f;
+            display: none;
+            font-size: 22px;
+            text-shadow: 0 0 10px #78e08f;
+            margin-bottom: 10px;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="stars"></div>
+        
+        <div id="hud">
+            <div>Skor: <span id="score">0</span></div>
+            <div class="high-score-text">Rekor: <span id="hud-high-score">0</span></div>
+            <div class="level-text">Seviye: <span id="level">1</span></div>
+        </div>
+
+        <div id="asteroid" class="asteroid">Sayının okunuşu</div>
+        <div id="laser" class="laser"></div>
+        <div id="ship">🚀</div>
+
+        <div id="controls">
+            <input type="number" id="answer-input" placeholder="Hedefi (Sayıyı) Gir..." autocomplete="off">
+        </div>
+
+        <!-- Başlangıç Ekranı -->
+        <div id="start-screen" class="screen">
+            <h1>Uzay Savunması:<br>Milyonlar</h1>
+            <p style="text-align: center; max-width: 80%; line-height: 1.5;">Göktaşlarında yazan sayıyı radara (kutuya) rakamlarla gir, "Enter"a bas ve gemini koru!</p>
+            <button onclick="startGame()">Savaşa Katıl</button>
+        </div>
+
+        <!-- Oyun Bitti Ekranı -->
+        <div id="game-over" class="screen">
+            <h1 style="color: #e74c3c; text-shadow: 0 0 15px #e74c3c; margin-top: 0;">Gemi Parçalandı!</h1>
+            
+            <div id="new-record" class="new-record-msg">YENİ REKOR! 🏆</div>
+
+            <div class="correct-answer-box">
+                Kaçırdığın Sayı:<br>
+                <strong id="correct-answer-display" style="font-size: 28px; color: #fff; display: block; margin-top: 5px;">0</strong>
+            </div>
+
+            <h2>Son Skor: <span id="final-score">0</span></h2>
+            <h3 class="high-score-text">En Yüksek Skor: <span id="final-high-score">0</span></h3>
+            
+            <button onclick="startGame()">Yeniden Dene</button>
+        </div>
+    </div>
+
+    <script>
+        const birler = ["", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"];
+        const onlar = ["", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"];
+
+        function uclukOku(n) {
+            let yuzlerBas = Math.floor(n / 100);
+            let onlarBas = Math.floor((n % 100) / 10);
+            let birlerBas = n % 10;
+            let okunus = "";
+
+            if (yuzlerBas === 1) okunus += "yüz ";
+            else if (yuzlerBas > 1) okunus += birler[yuzlerBas] + " yüz ";
+            okunus += onlar[onlarBas] + (onlarBas > 0 ? " " : "");
+            okunus += birler[birlerBas] + (birlerBas > 0 ? " " : "");
+
+            return okunus.trim();
+        }
+
+        function sayiyiOku(sayi) {
+            if (sayi === 0) return "sıfır";
+            let milyonlar = Math.floor(sayi / 1000000);
+            let binler = Math.floor((sayi % 1000000) / 1000);
+            let kalan = sayi % 1000;
+
+            let sonuc = "";
+            if (milyonlar > 0) sonuc += uclukOku(milyonlar) + " milyon ";
+            if (binler === 1) sonuc += "bin ";
+            else if (binler > 1) sonuc += uclukOku(binler) + " bin ";
+            if (kalan > 0) sonuc += uclukOku(kalan);
+
+            return sonuc.trim();
+        }
+
+        // Oyun Değişkenleri
+        let score = 0;
+        let level = 1;
+        let currentNumber = 0;
+        
+        // Cihaz hafızasından En Yüksek Skoru al (Yoksa 0 yap)
+        let highScore = localStorage.getItem("uzayMathHighScore") || 0;
+        
+        let asteroidY = -100;
+        let baseSpeed = 0.25; 
+        let currentSpeed = 0.25;
+        
+        let gameLoop;
+        let isPlaying = false;
+
+        // DOM Elementleri
+        const asteroidEl = document.getElementById("asteroid");
+        const answerInput = document.getElementById("answer-input");
+        const scoreEl = document.getElementById("score");
+        const hudHighScoreEl = document.getElementById("hud-high-score");
+        const levelEl = document.getElementById("level");
+        const laserEl = document.getElementById("laser");
+        const shipEl = document.getElementById("ship");
+        
+        const startScreen = document.getElementById("start-screen");
+        const gameOverScreen = document.getElementById("game-over");
+        const finalScoreEl = document.getElementById("final-score");
+        const finalHighScoreEl = document.getElementById("final-high-score");
+        const newRecordMsg = document.getElementById("new-record");
+        const correctAnswerDisplay = document.getElementById("correct-answer-display");
+        const gameContainer = document.getElementById("game-container");
+
+        // Oyunu açarken arayüzde rekoru göster
+        hudHighScoreEl.innerText = highScore;
+
+        answerInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter" && isPlaying) {
+                event.preventDefault();
+                fireLaser();
+            }
+        });
+
+        function startGame() {
+            startScreen.style.display = "none";
+            gameOverScreen.style.display = "none";
+            newRecordMsg.style.display = "none"; // Yeni rekor mesajını gizle
+            
+            score = 0;
+            level = 1;
+            baseSpeed = 0.25; 
+            
+            scoreEl.innerText = score;
+            levelEl.innerText = level;
+            hudHighScoreEl.innerText = highScore; // Başlangıçta rekoru yenile
+            
+            isPlaying = true;
+            spawnAsteroid();
+            answerInput.value = "";
+            answerInput.focus();
+            
+            cancelAnimationFrame(gameLoop);
+            updateGame();
+        }
+
+        function spawnAsteroid() {
+            currentNumber = Math.floor(Math.random() * 999000000) + 10000;
+            asteroidEl.innerText = sayiyiOku(currentNumber);
+            
+            asteroidY = -100; 
+            asteroidEl.style.top = asteroidY + "px";
+            asteroidEl.style.display = "block";
+            
+            currentSpeed = baseSpeed + (level * 0.05);
+        }
+
+        function updateGame() {
+            if (!isPlaying) return;
+
+            asteroidY += currentSpeed;
+            asteroidEl.style.top = asteroidY + "px";
+
+            let shipHitZone = gameContainer.clientHeight - 130; 
+            
+            if (asteroidY > shipHitZone) {
+                endGame();
+                return;
+            }
+
+            gameLoop = requestAnimationFrame(updateGame);
+        }
+
+        function fireLaser() {
+            let userAnswer = parseInt(answerInput.value);
+
+            if (userAnswer === currentNumber) {
+                laserEl.style.display = "block";
+                shipEl.style.transform = "translateX(-50%) scale(1.2)";
+                
+                setTimeout(() => {
+                    laserEl.style.display = "none";
+                    shipEl.style.transform = "translateX(-50%) scale(1)";
+                    
+                    asteroidEl.style.display = "none";
+                    
+                    score += 100;
+                    scoreEl.innerText = score;
+
+                    // Oynarken rekor kırılırsa anlık olarak HUD'da güncelle
+                    if(score > highScore) {
+                        hudHighScoreEl.innerText = score;
+                        hudHighScoreEl.style.color = "#78e08f"; // Rekor kırıldığında yeşil yap
+                    }
+                    
+                    if (score % 300 === 0) {
+                        level++;
+                        levelEl.innerText = level;
+                        levelEl.style.color = "#66fcf1";
+                        setTimeout(() => levelEl.style.color = "#f39c12", 500);
+                    }
+                    
+                    answerInput.value = "";
+                    
+                    setTimeout(spawnAsteroid, 500);
+
+                }, 150); 
+            } else {
+                answerInput.style.transform = "translateX(10px)";
+                answerInput.style.borderColor = "#e74c3c";
+                setTimeout(() => {
+                    answerInput.style.transform = "translateX(-10px)";
+                }, 50);
+                setTimeout(() => {
+                    answerInput.style.transform = "translateX(0)";
+                    answerInput.style.borderColor = "#45a29e";
+                }, 100);
+                
+                answerInput.value = "";
+            }
+        }
+
+        function endGame() {
+            isPlaying = false;
+            cancelAnimationFrame(gameLoop);
+            
+            // Rekor Kontrolü
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("uzayMathHighScore", highScore); // Cihaza kaydet
+                newRecordMsg.style.display = "block"; // Yanıp sönen "Yeni Rekor" yazısını göster
+            }
+            
+            // Yandığı sorunun cevabı
+            correctAnswerDisplay.innerText = new Intl.NumberFormat('tr-TR').format(currentNumber);
+            
+            finalScoreEl.innerText = score;
+            finalHighScoreEl.innerText = highScore;
+            hudHighScoreEl.style.color = "#f1c40f"; // Oynarken yeşil olan rengi eski haline çevir
+
+            gameOverScreen.style.display = "flex";
+        }
+    </script>
+</body>
+</html>

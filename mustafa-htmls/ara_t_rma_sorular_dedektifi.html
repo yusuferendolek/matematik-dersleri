@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Araştırma Soruları Dedektifi - 11. Sınıf TYYM Matematik</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        tyym: {
+                            50: '#f0f3ff',
+                            100: '#e0e7ff',
+                            500: '#4f46e5',
+                            600: '#4338ca',
+                            700: '#3730a3',
+                            800: '#1e1b4b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 12px 30px -10px rgba(79, 70, 229, 0.3);
+        }
+        .btn-option {
+            transition: all 0.2s ease;
+        }
+        .btn-option:active {
+            transform: scale(0.97);
+        }
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(1.02); }
+        }
+        .pulse-anim {
+            animation: pulse-subtle 2s infinite ease-in-out;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .shake-anim {
+            animation: shake 0.4s ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-100 flex flex-col justify-between p-3 sm:p-6 min-h-screen">
+
+    <!-- Üst Başlık & Logo -->
+    <header class="max-w-4xl mx-auto w-full flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid me-0 fa-chart-pie text-xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-display font-extrabold text-lg sm:text-xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-pink-300 to-amber-200">
+                    Soru Dedektifi
+                </h1>
+                <p class="text-xs text-indigo-200/70 font-medium">TYYM 11. Sınıf Matematik • İstatistiksel Araştırma</p>
+            </div>
+        </div>
+
+        <!-- Müzik/Ses Düğmesi ve Yüksek Skor -->
+        <div class="flex items-center gap-3">
+            <button id="soundToggleBtn" onclick="toggleSound()" class="p-2.5 rounded-xl glass-panel text-indigo-200 hover:text-white hover:bg-white/10 transition-all text-sm flex items-center gap-2">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-indigo-400"></i>
+            </button>
+            <div class="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl glass-panel text-xs font-semibold text-amber-300">
+                <i class="fa-solid fa-trophy text-amber-400"></i>
+                <span id="highScoreText">En Yüksek: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto w-full my-auto">
+
+        <!-- 1. BAŞLANGIÇ EKRANI -->
+        <div id="startScreen" class="glass-panel rounded-3xl p-6 sm:p-10 shadow-2xl text-center space-y-6 relative overflow-hidden">
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-pink-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-2">
+                <i class="fa-solid fa-sparkles text-amber-400"></i> Maarif Modeli Eğitici Oyun
+            </div>
+
+            <h2 class="font-display text-3xl sm:text-4xl font-extrabold text-white leading-tight">
+                Araştırma Sorularını <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400">Doğru Sınıflandır!</span>
+            </h2>
+
+            <p class="text-slate-300 text-sm sm:text-base max-w-lg mx-auto leading-relaxed">
+                İstatistiksel araştırma sürecinde doğru soru türünü seçmek hayati önem taşır. Karşına çıkan araştırma sorularının değişken yapılarını hızlıca analiz et!
+            </p>
+
+            <!-- Kategori Tanıtım Kartları -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left my-6">
+                <div class="p-3.5 rounded-2xl bg-indigo-950/50 border border-indigo-500/20">
+                    <div class="w-7 h-7 rounded-lg bg-indigo-500/30 text-indigo-300 flex items-center justify-center text-xs mb-2 font-bold">1</div>
+                    <h3 class="text-xs font-bold text-indigo-200">Tek Nicel Değişken</h3>
+                    <p class="text-[11px] text-slate-400 mt-1">Sadece tek bir sayısal/ölçülebilir değeri inceler (ör: ortalama boy, puan).</p>
+                </div>
+                <div class="p-3.5 rounded-2xl bg-purple-950/50 border border-purple-500/20">
+                    <div class="w-7 h-7 rounded-lg bg-purple-500/30 text-purple-300 flex items-center justify-center text-xs mb-2 font-bold">2</div>
+                    <h3 class="text-xs font-bold text-purple-200">İki Kategorik Değişken</h3>
+                    <p class="text-[11px] text-slate-400 mt-1">Sayısal olmayan iki grup/kategori ilişkisini inceler (ör: cinsiyet ve branş).</p>
+                </div>
+                <div class="p-3.5 rounded-2xl bg-pink-950/50 border border-pink-500/20">
+                    <div class="w-7 h-7 rounded-lg bg-pink-500/30 text-pink-300 flex items-center justify-center text-xs mb-2 font-bold">3</div>
+                    <h3 class="text-xs font-bold text-pink-200">İki Nicel Değişken</h3>
+                    <p class="text-[11px] text-slate-400 mt-1">Sayısal iki değer arasındaki ilişki/değişimi inceler (ör: boy ile kilo).</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+                <button onclick="startGame()" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-bold text-lg shadow-xl shadow-indigo-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-play"></i> Oyuna Başla
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. OYUN EKRANI -->
+        <div id="gameScreen" class="hidden space-y-4">
+
+            <!-- İlerleme & İstatistik Barı -->
+            <div class="glass-panel rounded-2xl p-4 flex items-center justify-between gap-2 shadow-lg">
+                <!-- Canlar -->
+                <div class="flex items-center gap-1.5" id="heartsContainer">
+                    <i class="fa-solid fa-heart text-red-500 text-lg"></i>
+                    <i class="fa-solid fa-heart text-red-500 text-lg"></i>
+                    <i class="fa-solid fa-heart text-red-500 text-lg"></i>
+                </div>
+
+                <!-- Soru İlerlemesi -->
+                <div class="text-xs font-semibold text-slate-300 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
+                    Soru: <span id="questionCounter" class="text-indigo-300 font-bold">1</span>/<span id="totalQuestionsCount">15</span>
+                </div>
+
+                <!-- Kombo -->
+                <div class="flex items-center gap-1.5 text-amber-400 font-extrabold text-sm">
+                    <i class="fa-solid fa-bolt pulse-anim"></i>
+                    <span id="comboText">1x Kombo</span>
+                </div>
+
+                <!-- Skor -->
+                <div class="text-right">
+                    <div class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Skor</div>
+                    <div id="scoreText" class="font-display font-extrabold text-xl text-emerald-400">0</div>
+                </div>
+            </div>
+
+            <!-- Zaman İlerleme Çubuğu -->
+            <div class="w-full bg-slate-800/80 rounded-full h-2.5 overflow-hidden border border-white/5 p-0.5">
+                <div id="timerBar" class="bg-gradient-to-r from-emerald-400 via-amber-400 to-red-500 h-full rounded-full transition-all duration-100 ease-linear w-full"></div>
+            </div>
+
+            <!-- Soru Kartı -->
+            <div id="questionCard" class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-6 relative border border-white/15">
+                <div class="flex justify-center">
+                    <span class="px-3.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-circle-question"></i> Bu araştırma sorusunu sınıflandır:
+                    </span>
+                </div>
+
+                <!-- Soru Metni -->
+                <h2 id="questionText" class="font-display font-bold text-xl sm:text-2xl text-white leading-relaxed min-h-[80px] flex items-center justify-center">
+                    "11. sınıf öğrencilerinin günlük ortalama uyku süreleri kaç saattir?"
+                </h2>
+
+                <!-- Şıklar / Kategoriler -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    <button onclick="submitAnswer('SINGLE_QUANT')" class="btn-option glass-card p-4 rounded-2xl text-left border border-indigo-500/30 hover:bg-indigo-600/30 group relative">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="w-7 h-7 rounded-lg bg-indigo-500/20 group-hover:bg-indigo-500 text-indigo-300 group-hover:text-white flex items-center justify-center font-bold text-xs transition-colors">A</span>
+                            <i class="fa-solid fa-arrow-trend-up text-indigo-400 text-xs"></i>
+                        </div>
+                        <h4 class="font-bold text-sm text-indigo-100 group-hover:text-white">Tek Nicel Değişkenli</h4>
+                        <p class="text-[11px] text-slate-400 mt-1">Tek bir ölçülebilir/sayısal veri toplar.</p>
+                    </button>
+
+                    <button onclick="submitAnswer('TWO_CAT')" class="btn-option glass-card p-4 rounded-2xl text-left border border-purple-500/30 hover:bg-purple-600/30 group relative">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="w-7 h-7 rounded-lg bg-purple-500/20 group-hover:bg-purple-500 text-purple-300 group-hover:text-white flex items-center justify-center font-bold text-xs transition-colors">B</span>
+                            <i class="fa-solid fa-layer-group text-purple-400 text-xs"></i>
+                        </div>
+                        <h4 class="font-bold text-sm text-purple-100 group-hover:text-white">İki Kategorik Değişkenli</h4>
+                        <p class="text-[11px] text-slate-400 mt-1">İki farklı nitel/kategori grubunu karşılaştırır.</p>
+                    </button>
+
+                    <button onclick="submitAnswer('TWO_QUANT')" class="btn-option glass-card p-4 rounded-2xl text-left border border-pink-500/30 hover:bg-pink-600/30 group relative">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="w-7 h-7 rounded-lg bg-pink-500/20 group-hover:bg-pink-500 text-pink-300 group-hover:text-white flex items-center justify-center font-bold text-xs transition-colors">C</span>
+                            <i class="fa-solid fa-chart-line text-pink-400 text-xs"></i>
+                        </div>
+                        <h4 class="font-bold text-sm text-pink-100 group-hover:text-white">İki Nicel Değişkenli</h4>
+                        <p class="text-[11px] text-slate-400 mt-1">İki sayısal/ölçülebilir değişken ilişkisini arar.</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Anlık Dönüt Modal Pop-up / Toast -->
+            <div id="feedbackBox" class="hidden glass-panel rounded-2xl p-5 border shadow-2xl transition-all">
+                <div class="flex items-start gap-4">
+                    <div id="feedbackIcon" class="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 mt-0.5">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <div class="space-y-1 flex-1">
+                        <h3 id="feedbackTitle" class="font-bold text-base">Tebrikler! Doğru Cevap</h3>
+                        <p id="feedbackExplanation" class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            Açıklama metni buraya gelecek...
+                        </p>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button onclick="nextQuestion()" class="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-all flex items-center gap-2">
+                        Sonraki Soru <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 3. BİTİŞ / ÖZET EKRANI -->
+        <div id="endScreen" class="hidden glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div class="text-center space-y-2">
+                <div class="inline-flex p-3 rounded-2xl bg-amber-500/20 text-amber-400 text-3xl mb-1">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <h2 class="font-display text-3xl font-extrabold text-white">Sınav Tamamlandı!</h2>
+                <p class="text-slate-300 text-sm">İstatistiksel Araştırma Süreçleri performans analizin:</p>
+            </div>
+
+            <!-- İstatistik Kartları -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                    <div class="text-xs text-slate-400">Toplam Skor</div>
+                    <div id="finalScore" class="font-display font-extrabold text-2xl text-emerald-400 mt-1">0</div>
+                </div>
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                    <div class="text-xs text-slate-400">Başarı Oranı</div>
+                    <div id="finalAccuracy" class="font-display font-extrabold text-2xl text-indigo-400 mt-1">%0</div>
+                </div>
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                    <div class="text-xs text-slate-400">Doğru / Yanlış</div>
+                    <div id="finalCounts" class="font-display font-extrabold text-2xl text-purple-400 mt-1">0/0</div>
+                </div>
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                    <div class="text-xs text-slate-400">En Yüksek Kombo</div>
+                    <div id="finalMaxCombo" class="font-display font-extrabold text-2xl text-amber-400 mt-1">0x</div>
+                </div>
+            </div>
+
+            <!-- Soru Detaylı İnceleme Listesi -->
+            <div class="space-y-3">
+                <h3 class="font-bold text-sm text-indigo-200 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check"></i> Soru Detayları ve Çözümler
+                </h3>
+                <div id="reviewContainer" class="max-h-60 overflow-y-auto space-y-2.5 pr-2 custom-scrollbar">
+                    <!-- Javascript ile doldurulacak -->
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button onclick="startGame()" class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> Tekrar Oyna
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="max-w-4xl mx-auto w-full text-center text-xs text-slate-400 py-3">
+        MEB Türkiye Yüzyılı Maarif Modeli (TYYM) • 11. Sınıf Matematik Müfredatına Uygundur.
+    </footer>
+
+    <script>
+        /* ----------------------------------------------------
+           1. SORU BANKASI (20 ADET ZENGİN TYYM SORUSU)
+        ---------------------------------------------------- */
+        const QUESTION_BANK = [
+            {
+                id: 1,
+                question: "11. sınıf öğrencilerinin günlük ortalama uyku süreleri kaç saattir?",
+                category: "SINGLE_QUANT",
+                categoryName: "Tek Nicel Değişkenli",
+                explanation: "Burada yalnızca 'uyku süresi' adlı tek bir sayısal (nicel) veri toplanmaktadır."
+            },
+            {
+                id: 2,
+                question: "Öğrencilerin cinsiyetleri ile en çok sevdikleri spor dalı arasında bir ilişki var mıdır?",
+                category: "TWO_CAT",
+                categoryName: "İki Kategorik Değişkenli",
+                explanation: "Hem 'cinsiyet' (Kız/Erkek) hem de 'spor dalı' (Futbol/Basketbol vb.) sayısal olmayan nitel/kategorik değişkenlerdir."
+            },
+            {
+                id: 3,
+                question: "Öğrencilerin haftalık ders çalışma süreleri ile matematik sınav notları arasında nasıl bir ilişki vardır?",
+                category: "TWO_QUANT",
+                categoryName: "İki Nicel Değişkenli",
+                explanation: "Hem 'çalışma süresi' (saat) hem de 'sınav notu' (0-100) sayısal/nicel değişkenlerdir."
+            },
+            {
+                id: 4,
+                question: "Ankara'daki liselerin kütüphanelerindeki toplam kitap sayıları ne kadardır?",
+                category: "SINGLE_QUANT",
+                categoryName: "Tek Nicel Değişkenli",
+                explanation: "Sadece 'kitap sayısı' ölçülen tek nicel değişkendir."
+            },
+            {
+                id: 5,
+                question: "Öğrencilerin mezun oldukları ortaokul türü (Devlet/Özel) ile lisede seçtikleri alan (Sayısal/Sözel/EA) bağlantılı mıdır?",
+                category: "TWO_CAT",
+                categoryName: "İki Kategorik Değişkenli",
+                explanation: "Ortaokul türü ve lise alanı kategorik (nitel) değişkenlerdir."
+            },
+            {
+                id: 6,
+                question: "Bir aracın hızı arttıkça 100 kilometrede tükettiği yakıt miktarı nasıl değişir?",
+                category: "TWO_QUANT",
+                categoryName: "İki Nicel Değişkenli",
+                explanation: "Hem 'hız' (km/saat) hem de 'yakıt miktarı' (litre) nicel değişkenlerdir."
+            },
+            {
+                id: 7,
+                question: "Bir şehirdeki ailelerin aylık ortalama elektrik tüketim miktarları (kWh) nedir?",
+                category: "SINGLE_QUANT",
+                categoryName: "Tek Nicel Değişkenli",
+                explanation: "Elektrik tüketim miktarı ölçülebilir tek nicel değişkendir."
+            },
+            {
+                id: 8,
+                question: "Beslenme türü (Vejetaryen/Hepçil) ile tercih edilen içecek türü arasında bir ilişki var mıdır?",
+                category: "TWO_CAT",
+                categoryName: "İki Kategorik Değişkenli",
+                explanation: "Beslenme türü ve içecek türü sayısal olmayan iki nitel kategoridir."
+            },
+            {
+                id: 9,
+                question: "Bir fidanın boy uzunluğu (cm) ile ekildiği günden itibaren geçen süre (ay) arasındaki ilişki nasıldır?",
+                category: "TWO_QUANT",
+                categoryName: "İki Nicel Değişkenli",
+                explanation: "Süre (ay) ve boy (cm) değişkenlerinin ikisi de niceldir."
+            },
+            {
+                id: 10,
+                question: "Sürücülerin yaş grupları (Genç/Orta Yaşlı/Yaşlı) ile kullandıkları araba rengi tercihi ilişkili midir?",
+                category: "TWO_CAT",
+                categoryName: "İki Kategorik Değişkenli",
+                explanation: "Yaş grubu ve araba rengi iki farklı nitel (kategorik) değişkendir."
+            },
+            {
+                id: 11,
+                question: "Bir ildeki lise öğrencilerinin günlük ortalama su tüketim miktarları (litre) kaç litredir?",
+                category: "SINGLE_QUANT",
+                categoryName: "Tek Nicel Değişkenli",
+                explanation: "Su tüketim miktarı sayısal tek bir nicel değişkendir."
+            },
+            {
+                id: 12,
+                question: "Bir şehirdeki hava sıcaklığı (°C) arttıkça dondurma satış miktarı (adet) nasıl değişir?",
+                category: "TWO_QUANT",
+                categoryName: "İki Nicel Değişkenli",
+                explanation: "Hava sıcaklığı ve dondurma satış adedi iki nicel değişkendir."
+            },
+            {
+                id: 13,
+                question: "Öğretmenlerin branşları (Matematik/Tarih/Biyoloji) ile kullandıkları işletim sistemi (Windows/Mac/Linux) bağımsız mıdır?",
+                category: "TWO_CAT",
+                categoryName: "İki Kategorik Değişkenli",
+                explanation: "Branş ve işletim sistemi nitel/kategorik verilerdir."
+            },
+            {
+                id: 14,
+                question: "Bir fabrikada üretilen vidaların ortalama ağırlığı (gram) kaç gramdır?",
+                category: "SINGLE_QUANT",
+                categoryName: "Tek Nicel Değişkenli",
+                explanation: "Ağırlık ölçüsü tek bir nicel değişken içerir."
+            },
+            {
+                id: 15,
+                question: "Bir çalışanın iş deneyimi süresi (yıl) ile aldığı aylık maaş miktarı (TL) arasındaki ilişki nedir?",
+                category: "TWO_QUANT",
+                categoryName: "İki Nicel Değişkenli",
+                explanation: "Deneyim yılı ve maaş TL tutarı iki sayısal (nicel) değişkendir."
+            },
+            {
+                id: 16,
+                question: "Öğrencilerin kan grupları (A, B, AB, 0) ile sevdikleri müzik türü arasında bir bağ var mıdır?",
+                category: "TWO_CAT",
+                categoryName: "İki Kategorik Değişkenli",
+                explanation: "Kan grubu ve müzik türü nitel değişkenlerdir."
+            },
+            {
+                id: 17,
+                question: "Bir şehirde bir günde gerçekleşen ortalama adım sayısı ne kadardır?",
+                category: "SINGLE_QUANT",
+                categoryName: "Tek Nicel Değişkenli",
+                explanation: "Adım sayısı sayısal tek değişkendir."
+            },
+            {
+                id: 18,
+                question: "Bir telefonun batarya kapasitesi (mAh) ile şarjın dayanma süresi (saat) arasındaki ilişki nasıldır?",
+                category: "TWO_QUANT",
+                categoryName: "İki Nicel Değişkenli",
+                explanation: "Batarya mAh değeri ve süre iki nicel değişkendir."
+            },
+            {
+                id: 19,
+                question: "Taraftarların desteklediği futbol takımı ile yaşadığı coğrafi bölge arasında ilişki var mıdır?",
+                category: "TWO_CAT",
+                categoryName: "İki Kategorik Değişkenli",
+                explanation: "Takım ve coğrafi bölge nitel kategorilerdir."
+            },
+            {
+                id: 20,
+                question: "Bir basketbolcunun boy uzunluğu (cm) ile maç başına attığı ortalama sayı arasındaki ilişki nedir?",
+                category: "TWO_QUANT",
+                categoryName: "İki Nicel Değişkenli",
+                explanation: "Boy uzunluğu ve sayı adedi sayısal (nicel) değişkenlerdir."
+            }
+        ];
+
+        /* ----------------------------------------------------
+           2. OYUN DURUMU VE DEĞİŞKENLER
+        ---------------------------------------------------- */
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let lives = 3;
+        let combo = 1;
+        let maxCombo = 1;
+        let timerInterval = null;
+        let timeRemaining = 12; // Her soru için 12 saniye
+        const MAX_TIME = 12;
+        let soundEnabled = true;
+        let answeredHistory = [];
+
+        // Web Audio API ile Ses Efektleri
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'correct') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+                    osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.2); // G5
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now); // A3
+                    osc.frequency.exponentialRampToValueAtTime(130, now + 0.2); // C3
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'tick') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'win') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.3);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                }
+            } catch(e) {
+                console.log("Audio not allowed yet");
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-indigo-400';
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+            }
+        }
+
+        /* ----------------------------------------------------
+           3. OYUN KONTROL VE BAŞLATMA
+        ---------------------------------------------------- */
+        function loadHighScore() {
+            const saved = localStorage.getItem('tyym_dedektif_highscore') || 0;
+            document.getElementById('highScoreText').innerText = `En Yüksek: ${saved}`;
+            return parseInt(saved);
+        }
+
+        function startGame() {
+            // Soruları Karıştır
+            currentQuestions = [...QUESTION_BANK].sort(() => 0.5 - Math.random()).slice(0, 15);
+            currentQuestionIndex = 0;
+            score = 0;
+            lives = 3;
+            combo = 1;
+            maxCombo = 1;
+            answeredHistory = [];
+
+            loadHighScore();
+            updateUIStats();
+
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            if (currentQuestionIndex >= currentQuestions.length || lives <= 0) {
+                endGame();
+                return;
+            }
+
+            // Arayüzü Sıfırla
+            document.getElementById('feedbackBox').classList.add('hidden');
+            const qCard = document.getElementById('questionCard');
+            qCard.classList.remove('shake-anim');
+
+            const currentQ = currentQuestions[currentQuestionIndex];
+            document.getElementById('questionText').innerText = `"${currentQ.question}"`;
+            document.getElementById('questionCounter').innerText = currentQuestionIndex + 1;
+            document.getElementById('totalQuestionsCount').innerText = currentQuestions.length;
+
+            // Zamanlayıcıyı Başlat
+            resetTimer();
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timeRemaining = MAX_TIME;
+            updateTimerBar();
+
+            timerInterval = setInterval(() => {
+                timeRemaining -= 0.1;
+                updateTimerBar();
+
+                if (Math.ceil(timeRemaining) <= 3 && Math.ceil(timeRemaining) > 0 && Math.abs(timeRemaining % 1) < 0.15) {
+                    playSound('tick');
+                }
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeout();
+                }
+            }, 100);
+        }
+
+        function updateTimerBar() {
+            const percentage = Math.max(0, (timeRemaining / MAX_TIME) * 100);
+            const timerBar = document.getElementById('timerBar');
+            timerBar.style.width = `${percentage}%`;
+
+            if (percentage < 30) {
+                timerBar.className = 'bg-gradient-to-r from-red-600 to-red-400 h-full rounded-full transition-all duration-100 ease-linear w-full';
+            } else if (percentage < 60) {
+                timerBar.className = 'bg-gradient-to-r from-amber-500 to-amber-300 h-full rounded-full transition-all duration-100 ease-linear w-full';
+            } else {
+                timerBar.className = 'bg-gradient-to-r from-emerald-400 via-indigo-400 to-purple-500 h-full rounded-full transition-all duration-100 ease-linear w-full';
+            }
+        }
+
+        function updateUIStats() {
+            // Canlar
+            const heartsContainer = document.getElementById('heartsContainer');
+            heartsContainer.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                if (i < lives) {
+                    heartsContainer.innerHTML += '<i class="fa-solid fa-heart text-red-500 text-lg transition-transform scale-100"></i>';
+                } else {
+                    heartsContainer.innerHTML += '<i class="fa-regular fa-heart text-slate-600 text-lg"></i>';
+                }
+            }
+
+            // Skor & Kombo
+            document.getElementById('scoreText').innerText = score;
+            document.getElementById('comboText').innerText = `${combo}x Kombo`;
+        }
+
+        /* ----------------------------------------------------
+           4. CEVAP KONTROL VE DÖNÜT
+        ---------------------------------------------------- */
+        function submitAnswer(selectedCategory) {
+            clearInterval(timerInterval);
+            const currentQ = currentQuestions[currentQuestionIndex];
+            const isCorrect = selectedCategory === currentQ.category;
+
+            if (isCorrect) {
+                playSound('correct');
+                const timeBonus = Math.round(timeRemaining * 10);
+                const earned = (100 + timeBonus) * combo;
+                score += earned;
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
+
+                showFeedback(true, currentQ, `Doğru Sınıflandırma! +${earned} Puan (${timeBonus}sn hız bonusu).`);
+            } else {
+                playSound('wrong');
+                lives--;
+                combo = 1;
+                document.getElementById('questionCard').classList.add('shake-anim');
+
+                showFeedback(false, currentQ, `Aman dikkat! Doğru cevap **${currentQ.categoryName}** olmalıydı.`);
+            }
+
+            answeredHistory.push({
+                question: currentQ.question,
+                correctCategory: currentQ.categoryName,
+                userCorrect: isCorrect,
+                explanation: currentQ.explanation
+            });
+
+            updateUIStats();
+        }
+
+        function handleTimeout() {
+            playSound('wrong');
+            const currentQ = currentQuestions[currentQuestionIndex];
+            lives--;
+            combo = 1;
+            document.getElementById('questionCard').classList.add('shake-anim');
+
+            showFeedback(false, currentQ, `Süre doldu! Doğru cevap **${currentQ.categoryName}** olmalıydı.`);
+
+            answeredHistory.push({
+                question: currentQ.question,
+                correctCategory: currentQ.categoryName,
+                userCorrect: false,
+                explanation: "Süre dolduğu için cevaplanamadı. " + currentQ.explanation
+            });
+
+            updateUIStats();
+        }
+
+        function showFeedback(isCorrect, questionObj, statusTitle) {
+            const box = document.getElementById('feedbackBox');
+            const icon = document.getElementById('feedbackIcon');
+            const title = document.getElementById('feedbackTitle');
+            const exp = document.getElementById('feedbackExplanation');
+
+            box.classList.remove('hidden');
+
+            if (isCorrect) {
+                box.className = "glass-panel rounded-2xl p-5 border border-emerald-500/40 bg-emerald-950/30 shadow-2xl transition-all";
+                icon.className = "w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl shrink-0 mt-0.5";
+                icon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                title.className = "font-bold text-base text-emerald-300";
+                title.innerText = statusTitle;
+            } else {
+                box.className = "glass-panel rounded-2xl p-5 border border-red-500/40 bg-red-950/30 shadow-2xl transition-all";
+                icon.className = "w-10 h-10 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center text-xl shrink-0 mt-0.5";
+                icon.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                title.className = "font-bold text-base text-red-300";
+                title.innerHTML = statusTitle;
+            }
+
+            exp.innerHTML = `<strong>Neden?</strong> ${questionObj.explanation}`;
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+
+        /* ----------------------------------------------------
+           5. BİTİŞ EKRANI & RAPORLAMA
+        ---------------------------------------------------- */
+        function endGame() {
+            clearInterval(timerInterval);
+            playSound('win');
+
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.remove('hidden');
+
+            // Yüksek Skor Güncelle
+            const savedHighScore = parseInt(localStorage.getItem('tyym_dedektif_highscore') || 0);
+            if (score > savedHighScore) {
+                localStorage.setItem('tyym_dedektif_highscore', score);
+                document.getElementById('highScoreText').innerText = `En Yüksek: ${score}`;
+            }
+
+            // İstatistikler
+            const correctCount = answeredHistory.filter(q => q.userCorrect).length;
+            const totalCount = answeredHistory.length;
+            const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+
+            document.getElementById('finalScore').innerText = score;
+            document.getElementById('finalAccuracy').innerText = `%${accuracy}`;
+            document.getElementById('finalCounts').innerText = `${correctCount} / ${totalCount - correctCount}`;
+            document.getElementById('finalMaxCombo').innerText = `${maxCombo}x`;
+
+            // Detaylı İnceleme Listesini Oluştur
+            const reviewContainer = document.getElementById('reviewContainer');
+            reviewContainer.innerHTML = '';
+
+            answeredHistory.forEach((item, index) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = `p-3 rounded-xl border text-xs leading-relaxed ${
+                    item.userCorrect 
+                    ? 'bg-emerald-950/20 border-emerald-500/20 text-slate-200' 
+                    : 'bg-red-950/20 border-red-500/20 text-slate-200'
+                }`;
+
+                itemEl.innerHTML = `
+                    <div class="flex items-start justify-between gap-2 mb-1">
+                        <span class="font-bold text-slate-100">${index + 1}. ${item.question}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
+                            item.userCorrect ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
+                        }">
+                            ${item.userCorrect ? 'Doğru' : 'Yanlış'}
+                        </span>
+                    </div>
+                    <div class="text-[11px] text-indigo-200 mb-1">
+                        <strong>Kategori:</strong> ${item.correctCategory}
+                    </div>
+                    <div class="text-[11px] text-slate-400">
+                        ${item.explanation}
+                    </div>
+                `;
+                reviewContainer.appendChild(itemEl);
+            });
+        }
+
+        // Sayfa yüklendiğinde yüksek skoru getir
+        window.onload = function() {
+            loadHighScore();
+        };
+    </script>
+</body>
+</html>

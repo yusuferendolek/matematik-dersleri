@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Yuvarlama Tepesi</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap');
+        
+        body { 
+            font-family: 'Baloo 2', cursive; 
+            margin: 0; 
+            background: linear-gradient(to bottom, #a1c4fd 0%, #c2e9fb 100%); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+
+        /* Üst Menü (HUD) */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #2c3e50;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            z-index: 20;
+        }
+
+        .hud-score { color: #3498db; }
+        .hud-highscore { color: #8e44ad; }
+        .hud-lives { color: #e74c3c; letter-spacing: 2px; }
+
+        h1 { 
+            color: #2c3e50; 
+            font-size: 2.5rem; 
+            margin-top: 80px; 
+            margin-bottom: 5px;
+            text-shadow: 2px 2px white;
+        }
+        
+        .instruction { 
+            font-size: 1.3rem; 
+            color: #34495e; 
+            background: rgba(255,255,255,0.9); 
+            padding: 10px 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .game-container { 
+            position: relative; 
+            width: 600px; 
+            height: 400px; 
+            margin-top: 30px; 
+            border-bottom: 8px solid #27ae60; 
+        }
+        
+        /* Tepe Tasarımı (Yarım Daire) */
+        .hill { 
+            width: 500px; 
+            height: 250px; 
+            background: #2ecc71; 
+            border-radius: 250px 250px 0 0; 
+            position: absolute; 
+            bottom: 0; 
+            left: 50px; 
+            border: 4px solid #219a52; 
+            border-bottom: none; 
+            box-shadow: inset 0 15px 0 rgba(255,255,255,0.2);
+        }
+        
+        /* Sayı Etiketleri */
+        .label { 
+            position: absolute; 
+            font-size: 1.6rem; 
+            font-weight: 800; 
+            background: white; 
+            padding: 5px 20px; 
+            border-radius: 15px; 
+            border: 3px solid #bdc3c7; 
+            box-shadow: 0 5px 0 #bdc3c7;
+            z-index: 5; 
+        }
+        
+        .lower-bound { bottom: -20px; left: -20px; color: #e74c3c; border-color: #e74c3c; box-shadow: 0 5px 0 #c0392b;}
+        .upper-bound { bottom: -20px; right: -20px; color: #3498db; border-color: #3498db; box-shadow: 0 5px 0 #2980b9;}
+        .mid-bound { top: 60px; left: 50%; transform: translateX(-50%); color: #f39c12; font-size: 1.3rem; border-color: #f39c12; box-shadow: 0 4px 0 #d35400;}
+        
+        /* Yuvarlanma Mekanizması (Sayı doğrusu açısı için CSS Variable tanımlandı) */
+        .pendulum {
+            --base-angle: 0deg; 
+            position: absolute;
+            left: 300px; 
+            bottom: 0;
+            width: 60px;
+            height: 284px; 
+            margin-left: -30px; 
+            transform-origin: bottom center;
+            transform: rotate(var(--base-angle));
+            z-index: 10;
+        }
+
+        /* Yuvarlanan Kaya */
+        .rock { 
+            width: 60px; 
+            height: 60px; 
+            background: #7f8c8d; 
+            border-radius: 50%; 
+            position: absolute; 
+            top: 0; left: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 1.4rem; 
+            color: white; 
+            font-weight: bold; 
+            border: 3px solid #34495e; 
+            box-shadow: inset -5px -5px 0 rgba(0,0,0,0.3), 0 5px 10px rgba(0,0,0,0.4); 
+            opacity: 1; /* Artık hep görünür */
+        }
+        
+        /* Giriş Paneli */
+        .panel { 
+            background: white; 
+            padding: 20px 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1); 
+            display: flex; 
+            gap: 15px; 
+            align-items: center; 
+            margin-top: 20px; 
+            z-index: 20;
+        }
+        
+        .target-number { 
+            font-size: 2.2rem; 
+            color: #8e44ad; 
+            font-weight: 800; 
+            border-right: 3px dashed #eee; 
+            padding-right: 20px; 
+        }
+        
+        input { 
+            font-family: 'Baloo 2'; 
+            font-size: 1.6rem; 
+            padding: 5px 10px; 
+            width: 120px; 
+            text-align: center; 
+            border: 3px solid #3498db; 
+            border-radius: 10px; 
+            outline: none;
+            transition: 0.3s;
+        }
+        
+        input:focus { border-color: #f39c12; box-shadow: 0 0 10px #f39c12; }
+        
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+            -webkit-appearance: none; margin: 0;
+        }
+
+        button { 
+            font-family: 'Baloo 2'; 
+            font-size: 1.5rem; 
+            padding: 8px 25px; 
+            background: #3498db; 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            box-shadow: 0 5px 0 #2980b9;
+            transition: 0.2s;
+        }
+
+        button:active { transform: translateY(5px); box-shadow: none; }
+        
+        #msg { margin-top: 15px; font-size: 1.3rem; font-weight: bold; height: 30px; text-align: center;}
+
+        /* Yanlış Cevap Titreme Efekti (Dinamik Açıya Göre Titrer) */
+        .shake { animation: shakeAnim 0.5s; }
+        @keyframes shakeAnim { 
+            0%, 100% { transform: rotate(var(--base-angle)); } 
+            25% { transform: rotate(calc(var(--base-angle) - 8deg)); } 
+            75% { transform: rotate(calc(var(--base-angle) + 8deg)); } 
+        }
+
+        /* Oyun Bitti Ekranı */
+        #game-over-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 12, 16, 0.95);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100;
+        }
+        
+        .hidden { display: none !important; }
+
+        #game-over-screen h2 { color: #e74c3c; font-size: 4rem; margin-bottom: 10px; text-shadow: 0 0 15px #e74c3c;}
+        #game-over-screen p { color: white; font-size: 2rem; margin: 10px 0; }
+        .new-record-msg { color: #f1c40f; font-size: 2.5rem; font-weight: bold; animation: pulse 1s infinite; display: none; margin-bottom: 20px;}
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div class="hud-score">Puan: <span id="score-display">0</span></div>
+        <div class="hud-highscore">Rekor: <span id="highscore-display">0</span></div>
+        <div class="hud-lives"><span id="lives-display">❤️❤️❤️</span></div>
+    </div>
+
+    <h1>Yuvarlama Tepesi</h1>
+    <div class="instruction" id="instruction">Sayıyı en yakın <b>ONLUĞA</b> yuvarla!</div>
+
+    <div class="game-container">
+        <div class="hill">
+            <div class="label lower-bound" id="lbl-lower">0</div>
+            <div class="label mid-bound" id="lbl-mid">5</div>
+            <div class="label upper-bound" id="lbl-upper">10</div>
+        </div>
+        
+        <div class="pendulum" id="pendulum">
+            <div class="rock" id="rock">47</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="target-number" id="targetNum">47</div>
+        <input type="number" id="answer" placeholder="Cevap..." autocomplete="off">
+        <button onclick="checkAnswer()">Yuvarla!</button>
+    </div>
+    
+    <div id="msg"></div>
+
+    <div id="game-over-screen" class="hidden">
+        <h2>Oyun Bitti!</h2>
+        <div id="new-record-msg" class="new-record-msg">🎉 YENİ REKOR! 🎉</div>
+        <p>Toplam Puanın: <span id="final-score">0</span></p>
+        <p>En Yüksek Puan: <span id="final-highscore">0</span></p>
+        <button onclick="restartGame()" style="margin-top: 30px; font-size: 2rem; padding: 15px 40px;">Tekrar Oyna</button>
+    </div>
+
+    <script>
+        let currentNum = 0, lower = 0, upper = 0, mid = 0, isCorrect = 0;
+        let roundingMode = "10"; 
+        let score = 0;
+        let lives = 3;
+        let isRolling = false;
+        
+        let highScore = localStorage.getItem("yuvarlamaHighScore") || 0;
+        document.getElementById('highscore-display').innerText = highScore;
+
+        const pendulum = document.getElementById('pendulum');
+        const rock = document.getElementById('rock');
+
+        function updateLivesUI() {
+            let hearts = "";
+            for (let i = 0; i < lives; i++) hearts += "❤️";
+            for (let i = lives; i < 3; i++) hearts += "🖤";
+            document.getElementById('lives-display').innerText = hearts;
+        }
+
+        function generateQuestion() {
+            if(isRolling) return;
+            
+            document.getElementById('answer').value = '';
+            document.getElementById('msg').innerText = '';
+            
+            const modes = [10, 100, 1000];
+            let mode = modes[Math.floor(Math.random() * 3)];
+            roundingMode = mode;
+            
+            let modName = mode === 10 ? "ONLUĞA" : (mode === 100 ? "YÜZLÜĞE" : "BİNLİĞE");
+            document.getElementById('instruction').innerHTML = `Sayıyı en yakın <b>${modName}</b> yuvarla!`;
+
+            // Rastgele sayı üret (Tam sınır ve ortaları hariç tutmuyoruz ki 45, 450 gibi sayılar da zirveye otursun)
+            do {
+                if(mode === 10) currentNum = Math.floor(Math.random() * 89) + 11;
+                if(mode === 100) currentNum = Math.floor(Math.random() * 899) + 101;
+                if(mode === 1000) currentNum = Math.floor(Math.random() * 8999) + 1001;
+            } while (currentNum % mode === 0);
+
+            // Sınırları hesapla
+            lower = Math.floor(currentNum / mode) * mode;
+            upper = lower + mode;
+            mid = lower + (mode / 2);
+            
+            isCorrect = (currentNum >= mid) ? upper : lower;
+
+            // Kayanın Tepedeki Konumunu (Sayı Doğrusu) Hesaplama Formülü:
+            // P (Yüzde Oranı) = (Sayı - Alt Sınır) / (Üst Sınır - Alt Sınır)
+            let percentage = (currentNum - lower) / (upper - lower); 
+            // Açı -90 (Sol) ile +90 (Sağ) arasında değişir.
+            let initialAngle = (percentage * 180) - 90;
+
+            // Animasyonları sıfırlayıp kayayı matematıksel noktaya koyalım
+            pendulum.style.transition = 'none';
+            rock.style.transition = 'none';
+            
+            // Dinamik CSS Değişkeni (Yanlış cevap titremesinde kaymasın diye)
+            pendulum.style.setProperty('--base-angle', `${initialAngle}deg`);
+            pendulum.style.transform = `rotate(${initialAngle}deg)`;
+            
+            // İçindeki yazı ters dönmesin diye kayayı tersine çeviriyoruz
+            rock.style.transform = `rotate(${-initialAngle}deg)`;
+            pendulum.classList.remove('shake');
+
+            // Arayüze yaz
+            document.getElementById('targetNum').innerText = currentNum;
+            document.getElementById('lbl-lower').innerText = lower;
+            document.getElementById('lbl-upper').innerText = upper;
+            document.getElementById('lbl-mid').innerText = mid;
+            rock.innerText = currentNum;
+
+            setTimeout(() => document.getElementById('answer').focus(), 100);
+        }
+
+        function checkAnswer() {
+            if(isRolling) return;
+            let userAns = parseInt(document.getElementById('answer').value);
+            let msg = document.getElementById('msg');
+            let input = document.getElementById('answer');
+            
+            if (isNaN(userAns)) return;
+            isRolling = true;
+
+            setTimeout(() => {
+                if (userAns === isCorrect) {
+                    // DOĞRU CEVAP
+                    score += 100;
+                    document.getElementById('score-display').innerText = score;
+
+                    if (score > highScore) {
+                        highScore = score;
+                        localStorage.setItem("yuvarlamaHighScore", highScore);
+                        document.getElementById('highscore-display').innerText = highScore;
+                    }
+
+                    msg.style.color = '#27ae60';
+                    let digit = roundingMode === 10 ? "Birler" : (roundingMode === 100 ? "Onlar" : "Yüzler");
+                    
+                    // Fiziksel Yuvarlanma Animasyonu
+                    pendulum.style.transition = 'transform 1.5s cubic-bezier(0.5, 0, 0.8, 0.2)';
+                    rock.style.transition = 'transform 1.5s cubic-bezier(0.5, 0, 0.8, 0.2)';
+
+                    if(currentNum >= mid) {
+                        msg.innerText = `Doğru! ${digit} basamağı 5 veya daha büyük. İLERİ yuvarlandı!`;
+                        pendulum.style.transform = 'rotate(90deg)'; 
+                        rock.style.transform = 'rotate(-360deg)'; // Kendi etrafında dönsün
+                    } else {
+                        msg.innerText = `Doğru! ${digit} basamağı 5'ten küçük. GERİ yuvarlandı!`;
+                        pendulum.style.transform = 'rotate(-90deg)'; 
+                        rock.style.transform = 'rotate(360deg)';
+                    }
+                    
+                    setTimeout(() => {
+                        isRolling = false;
+                        generateQuestion();
+                    }, 3000);
+
+                } else {
+                    // YANLIŞ CEVAP
+                    lives--;
+                    updateLivesUI();
+
+                    if (lives <= 0) {
+                        gameOver();
+                    } else {
+                        msg.style.color = '#c0392b';
+                        msg.innerText = `Yanlış! Sayının konumuna tekrar bak! (Kalan Can: ${lives})`;
+                        
+                        // Kaya bulunduğu yamaçta titrer!
+                        pendulum.classList.add('shake');
+                        input.value = '';
+                        input.focus();
+                        
+                        setTimeout(() => {
+                            pendulum.classList.remove('shake');
+                            isRolling = false;
+                        }, 500);
+                    }
+                }
+            }, 100);
+        }
+
+        function gameOver() {
+            let isNewRecord = score > 0 && score >= highScore;
+            document.getElementById('new-record-msg').style.display = isNewRecord ? 'block' : 'none';
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-highscore').innerText = highScore;
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        function restartGame() {
+            score = 0;
+            lives = 3;
+            isRolling = false;
+            document.getElementById('score-display').innerText = score;
+            updateLivesUI();
+            document.getElementById('game-over-screen').classList.add('hidden');
+            generateQuestion();
+        }
+
+        updateLivesUI();
+        generateQuestion();
+        document.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAnswer(); });
+    </script>
+</body>
+</html>

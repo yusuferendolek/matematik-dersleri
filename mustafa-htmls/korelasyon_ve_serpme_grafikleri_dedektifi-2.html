@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Korelasyon Dedektifi v2 - 11. Sınıf TYYM Matematik</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .btn-select {
+            transition: all 0.2s ease;
+        }
+        .btn-select.active {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border-color: #a5b4fc;
+            color: white;
+            box-shadow: 0 4px 15px -3px rgba(99, 102, 241, 0.4);
+        }
+        .mcq-option {
+            transition: all 0.2s ease;
+        }
+        .mcq-option.selected {
+            border-color: #818cf8;
+            background: rgba(99, 102, 241, 0.2);
+        }
+        .pulse-effect {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.98); opacity: 0.8; }
+            50% { transform: scale(1.03); opacity: 1; }
+            100% { transform: scale(0.98); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between p-3 sm:p-6 min-h-screen">
+
+    <!-- ÜST BİLGİ & BAŞLIK -->
+    <header class="max-w-5xl mx-auto w-full flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid fa-magnifying-glass-chart text-2xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-display font-extrabold text-xl sm:text-2xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-200">
+                    Korelasyon Dedektifi v2
+                </h1>
+                <p class="text-xs text-indigo-200/70 font-medium">Bölgesel Veri Analizi ve Yorumlama • TYYM 11. Sınıf</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button id="soundToggleBtn" onclick="toggleSound()" class="p-2.5 rounded-xl glass-panel text-indigo-200 hover:text-white transition-all text-sm">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-indigo-400"></i>
+            </button>
+            <div class="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl glass-panel text-xs font-semibold text-amber-300">
+                <i class="fa-solid fa-trophy text-amber-400"></i>
+                <span id="highScoreText">En Yüksek: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto w-full my-auto">
+
+        <!-- 1. BAŞLANGIÇ EKRANI -->
+        <div id="startScreen" class="glass-panel rounded-3xl p-6 sm:p-10 shadow-2xl text-center space-y-6 relative overflow-hidden">
+            <div class="absolute -top-20 -left-20 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -right-20 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
+                <i class="fa-solid fa-graduation-cap text-amber-400"></i> Türkiye Yüzyılı Maarif Modeli Uyumlu
+            </div>
+
+            <h2 class="font-display text-3xl sm:text-5xl font-extrabold text-white leading-tight">
+                Serpme Grafiğini İncele,<br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400">Gerçek Hayat İlişkisini Yorumla!</span>
+            </h2>
+
+            <p class="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+                Bu oyunda **süre sınırı (stres) yoktur**! Kronometre hızınızı ölçer ve doğru cevap verdiğinizde ekstra **Hız Bonusu** kazandırır.
+            </p>
+
+            <!-- Özellik Adımları -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left my-6 max-w-3xl mx-auto">
+                <div class="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/20 flex gap-3.5 items-start">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 font-bold">1</div>
+                    <div>
+                        <h3 class="text-indigo-300 font-bold text-sm">Grafik Analizi (Yön & Güç)</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Serpme grafiğindeki noktaların dağılımına bakarak ilişkinin **Pozitif/Negatif** yönünü ve **Güçlü/Orta/Zayıf** şiddetini belirleyin.</p>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-purple-950/40 border border-purple-500/20 flex gap-3.5 items-start">
+                    <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 font-bold">2</div>
+                    <div>
+                        <h3 class="text-purple-300 font-bold text-sm">Gerçek Hayat Yorum Soru</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Grafiğin ardından açılan 3 şıklı soruyla değişkenler arasındaki nedensellik ve coğrafi yorumu analiz edin.</p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="px-10 py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-bold text-lg shadow-xl shadow-indigo-500/25 transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 mx-auto">
+                <i class="fa-solid fa-play"></i> Göreve Başla
+            </button>
+        </div>
+
+        <!-- 2. OYUN EKRANI -->
+        <div id="gameScreen" class="hidden space-y-4">
+
+            <!-- Üst İlerleme ve Kronometre Çubuğu -->
+            <div class="glass-panel rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <span id="regionBadge" class="px-3 py-1 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-location-dot text-indigo-400"></i> <span id="regionName">Marmara Bölgesi</span>
+                    </span>
+                    <span class="text-xs font-semibold text-slate-300 bg-white/5 px-2.5 py-1 rounded-xl border border-white/10">
+                        Görev <span id="questionCounter" class="text-indigo-300 font-bold">1</span>/8
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-5">
+                    <!-- Kronometre (G geçen Süre) -->
+                    <div class="flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-sm font-bold">
+                        <i class="fa-regular fa-clock text-emerald-400"></i>
+                        <span id="stopwatchDisplay">00:00</span>
+                    </div>
+
+                    <!-- Seri / Kombo -->
+                    <div class="flex items-center gap-1.5 text-amber-400 font-bold text-sm">
+                        <i class="fa-solid fa-bolt pulse-effect"></i>
+                        <span id="comboText">1x Çarpan</span>
+                    </div>
+
+                    <!-- Skor -->
+                    <div class="text-right">
+                        <span class="text-[10px] text-slate-400 block -mb-1">SKOR</span>
+                        <span id="scoreText" class="font-display font-extrabold text-xl text-emerald-400">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ana Oyun Grid: Sol Canvas Grafik - Sağ Aşamalı Sorular -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+                <!-- SOL TARAF: Canvas Serpme Grafiği -->
+                <div class="lg:col-span-5 glass-panel rounded-3xl p-4 flex flex-col justify-between items-center relative shadow-xl border border-white/10">
+                    <div class="w-full flex items-center justify-between mb-2">
+                        <div class="text-xs font-bold text-indigo-200 truncate pr-2" id="scenarioTitle">
+                            Sanayi Yatırımı / Hava Kirliliği
+                        </div>
+                        <button onclick="toggleTrendline()" id="trendlineBtn" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition-colors shrink-0">
+                            <i class="fa-solid fa-chart-line text-indigo-400 mr-1"></i> Eğilim Doğrusu
+                        </button>
+                    </div>
+
+                    <!-- Canvas Grafiği -->
+                    <div class="w-full aspect-square max-w-[360px] bg-slate-950/90 rounded-2xl p-2 relative border border-slate-700/50 shadow-inner flex items-center justify-center">
+                        <canvas id="scatterCanvas" width="340" height="340" class="w-full h-full block rounded-xl"></canvas>
+                    </div>
+
+                    <div class="w-full flex items-center justify-between text-[11px] text-slate-400 mt-2 px-1">
+                        <span><i class="fa-solid fa-circle text-indigo-400 text-[8px] mr-1"></i>Veri Noktaları</span>
+                        <span id="sampleSizeText">n = 30 İl/İlçe Verisi</span>
+                    </div>
+                </div>
+
+                <!-- SAĞ TARAF: AŞAMALI SORULAR -->
+                <div class="lg:col-span-7 space-y-4">
+
+                    <!-- AŞAMA 1: GRAFİK YÖNÜ VE GÜCÜ -->
+                    <div id="stage1Box" class="glass-panel rounded-2xl p-4 border border-white/10 space-y-4">
+                        <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                            <span class="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px]">1</span>
+                                Aşama 1: Grafik Yapısını Belirle
+                            </span>
+                            <span class="text-[11px] text-slate-400">Yön ve Güç Seçiniz</span>
+                        </div>
+
+                        <!-- Yön Seçimi -->
+                        <div class="space-y-1.5">
+                            <label class="text-xs text-slate-300 font-semibold">İlişkinin Yönü (Direction):</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="selectDirection('positive')" id="btnDirPositive" class="btn-select btn-dir glass-card p-2.5 rounded-xl text-center border border-white/10 hover:border-indigo-400/50 text-xs font-semibold text-slate-200">
+                                    <i class="fa-solid fa-arrow-trend-up text-emerald-400 mb-1 block text-base"></i> Pozitif (+)
+                                </button>
+                                <button onclick="selectDirection('negative')" id="btnDirNegative" class="btn-select btn-dir glass-card p-2.5 rounded-xl text-center border border-white/10 hover:border-indigo-400/50 text-xs font-semibold text-slate-200">
+                                    <i class="fa-solid fa-arrow-trend-down text-rose-400 mb-1 block text-base"></i> Negatif (-)
+                                </button>
+                                <button onclick="selectDirection('none')" id="btnDirNone" class="btn-select btn-dir glass-card p-2.5 rounded-xl text-center border border-white/10 hover:border-indigo-400/50 text-xs font-semibold text-slate-200">
+                                    <i class="fa-solid fa-braille text-amber-400 mb-1 block text-base"></i> İlişki Yok (0)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Güç Seçimi -->
+                        <div class="space-y-1.5">
+                            <label class="text-xs text-slate-300 font-semibold">İlişkinin Gücü (Strength):</label>
+                            <div class="grid grid-cols-4 gap-2">
+                                <button onclick="selectStrength('strong')" id="btnStrStrong" class="btn-select btn-str glass-card p-2 rounded-xl text-center border border-white/10 hover:border-indigo-400/50 text-xs font-semibold text-slate-200">
+                                    Güçlü<br><span class="text-[10px] text-slate-400 font-normal">|r| ≥ 0.7</span>
+                                </button>
+                                <button onclick="selectStrength('moderate')" id="btnStrModerate" class="btn-select btn-str glass-card p-2 rounded-xl text-center border border-white/10 hover:border-indigo-400/50 text-xs font-semibold text-slate-200">
+                                    Orta<br><span class="text-[10px] text-slate-400 font-normal">0.3-0.7</span>
+                                </button>
+                                <button onclick="selectStrength('weak')" id="btnStrWeak" class="btn-select btn-str glass-card p-2 rounded-xl text-center border border-white/10 hover:border-indigo-400/50 text-xs font-semibold text-slate-200">
+                                    Zayıf<br><span class="text-[10px] text-slate-400 font-normal">0.1-0.3</span>
+                                </button>
+                                <button onclick="selectStrength('none')" id="btnStrNone" class="btn-select btn-str glass-card p-2 rounded-xl text-center border border-white/10 hover:border-indigo-400/50 text-xs font-semibold text-slate-200">
+                                    Yok<br><span class="text-[10px] text-slate-400 font-normal">|r| < 0.1</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button onclick="confirmStage1()" id="stage1Btn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all flex items-center justify-center gap-2">
+                            Grafik Seçimini Onayla & 2. Aşamaya Geç <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- AŞAMA 2: ÇOKTAN SEÇMELİ YORUM SORUSU (Başlangıçta Kilitli / Hidden) -->
+                    <div id="stage2Box" class="hidden glass-panel rounded-2xl p-4 border border-purple-500/30 space-y-3 bg-purple-950/20">
+                        <div class="flex items-center justify-between border-b border-purple-500/20 pb-2">
+                            <span class="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full bg-purple-500 text-white flex items-center justify-center text-[10px]">2</span>
+                                Aşama 2: Gerçek Hayat Yorum Sorusu
+                            </span>
+                            <span class="text-[10px] text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded-full font-semibold">Çoktan Seçmeli</span>
+                        </div>
+
+                        <p id="mcqQuestionText" class="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed">
+                            Soru metni buraya gelecek...
+                        </p>
+
+                        <div id="mcqOptionsContainer" class="space-y-2">
+                            <!-- JS seçenekleri buraya çizecek -->
+                        </div>
+
+                        <button onclick="submitFinalAnswers()" id="finalSubmitBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-indigo-600 hover:from-emerald-600 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-circle-check"></i> Analizi Tamamla & Gönder
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Anlık Açıklamalı Dönüt Paneli -->
+            <div id="feedbackBox" class="hidden glass-panel rounded-2xl p-5 border shadow-2xl transition-all">
+                <div class="flex items-start gap-4">
+                    <div id="feedbackIcon" class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <div class="space-y-2 flex-1">
+                        <div class="flex items-center justify-between">
+                            <h3 id="feedbackTitle" class="font-bold text-base">Analiz Değerlendirmesi</h3>
+                            <div class="flex items-center gap-2">
+                                <span id="speedBonusBadge" class="px-2.5 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold text-xs"><i class="fa-solid fa-bolt mr-1"></i>+0 Hız</span>
+                                <span id="earnedPointsBadge" class="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold text-xs">+0 Puan</span>
+                            </div>
+                        </div>
+                        <p id="feedbackExplanation" class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            Açıklama metni...
+                        </p>
+                        <!-- Gerçek Değerler Özeti -->
+                        <div class="grid grid-cols-3 gap-2 pt-1 text-center text-xs">
+                            <div class="p-2 rounded-xl bg-white/5 border border-white/5">
+                                <span class="text-[10px] text-slate-400 block">Gerçek Yön</span>
+                                <span id="trueDirText" class="font-bold text-indigo-300">-</span>
+                            </div>
+                            <div class="p-2 rounded-xl bg-white/5 border border-white/5">
+                                <span class="text-[10px] text-slate-400 block">Gerçek Güç</span>
+                                <span id="trueStrText" class="font-bold text-purple-300">-</span>
+                            </div>
+                            <div class="p-2 rounded-xl bg-white/5 border border-white/5">
+                                <span class="text-[10px] text-slate-400 block">Hesaplanan $r$</span>
+                                <span id="trueRText" class="font-bold text-amber-300">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button onclick="nextScenario()" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all flex items-center gap-2 shadow-lg">
+                        Sonraki Bölge / Senaryo <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 3. BİTİŞ VE RAPOR EKRANI -->
+        <div id="endScreen" class="hidden glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div class="text-center space-y-2">
+                <div class="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-indigo-500 to-pink-500 text-white text-3xl mb-1 shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <h2 class="font-display text-3xl font-extrabold text-white">Bölgesel Analiz Raporu</h2>
+                <p class="text-slate-300 text-sm">Tüm senaryolar başarıyla tamamlandı!</p>
+            </div>
+
+            <!-- İstatistik Özeti -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                    <div class="text-xs text-slate-400">Toplam Puan</div>
+                    <div id="finalScore" class="font-display font-extrabold text-2xl text-emerald-400 mt-1">0</div>
+                </div>
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                    <div class="text-xs text-slate-400">Grafik Doğruluğu</div>
+                    <div id="finalGraphAcc" class="font-display font-extrabold text-2xl text-indigo-400 mt-1">%0</div>
+                </div>
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                    <div class="text-xs text-slate-400">Yorum Başarısı</div>
+                    <div id="finalMcqAcc" class="font-display font-extrabold text-2xl text-purple-400 mt-1">%0</div>
+                </div>
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                    <div class="text-xs text-slate-400">Ort. Yanıt Süresi</div>
+                    <div id="finalAvgTime" class="font-display font-extrabold text-2xl text-amber-400 mt-1">0s</div>
+                </div>
+            </div>
+
+            <!-- Çözüm Listesi -->
+            <div class="space-y-3">
+                <h3 class="font-bold text-sm text-indigo-200 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check"></i> Senaryo Analiz Geçmişi
+                </h3>
+                <div id="historyContainer" class="max-h-60 overflow-y-auto space-y-2 pr-2">
+                    <!-- Javascript dolduracak -->
+                </div>
+            </div>
+
+            <div class="flex justify-center pt-2">
+                <button onclick="startGame()" class="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> Yeniden Göreve Başla
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="max-w-5xl mx-auto w-full text-center text-xs text-slate-400 py-3">
+        MEB Türkiye Yüzyılı Maarif Modeli (TYYM) • 11. Sınıf Matematik Müfredatı Uyumlu
+    </footer>
+
+    <script>
+        /* ----------------------------------------------------
+           1. SENARYO VE YORUM SORULARI VERİ BANKASI
+        ---------------------------------------------------- */
+        const REGIONAL_SCENARIOS = [
+            {
+                region: "Marmara Bölgesi",
+                title: "Sanayi Yatırımları ($x$) ve Hava Kirliliği ($y$)",
+                labelX: "Sanayi Yatırımı (Milyon TL)",
+                labelY: "PM10 Hava Kirliliği İndeksi",
+                targetR: 0.88,
+                mcq: {
+                    question: "Grafikteki pozitif yönlü güçlü ilişki göz önüne alındığında, Marmara Bölgesi'ndeki çevre politikaları için aşağıdaki yorumlardan hangisi en doğrudur?",
+                    options: [
+                        { letter: "A", text: "Sanayi yatırımları arttıkça hava kirliliği azalmaktadır, müdahaleye gerek yoktur.", correct: false },
+                        { letter: "B", text: "Sanayileşme ile hava kirliliği paralel yükselmektedir; bacalara filtre ve yeşil enerji yatırımları zorunlu hale getirilmelidir.", correct: true },
+                        { letter: "C", text: "İki değişken arasında hiçbir nedensellik ilişkisi yoktur.", correct: false }
+                    ]
+                },
+                explanation: "Sanayi tesisleri arttıkça emisyon yükselmekte ve kirlilik indeksi artmaktadır. Güçlü pozitif korelasyon yeşil sanayi dönüşümünün önemini vurgular."
+            },
+            {
+                region: "Ege Bölgesi",
+                title: "Zeytin Rekoltesi ($x$) ve Yağ Litre Fiyatı ($y$)",
+                labelX: "Zeytin Üretimi (Bin Ton)",
+                labelY: "Sızma Yağ Fiyatı (TL)",
+                targetR: -0.82,
+                mcq: {
+                    question: "Grafikteki güçlü negatif ilişkiye dayanarak, tarımsal rekolte artışının piyasa fiyatlarına etkisi nasıl yorumlanır?",
+                    options: [
+                        { letter: "A", text: "Piyasada ürün bollaştıkça (arz arttıkça) zeytinyağının birim fiyatı düşme eğilimi gösterir.", correct: true },
+                        { letter: "B", text: "Zeytin üretimi arttıkça yağ fiyatı da sürekli artmaktadır.", correct: false },
+                        { letter: "C", text: "Üretim miktarının zeytinyağı fiyatı üzerinde hiçbir ekonomik etkisi bulunmamaktadır.", correct: false }
+                    ]
+                },
+                explanation: "Arz-talep dengesine göre rekolte arttıkça fiyatlar düşer. Grafik belirgin bir güçlü negatif eğilim sergiler."
+            },
+            {
+                region: "İç Anadolu Bölgesi",
+                title: "Yıllık Yağış Miktarı ($x$) ve Buğday Verimi ($y$)",
+                labelX: "Yıllık Yağış (mm)",
+                labelY: "Buğday Verimi (kg/dönüm)",
+                targetR: 0.75,
+                mcq: {
+                    question: "Kurak iklimli İç Anadolu'da bu serpme grafiği tarımsal strateji açısından ne söyler?",
+                    options: [
+                        { letter: "A", text: "Yağış miktarının buğday verimine hiçbir etkisi yoktur.", correct: false },
+                        { letter: "B", text: "Yağış miktarı arttıkça buğday rekoltesi belirgin şekilde artmaktadır; kurak yıllar için modern sulama projeleri kritik önem taşır.", correct: true },
+                        { letter: "C", text: "Yağış arttıkça buğday başakları zarar gördüğü için verim sürekli düşer.", correct: false }
+                    ]
+                },
+                explanation: "Yağış ile rekolte arasında pozitif ve güçlü bir ilişki vardır. Bölgedeki kuraklıkla mücadele için sulama altyapısı önemlidir."
+            },
+            {
+                region: "Karadeniz Bölgesi",
+                title: "Fındık Bahçesi Yüksekliği ($x$) ve Yıllık Verim ($y$)",
+                labelX: "Rakım / Yükseklik (m)",
+                labelY: "Dekar Başına Verim (kg)",
+                targetR: -0.48,
+                mcq: {
+                    question: "Rakım arttıkça verimin orta düzeyde azaldığını gösteren bu negatif grafik nasıl açıklanabilir?",
+                    options: [
+                        { letter: "A", text: "Yüksek rakımlarda don olayları ve dumanlı/sisli hava koşulları fındık verimini kısmen olumsuz etkilemektedir.", correct: true },
+                        { letter: "B", text: "Yüksek dağlarda toprak kalitesi arttığı için verim sürekli yükselir.", correct: false },
+                        { letter: "C", text: "Rakım ile tarımsal verim tamamen bağımsızdır.", correct: false }
+                    ]
+                },
+                explanation: "Yükseklik arttıkça sert kış şartları ve don riskleri verimi orta derecede düşürmektedir (Orta negatif)."
+            },
+            {
+                region: "Akdeniz Bölgesi",
+                title: "Turist Sayısı ($x$) ve Otel Doluluk Oranı ($y$)",
+                labelX: "Gelen Turist (Bin Kişi)",
+                labelY: "Otel Doluluk Oranı (%)",
+                targetR: 0.91,
+                mcq: {
+                    question: "Korelasyon katsayısı $r \\approx 0.91$ olan bu grafik bölge turizmi için ne ifade eder?",
+                    options: [
+                        { letter: "A", text: "Gelen turist sayısı ile otel doluluğu arasında doğrusal ve çok güçlü pozitif bir ilişki vardır.", correct: true },
+                        { letter: "B", text: "Turist sayısı arttıkça oteller boş kalmaktadır.", correct: false },
+                        { letter: "C", text: "Bölgeye turist gelse bile otellerin kapasitesi etkilenmemektedir.", correct: false }
+                    ]
+                },
+                explanation: "Turist sayısı doğrudan otel yatak kullanım oranını arttırmaktadır. Çok güçlü pozitif bir korelasyon örneğidir."
+            },
+            {
+                region: "Doğu Anadolu Bölgesi",
+                title: "Aylık Ortalama Sıcaklık ($x$) ve Doğalgaz Tüketimi ($y$)",
+                labelX: "Ortalama Sıcaklık (°C)",
+                labelY: "Aylık Gaz Tüketimi ($m^3$)",
+                targetR: -0.86,
+                mcq: {
+                    question: "Kışın dondurucu geçtiği bölgede sıcaklık ile gaz tüketimi arasındaki negatif ilişki nasıl yorumlanır?",
+                    options: [
+                        { letter: "A", text: "Sıcaklık düştükçe (eksi değerlere indikçe) binaları ısıtma ihtiyacı artmakta ve gaz tüketimi yükselmektedir.", correct: true },
+                        { letter: "B", text: "Hava ısındıkça doğalgaz tüketimi artar.", correct: false },
+                        { letter: "C", text: "Sıcaklık değişse de tüketim sabit kalmaktadır.", correct: false }
+                    ]
+                },
+                explanation: "Sıcaklık ile ısınma yakıtı tüketimi ters orantılıdır (Güçlü negatif)."
+            },
+            {
+                region: "Güneydoğu Anadolu Bölgesi",
+                title: "İlçe Nüfusu ($x$) ve Rüzgar Türbini Sayısı ($y$)",
+                labelX: "İlçe Nüfusu (Kişi)",
+                labelY: "Kurulu Rüzgar Türbini Sayısı",
+                targetR: 0.04,
+                mcq: {
+                    question: "Dağılımın rastgele göründüğü ve $r \\approx 0.04$ olduğu bu grafikte iki değişken arasındaki ilişki nedir?",
+                    options: [
+                        { letter: "A", text: "Nüfusu kalabalık olan ilçelerde her zaman daha fazla türbin kurulmaktadır.", correct: false },
+                        { letter: "B", text: "Rüzgar türbini kurulumu nüfus kalabalığına değil rüzgar koridorlarına bağlıdır; iki değişken arasında anlamlı bir ilişki yoktur.", correct: true },
+                        { letter: "C", text: "İki değişken arasında mükemmel negatif ilişki vardır.", correct: false }
+                    ]
+                },
+                explanation: "Rüzgar santrali konumu coğrafi rüzgar verimliliğine bağlıdır, yerleşim nüfusuyla doğrudan korelasyon göstermez ($r \\approx 0$)."
+            },
+            {
+                region: "Marmara Bölgesi",
+                title: "Araç Sayısı ($x$) ve Ortalama Trafik Hızı ($y$)",
+                labelX: "Trafiğe Kayıtlı Araç (Bin)",
+                labelY: "Şehir İçi Akış Hızı (km/sa)",
+                targetR: -0.79,
+                mcq: {
+                    question: "Grafikteki negatif eğilim metropollerdeki hangi kentsel sorunu kanıtlar?",
+                    options: [
+                        { letter: "A", text: "Araç sayısı arttıkça trafik sıkışmakta ve ortalama ulaşım hızı düşmektedir.", correct: true },
+                        { letter: "B", text: "Trafikteki araç sayısı arttıkça araçlar daha hızlı hareket etmektedir.", correct: false },
+                        { letter: "C", text: "Araç sayısı ile ulaşım hızı bağımsızdır.", correct: false }
+                    ]
+                },
+                explanation: "Trafikteki araç yoğunluğu arttıkça ortalama ilerleme hızı azalır (Güçlü negatif)."
+            }
+        ];
+
+        /* ----------------------------------------------------
+           2. OYUN DURUM DEĞİŞKENLERİ
+        ---------------------------------------------------- */
+        let scenarios = [];
+        let currentIndex = 0;
+        let score = 0;
+        let combo = 1;
+        let maxCombo = 1;
+
+        // Kronometre
+        let stopwatchTimer = null;
+        let elapsedSeconds = 0;
+
+        let soundEnabled = true;
+        let currentScenario = null;
+        let generatedPoints = [];
+        let calculatedR = 0;
+        let showTrendline = false;
+
+        // Kullanıcı Seçimleri
+        let selectedDir = null;
+        let selectedStr = null;
+        let selectedMcqOption = null;
+
+        let historyList = [];
+
+        // Web Audio Context
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioContext();
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'correct') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523, now);
+                    osc.frequency.exponentialRampToValueAtTime(783, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                }
+            } catch(e){}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundIcon').className = soundEnabled ? 'fa-solid fa-volume-high text-indigo-400' : 'fa-solid fa-volume-xmark text-slate-500';
+        }
+
+        /* ----------------------------------------------------
+           3. MATEMATİKSEL KORELASYON & CANVAS ÇİZİM LOGİĞİ
+        ---------------------------------------------------- */
+        function generateScatterPoints(targetR, count = 30) {
+            const points = [];
+            for (let i = 0; i < count; i++) {
+                const u1 = Math.random();
+                const u2 = Math.random();
+                const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+                const z1 = Math.sqrt(-2.0 * Math.log(u1)) * Math.sin(2.0 * Math.PI * u2);
+
+                const xVal = z0;
+                const yVal = targetR * z0 + Math.sqrt(1 - targetR * targetR) * z1;
+                points.push({ x: xVal, y: yVal });
+            }
+
+            let minX = Math.min(...points.map(p => p.x));
+            let maxX = Math.max(...points.map(p => p.x));
+            let minY = Math.min(...points.map(p => p.y));
+            let maxY = Math.max(...points.map(p => p.y));
+
+            const normalized = points.map(p => ({
+                x: 10 + ((p.x - minX) / (maxX - minX || 1)) * 80,
+                y: 10 + ((p.y - minY) / (maxY - minY || 1)) * 80
+            }));
+
+            const actualR = calculatePearsonR(normalized);
+            return { points: normalized, actualR: actualR };
+        }
+
+        function calculatePearsonR(pts) {
+            const n = pts.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+            for (let p of pts) {
+                sumX += p.x;
+                sumY += p.y;
+                sumXY += p.x * p.y;
+                sumX2 += p.x * p.x;
+                sumY2 += p.y * p.y;
+            }
+            const num = (n * sumXY) - (sumX * sumY);
+            const den = Math.sqrt(((n * sumX2) - (sumX * sumX)) * ((n * sumY2) - (sumY * sumY)));
+            return den === 0 ? 0 : num / den;
+        }
+
+        function renderScatterPlot() {
+            const canvas = document.getElementById('scatterCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const margin = 38;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let i = margin; i <= w - margin; i += 35) {
+                ctx.beginPath(); ctx.moveTo(i, margin); ctx.lineTo(i, h - margin); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(margin, i); ctx.lineTo(w - margin, i); ctx.stroke();
+            }
+
+            // Eksenler
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, h - margin);
+            ctx.lineTo(w - margin, h - margin);
+            ctx.stroke();
+
+            // Etiketler
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 9.5px Plus Jakarta Sans';
+            ctx.textAlign = 'center';
+            ctx.fillText(currentScenario.labelX, w / 2, h - 6);
+
+            ctx.save();
+            ctx.translate(10, h / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(currentScenario.labelY, 0, 0);
+            ctx.restore();
+
+            // Noktalar
+            const plotW = w - 2 * margin;
+            const plotH = h - 2 * margin;
+
+            for (let p of generatedPoints) {
+                const cx = margin + (p.x / 100) * plotW;
+                const cy = (h - margin) - (p.y / 100) * plotH;
+
+                ctx.beginPath();
+                ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#818cf8';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+            }
+
+            // Trendline
+            if (showTrendline) {
+                let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                const n = generatedPoints.length;
+                for (let p of generatedPoints) {
+                    sumX += p.x;
+                    sumY += p.y;
+                    sumXY += p.x * p.y;
+                    sumX2 += p.x * p.x;
+                }
+                const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                const intercept = (sumY - slope * sumX) / n;
+
+                const x1 = 5, x2 = 95;
+                const y1 = slope * x1 + intercept;
+                const y2 = slope * x2 + intercept;
+
+                const cx1 = margin + (x1 / 100) * plotW;
+                const cy1 = (h - margin) - (y1 / 100) * plotH;
+                const cx2 = margin + (x2 / 100) * plotW;
+                const cy2 = (h - margin) - (y2 / 100) * plotH;
+
+                ctx.strokeStyle = calculatedR >= 0 ? '#10b981' : '#f43f5e';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 4]);
+                ctx.beginPath();
+                ctx.moveTo(cx1, cy1);
+                ctx.lineTo(cx2, cy2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+
+        function toggleTrendline() {
+            showTrendline = !showTrendline;
+            renderScatterPlot();
+        }
+
+        /* ----------------------------------------------------
+           4. KRONOMETRE & OYUN AKIŞI
+        ---------------------------------------------------- */
+        function startGame() {
+            scenarios = [...REGIONAL_SCENARIOS].sort(() => 0.5 - Math.random()).slice(0, 8);
+            currentIndex = 0;
+            score = 0;
+            combo = 1;
+            maxCombo = 1;
+            historyList = [];
+
+            const saved = localStorage.getItem('tyym_korelasyon_v2_highscore') || 0;
+            document.getElementById('highScoreText').innerText = `En Yüksek: ${saved}`;
+
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+
+            loadScenario();
+        }
+
+        function startStopwatch() {
+            clearInterval(stopwatchTimer);
+            elapsedSeconds = 0;
+            updateStopwatchDisplay();
+
+            stopwatchTimer = setInterval(() => {
+                elapsedSeconds++;
+                updateStopwatchDisplay();
+            }, 1000);
+        }
+
+        function updateStopwatchDisplay() {
+            const mins = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+            const secs = (elapsedSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('stopwatchDisplay').innerText = `${mins}:${secs}`;
+        }
+
+        function loadScenario() {
+            if (currentIndex >= scenarios.length) {
+                endGame();
+                return;
+            }
+
+            currentScenario = scenarios[currentIndex];
+            showTrendline = false;
+            selectedDir = null;
+            selectedStr = null;
+            selectedMcqOption = null;
+
+            // UI Reset
+            document.getElementById('feedbackBox').classList.add('hidden');
+            document.getElementById('stage2Box').classList.add('hidden');
+            document.getElementById('stage1Box').classList.remove('hidden');
+
+            document.getElementById('scenarioTitle').innerText = `${currentScenario.region}: ${currentScenario.title}`;
+            document.getElementById('regionName').innerText = currentScenario.region;
+            document.getElementById('questionCounter').innerText = currentIndex + 1;
+
+            document.querySelectorAll('.btn-select').forEach(b => b.classList.remove('active'));
+
+            // Noktaları üret
+            const res = generateScatterPoints(currentScenario.targetR);
+            generatedPoints = res.points;
+            calculatedR = res.actualR;
+
+            renderScatterPlot();
+            startStopwatch();
+            updateUI();
+        }
+
+        function selectDirection(dir) {
+            selectedDir = dir;
+            document.querySelectorAll('.btn-dir').forEach(b => b.classList.remove('active'));
+            if (dir === 'positive') document.getElementById('btnDirPositive').classList.add('active');
+            if (dir === 'negative') document.getElementById('btnDirNegative').classList.add('active');
+            if (dir === 'none') document.getElementById('btnDirNone').classList.add('active');
+        }
+
+        function selectStrength(str) {
+            selectedStr = str;
+            document.querySelectorAll('.btn-str').forEach(b => b.classList.remove('active'));
+            if (str === 'strong') document.getElementById('btnStrStrong').classList.add('active');
+            if (str === 'moderate') document.getElementById('btnStrModerate').classList.add('active');
+            if (str === 'weak') document.getElementById('btnStrWeak').classList.add('active');
+            if (str === 'none') document.getElementById('btnStrNone').classList.add('active');
+        }
+
+        function confirmStage1() {
+            if (!selectedDir || !selectedStr) {
+                alert("Lütfen önce ilişkinin Yönünü ve Gücünü seçiniz.");
+                return;
+            }
+
+            // 2. Aşamayı Aç (Yorum Sorusu)
+            document.getElementById('stage2Box').classList.remove('hidden');
+            document.getElementById('mcqQuestionText').innerText = currentScenario.mcq.question;
+
+            const container = document.getElementById('mcqOptionsContainer');
+            container.innerHTML = '';
+
+            currentScenario.mcq.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option w-full p-3 rounded-xl glass-card text-left text-xs text-slate-200 border border-white/10 hover:border-purple-400/50 flex items-start gap-2.5';
+                btn.onclick = () => selectMcqOption(i, btn);
+                btn.innerHTML = `
+                    <span class="w-5 h-5 rounded-lg bg-purple-500/20 text-purple-300 font-bold flex items-center justify-center shrink-0 text-[11px]">${opt.letter}</span>
+                    <span class="leading-relaxed">${opt.text}</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function selectMcqOption(index, btnEl) {
+            selectedMcqOption = index;
+            document.querySelectorAll('.mcq-option').forEach(b => b.classList.remove('selected'));
+            btnEl.classList.add('selected');
+        }
+
+        function submitFinalAnswers() {
+            if (selectedMcqOption === null) {
+                alert("Lütfen 2. Aşamadaki yorum sorusunun şıkkını seçiniz.");
+                return;
+            }
+
+            clearInterval(stopwatchTimer);
+            showTrendline = true;
+            renderScatterPlot();
+
+            const absR = Math.abs(calculatedR);
+
+            // Gerçek Yön
+            let trueDir = 'none';
+            if (calculatedR >= 0.1) trueDir = 'positive';
+            else if (calculatedR <= -0.1) trueDir = 'negative';
+
+            // Gerçek Güç
+            let trueStr = 'none';
+            if (absR >= 0.7) trueStr = 'strong';
+            else if (absR >= 0.3) trueStr = 'moderate';
+            else if (absR >= 0.1) trueStr = 'weak';
+
+            const isDirCorrect = selectedDir === trueDir;
+            const isStrCorrect = selectedStr === trueStr;
+            const isMcqCorrect = currentScenario.mcq.options[selectedMcqOption].correct;
+
+            // Puanlama
+            let roundPoints = 0;
+            if (isDirCorrect) roundPoints += 40;
+            if (isStrCorrect) roundPoints += 40;
+            if (isMcqCorrect) roundPoints += 70;
+
+            // Hız Bonusu (Kronometreye göre)
+            let speedBonus = 0;
+            if (elapsedSeconds <= 15) speedBonus = 50;
+            else if (elapsedSeconds <= 25) speedBonus = 30;
+            else if (elapsedSeconds <= 40) speedBonus = 15;
+
+            if (isDirCorrect && isStrCorrect && isMcqCorrect) {
+                playSound('correct');
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
+                roundPoints += speedBonus;
+            } else {
+                playSound('wrong');
+                combo = 1;
+            }
+
+            roundPoints *= combo;
+            score += roundPoints;
+
+            showFeedback(isDirCorrect, isStrCorrect, isMcqCorrect, calculatedR, trueDir, trueStr, roundPoints, speedBonus);
+
+            historyList.push({
+                title: currentScenario.title,
+                region: currentScenario.region,
+                trueR: calculatedR,
+                isDirCorrect,
+                isStrCorrect,
+                isMcqCorrect,
+                timeSpent: elapsedSeconds,
+                explanation: currentScenario.explanation
+            });
+
+            updateUI();
+        }
+
+        function showFeedback(isDir, isStr, isMcq, actualR, trueDir, trueStr, points, speedBonus) {
+            const box = document.getElementById('feedbackBox');
+            const icon = document.getElementById('feedbackIcon');
+            const title = document.getElementById('feedbackTitle');
+            const exp = document.getElementById('feedbackExplanation');
+
+            box.classList.remove('hidden');
+
+            const dirLabels = { positive: 'Pozitif (+)', negative: 'Negatif (-)', none: 'İlişki Yok' };
+            const strLabels = { strong: 'Güçlü', moderate: 'Orta', weak: 'Zayıf', none: 'Yok' };
+
+            document.getElementById('trueDirText').innerText = dirLabels[trueDir];
+            document.getElementById('trueStrText').innerText = strLabels[trueStr];
+            document.getElementById('trueRText').innerText = (actualR >= 0 ? '+' : '') + actualR.toFixed(2);
+            document.getElementById('earnedPointsBadge').innerText = `+${points} Puan`;
+            document.getElementById('speedBonusBadge').innerText = `+${speedBonus} Hız Bonusu`;
+
+            if (isDir && isStr && isMcq) {
+                box.className = "glass-panel rounded-2xl p-5 border border-emerald-500/40 bg-emerald-950/30 shadow-2xl";
+                icon.className = "w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl shrink-0";
+                icon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                title.innerText = "Tebrikler! Mükemmel Analiz";
+                exp.innerHTML = `Hem grafiği hem de gerçek hayat yorumunu eksiksiz doğru yaptınız. ${currentScenario.explanation}`;
+            } else {
+                box.className = "glass-panel rounded-2xl p-5 border border-indigo-500/40 bg-indigo-950/30 shadow-2xl";
+                icon.className = "w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-2xl shrink-0";
+                icon.innerHTML = '<i class="fa-solid fa-graduation-cap"></i>';
+                title.innerText = "Analiz Özeti & Çözüm";
+                exp.innerHTML = `${currentScenario.explanation}`;
+            }
+        }
+
+        function nextScenario() {
+            currentIndex++;
+            loadScenario();
+        }
+
+        function updateUI() {
+            document.getElementById('scoreText').innerText = score;
+            document.getElementById('comboText').innerText = `${combo}x Çarpan`;
+        }
+
+        /* ----------------------------------------------------
+           5. RAPORLAMA EKRANI
+        ---------------------------------------------------- */
+        function endGame() {
+            clearInterval(stopwatchTimer);
+
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.remove('hidden');
+
+            const savedHighScore = parseInt(localStorage.getItem('tyym_korelasyon_v2_highscore') || 0);
+            if (score > savedHighScore) {
+                localStorage.setItem('tyym_korelasyon_v2_highscore', score);
+                document.getElementById('highScoreText').innerText = `En Yüksek: ${score}`;
+            }
+
+            const total = historyList.length;
+            const graphAcc = Math.round((historyList.filter(h => h.isDirCorrect && h.isStrCorrect).length / total) * 100) || 0;
+            const mcqAcc = Math.round((historyList.filter(h => h.isMcqCorrect).length / total) * 100) || 0;
+            const avgTime = Math.round(historyList.reduce((acc, h) => acc + h.timeSpent, 0) / total) || 0;
+
+            document.getElementById('finalScore').innerText = score;
+            document.getElementById('finalGraphAcc').innerText = `%${graphAcc}`;
+            document.getElementById('finalMcqAcc').innerText = `%${mcqAcc}`;
+            document.getElementById('finalAvgTime').innerText = `${avgTime}s`;
+
+            const container = document.getElementById('historyContainer');
+            container.innerHTML = '';
+
+            historyList.forEach((h, idx) => {
+                const card = document.createElement('div');
+                card.className = "p-3 rounded-xl bg-white/5 border border-white/10 text-xs leading-relaxed space-y-1";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between font-bold text-indigo-200">
+                        <span>${idx + 1}. ${h.region} - ${h.title}</span>
+                        <span class="text-amber-300">r = ${(h.trueR >= 0 ? '+' : '') + h.trueR.toFixed(2)} (${h.timeSpent}s)</span>
+                    </div>
+                    <div class="text-slate-300 text-[11px]">
+                        ${h.explanation}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7. Sınıf Fen Bilgisi - Elektrik Devreleri Simülasyonu</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+        .font-heading {
+            font-family: 'Fredoka', cursive, sans-serif;
+        }
+        canvas {
+            touch-action: none;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Navbar / Üst Başlık -->
+    <header class="bg-indigo-600 text-white shadow-lg px-4 py-3 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-yellow-400 text-indigo-900 p-2.5 rounded-2xl shadow-inner">
+                    <i class="fa-solid fa-bolt text-2xl animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="font-heading text-xl md:text-2xl font-bold tracking-wide">7. Sınıf Fen Bilgisi: Elektrik Devreleri</h1>
+                    <p class="text-xs text-indigo-200">Seri ve Paralel Bağlama • Ohm Kanunu • Akım & Gerilim</p>
+                </div>
+            </div>
+
+            <!-- Mod / Şablon Seçimleri -->
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button id="btn-series" onclick="loadPreset('series')" class="preset-btn bg-indigo-500 hover:bg-indigo-400 text-white text-xs md:text-sm font-semibold px-3 py-2 rounded-xl transition-all shadow-md border border-indigo-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-link"></i> Seri Devre
+                </button>
+                <button id="btn-parallel" onclick="loadPreset('parallel')" class="preset-btn bg-indigo-500 hover:bg-indigo-400 text-white text-xs md:text-sm font-semibold px-3 py-2 rounded-xl transition-all shadow-md border border-indigo-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-bars"></i> Paralel Devre
+                </button>
+                <button id="btn-custom" onclick="loadPreset('custom')" class="preset-btn bg-indigo-500 hover:bg-indigo-400 text-white text-xs md:text-sm font-semibold px-3 py-2 rounded-xl transition-all shadow-md border border-indigo-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Serbest Çizim
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Ana İçerik Alanı -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 md:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+        <!-- Sol Panel: Kontroller ve Bileşenler -->
+        <section class="lg:col-span-4 flex flex-col gap-4">
+
+            <!-- Devre Durum Paneli -->
+            <div class="bg-white rounded-2xl p-4 shadow-md border border-slate-200">
+                <div class="flex items-center justify-between mb-3 border-b pb-2 border-slate-100">
+                    <h2 class="font-heading text-lg font-semibold text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-600"></i> Devre Kontrolleri
+                    </h2>
+                    <span id="circuit-status-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                        Kapalı Devre (Akım Var)
+                    </span>
+                </div>
+
+                <!-- Anahtar Aç/Kapa -->
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl mb-3 border border-slate-200">
+                    <span class="font-medium text-sm text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-toggle-on text-indigo-500 text-lg"></i> Anahtar Durumu
+                    </span>
+                    <button id="switch-btn" onclick="toggleSwitch()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition shadow">
+                        AÇIK (Akım Geçiyor)
+                    </button>
+                </div>
+
+                <!-- Pil Gerilimi Ayarı -->
+                <div class="space-y-1 mb-4">
+                    <div class="flex justify-between text-xs font-semibold text-slate-600">
+                        <span><i class="fa-solid fa-battery-full text-emerald-500"></i> Pil Gerilimi ($V$):</span>
+                        <span id="voltage-val" class="text-indigo-600 font-bold text-sm">9.0 V</span>
+                    </div>
+                    <input type="range" id="voltage-slider" min="1.5" max="24" step="0.5" value="9" oninput="updateVoltage(this.value)" class="w-full accent-indigo-600 cursor-pointer h-2 bg-slate-200 rounded-lg">
+                    <div class="flex justify-between text-[10px] text-slate-400">
+                        <span>1.5 V</span>
+                        <span>12 V</span>
+                        <span>24 V</span>
+                    </div>
+                </div>
+
+                <!-- Akış Gösterim Türü -->
+                <div class="space-y-2 mb-2">
+                    <label class="text-xs font-semibold text-slate-600 block"><i class="fa-solid fa-arrows-spin text-amber-500"></i> Akım / Elektron Yönü:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="flow-electron" onclick="setFlowType('electron')" class="py-2 px-2 text-xs font-semibold rounded-lg bg-indigo-100 text-indigo-700 border border-indigo-300">
+                            Elektron Akışı (- &rarr; +)
+                        </button>
+                        <button id="flow-conventional" onclick="setFlowType('conventional')" class="py-2 px-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 border border-slate-200">
+                            Geleneksel Akım (+ &rarr; -)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ampul Kontrolü ve Patlatma / Sökme Testi -->
+            <div class="bg-white rounded-2xl p-4 shadow-md border border-slate-200">
+                <h2 class="font-heading text-lg font-semibold text-slate-700 mb-2 flex items-center gap-2 border-b pb-2 border-slate-100">
+                    <i class="fa-solid fa-lightbulb text-yellow-500"></i> Ampul İşlemleri & Deney
+                </h2>
+
+                <p class="text-xs text-slate-500 mb-3">
+                    Ampulün üzerine tıklayarak patlatabilir/duydan sökebilirsiniz. Bu sayede seri ve paralel bağlı devrelerdeki değişimleri gözlemleyin!
+                </p>
+
+                <!-- Dinamik Ampul Listesi -->
+                <div id="bulbs-control-container" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <!-- JS ile doldurulacak -->
+                </div>
+            </div>
+
+            <!-- Ölçüm Değerleri (Ohm Kanunu Verileri) -->
+            <div class="bg-indigo-900 text-white rounded-2xl p-4 shadow-md space-y-3">
+                <h3 class="font-heading text-base font-semibold flex items-center justify-between text-yellow-300">
+                    <span><i class="fa-solid fa-gauge-high"></i> Ölçüm Sonuçları</span>
+                    <span class="text-xs font-mono bg-indigo-800 px-2 py-0.5 rounded text-indigo-200">V = I × R</span>
+                </h3>
+
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-indigo-800/80 p-2 rounded-xl border border-indigo-700">
+                        <div class="text-[10px] text-indigo-300">Ana Gerilim</div>
+                        <div id="readout-v" class="text-lg font-bold text-yellow-400">9.0 V</div>
+                    </div>
+                    <div class="bg-indigo-800/80 p-2 rounded-xl border border-indigo-700">
+                        <div class="text-[10px] text-indigo-300">Eşdeğer Direnç</div>
+                        <div id="readout-r" class="text-lg font-bold text-cyan-300">10.0 Ω</div>
+                    </div>
+                    <div class="bg-indigo-800/80 p-2 rounded-xl border border-indigo-700">
+                        <div class="text-[10px] text-indigo-300">Toplam Akım</div>
+                        <div id="readout-i" class="text-lg font-bold text-emerald-400">0.90 A</div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Sağ Panel: İnteraktif Canvas & Bilgi Notları -->
+        <section class="lg:col-span-8 flex flex-col gap-4">
+
+            <!-- Canvas Konteyneri -->
+            <div class="bg-white rounded-2xl shadow-md border border-slate-200 p-3 flex flex-col relative overflow-hidden">
+                
+                <!-- Tuval Üst Barları / Legend -->
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2 px-2">
+                    <div class="flex items-center gap-3 text-xs font-semibold text-slate-600">
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-yellow-400 inline-block shadow"></span> Ampul</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Elektron</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Pil (+ / -)</span>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-xs">
+                        <button onclick="resetCircuit()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-300 transition flex items-center gap-1">
+                            <i class="fa-solid fa-rotate-left"></i> Devreyi Sıfırla
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Çizim Alanı (Interactive Canvas) -->
+                <div class="relative w-full bg-slate-950 rounded-xl overflow-hidden shadow-inner border border-slate-800" style="min-height: 380px;">
+                    <canvas id="circuitCanvas" class="w-full h-full block cursor-pointer"></canvas>
+                    
+                    <!-- İpucu Katmanı -->
+                    <div class="absolute bottom-3 left-3 bg-slate-900/80 text-slate-300 text-[11px] backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700 pointer-events-none">
+                        💡 Tip: Devredeki ampullere doğrudan tıklayarak patlatabilir veya yenileyebilirsiniz!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Paneli: Konu Özeti & Bilgi Testi -->
+            <div class="bg-white rounded-2xl p-4 shadow-md border border-slate-200">
+                <div class="flex border-b border-slate-200 mb-3 gap-4 text-sm font-semibold">
+                    <button id="tab-btn-notes" onclick="switchTab('notes')" class="pb-2 border-b-2 border-indigo-600 text-indigo-600 transition">
+                        <i class="fa-solid fa-book-open"></i> 7. Sınıf Fen Kuralları
+                    </button>
+                    <button id="tab-btn-quiz" onclick="switchTab('quiz')" class="pb-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition">
+                        <i class="fa-solid fa-circle-question"></i> Mini Kavrama Testi
+                    </button>
+                </div>
+
+                <!-- Notlar Sekmesi -->
+                <div id="tab-notes" class="space-y-3 text-xs md:text-sm text-slate-600">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="bg-indigo-50 border-l-4 border-indigo-500 p-3 rounded-r-xl">
+                            <h4 class="font-bold text-indigo-900 mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-link"></i> Seri Bağlama Kuralları
+                            </h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700 text-xs">
+                                <li>Ampuller tek bir hat üzerinde arka arkaya bağlanır.</li>
+                                <li><strong>Ampul sayısı arttıkça:</strong> Toplam direnç artar, devreden geçen akım azalır ve ampul parlaklığı <u>azalır</u>.</li>
+                                <li>Bir ampul patlarsa/sökülürse devre açılır, <strong>diğer tüm ampuller söner!</strong></li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-emerald-50 border-l-4 border-emerald-500 p-3 rounded-r-xl">
+                            <h4 class="font-bold text-emerald-900 mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-bars"></i> Paralel Bağlama Kuralları
+                            </h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700 text-xs">
+                                <li>Ampuller farklı kollar üzerine bağlanır. Każda kolun gerilimi pil gerilimine eşittir.</li>
+                                <li><strong>Ampul sayısı eklendikçe:</strong> Özdeş ampullerin parlaklığı <u>değişmez</u>.</li>
+                                <li>Bir ampul patlarsa/sökülürse, <strong>diğer kollardaki ampuller yanmaya devam eder!</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz Sekmesi -->
+                <div id="tab-quiz" class="hidden space-y-3">
+                    <div id="quiz-container" class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                        <!-- JS ile içerik dolacak -->
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        /**
+         * 7. SINIF ELEKTRİK DEVRELERİ SİMÜLASYONU ENGINE
+         */
+
+        // Canvas & Konteynır Tanımları
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Simülasyon Durum Değişkenleri
+        let currentMode = 'series'; // 'series', 'parallel', 'custom'
+        let switchClosed = true;
+        let batteryVoltage = 9.0; // Volt
+        let flowType = 'electron'; // 'electron' veya 'conventional'
+        let electronOffset = 0;
+
+        // Devre Bileşen Verileri
+        let bulbs = [];
+        let circuitPath = []; // Elektron hareketi için yol koordinatları
+
+        // Quiz Soruları Veri Seti
+        const quizQuestions = [
+            {
+                q: "Seri bağlı bir devrede ampul sayısı artırılırsa ampullerin parlaklığı nasıl değişir?",
+                options: ["Artar", "Azalır", "Değişmez", "Önce artar sonra azalır"],
+                answer: 1,
+                desc: "Seri bağlı devrede ampul sayısı arttıkça eşdeğer direnç artar, akım azalır ve parlaklık azalır."
+            },
+            {
+                q: "Paralel bağlı ampullerden biri duydan sökülürse diğer ampullere ne olur?",
+                options: ["Hepsi söner", "Aynı parlaklıkta yanmaya devam eder", "Daha parlak yanar", "Işıkları sönükleşir"],
+                answer: 1,
+                desc: "Paralel bağlı kollardaki gerilim değişmediği için diğer koldaki ampul etkilenmez."
+            },
+            {
+                q: "Bir devredeki gerilim ($V$) sabit tutulup direnç ($R$) artırılırsa devreden geçen akım ($I$) nasıl değişir?",
+                options: ["Artar", "Azalır", "Değişmez", "Sıfırlanır"],
+                answer: 1,
+                desc: "Ohm Kanununa ($I = V / R$) göre direnç ile akım ters orantılıdır."
+            }
+        ];
+        let currentQuizIdx = 0;
+
+        function initCanvasSize() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = Math.max(rect.height, 380);
+            rebuildCircuitGeometry();
+        }
+
+        window.addEventListener('resize', () => {
+            initCanvasSize();
+        });
+
+        // Pre-set Yükleyici
+        function loadPreset(mode) {
+            currentMode = mode;
+            
+            // Tab Buton Stil Güncelleme
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('bg-yellow-400', 'text-indigo-950', 'ring-2', 'ring-yellow-300');
+                btn.classList.add('bg-indigo-500', 'text-white');
+            });
+
+            const activeBtn = document.getElementById(`btn-${mode}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-indigo-500', 'text-white');
+                activeBtn.classList.add('bg-yellow-400', 'text-indigo-950', 'ring-2', 'ring-yellow-300');
+            }
+
+            // Devre Elemanlarını Sıfırla
+            if (mode === 'series') {
+                bulbs = [
+                    { id: 1, resistance: 10, isBroken: false, x: 0, y: 0 },
+                    { id: 2, resistance: 10, isBroken: false, x: 0, y: 0 }
+                ];
+            } else if (mode === 'parallel') {
+                bulbs = [
+                    { id: 1, resistance: 10, isBroken: false, x: 0, y: 0 },
+                    { id: 2, resistance: 10, isBroken: false, x: 0, y: 0 }
+                ];
+            } else if (mode === 'custom') {
+                bulbs = [
+                    { id: 1, resistance: 10, isBroken: false, x: 0, y: 0 },
+                    { id: 2, resistance: 15, isBroken: false, x: 0, y: 0 },
+                    { id: 3, resistance: 10, isBroken: false, x: 0, y: 0 }
+                ];
+            }
+
+            rebuildCircuitGeometry();
+            renderBulbControls();
+        }
+
+        function calculateCircuitPhysics() {
+            let totalR = 0;
+            let totalI = 0;
+            let activeBulbCount = bulbs.filter(b => !b.isBroken).length;
+
+            if (!switchClosed) {
+                return { totalR: Infinity, totalI: 0, bulbCurrents: bulbs.map(() => 0) };
+            }
+
+            if (currentMode === 'series') {
+                // Eğer herhangi bir ampul bozuksa devre açık devredir!
+                let anyBroken = bulbs.some(b => b.isBroken);
+                if (anyBroken || bulbs.length === 0) {
+                    totalR = bulbs.reduce((acc, b) => acc + b.resistance, 0);
+                    return { totalR, totalI: 0, bulbCurrents: bulbs.map(() => 0) };
+                }
+
+                totalR = bulbs.reduce((acc, b) => acc + b.resistance, 0);
+                totalI = totalR > 0 ? batteryVoltage / totalR : 0;
+                return {
+                    totalR,
+                    totalI,
+                    bulbCurrents: bulbs.map(() => totalI)
+                };
+            } 
+            else if (currentMode === 'parallel' || currentMode === 'custom') {
+                // Paralel kollar hesabı
+                let activeBulbs = bulbs.filter(b => !b.isBroken);
+                if (activeBulbs.length === 0) {
+                    return { totalR: Infinity, totalI: 0, bulbCurrents: bulbs.map(() => 0) };
+                }
+
+                let invR = activeBulbs.reduce((acc, b) => acc + (1 / b.resistance), 0);
+                totalR = 1 / invR;
+                totalI = batteryVoltage / totalR;
+
+                let bulbCurrents = bulbs.map(b => {
+                    if (b.isBroken) return 0;
+                    return batteryVoltage / b.resistance;
+                });
+
+                return { totalR, totalI, bulbCurrents };
+            }
+
+            return { totalR: 10, totalI: 0.9, bulbCurrents: bulbs.map(() => 0.9) };
+        }
+
+        function rebuildCircuitGeometry() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const marginX = w * 0.15;
+            const marginY = h * 0.18;
+
+            const topY = marginY;
+            const bottomY = h - marginY;
+            const leftX = marginX;
+            const rightX = w - marginX;
+
+            if (currentMode === 'series') {
+                // Seri Bağlama Konumlandırma
+                let spacing = (rightX - leftX) / (bulbs.length + 1);
+                bulbs.forEach((b, idx) => {
+                    b.x = leftX + spacing * (idx + 1);
+                    b.y = topY;
+                });
+            } else {
+                // Paralel Bağlama Konumlandırma
+                let branchSpacing = (bottomY - topY) / (bulbs.length + 1);
+                bulbs.forEach((b, idx) => {
+                    b.x = w / 2;
+                    b.y = topY + branchSpacing * (idx + 1);
+                });
+            }
+        }
+
+        function drawCircuit() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const marginX = w * 0.15;
+            const marginY = h * 0.18;
+            const topY = marginY;
+            const bottomY = h - marginY;
+            const leftX = marginX;
+            const rightX = w - marginX;
+
+            const physics = calculateCircuitPhysics();
+
+            // 1. KABLO ÇİZİMLERİ (WIRES)
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            if (currentMode === 'series') {
+                ctx.beginPath();
+                ctx.rect(leftX, topY, rightX - leftX, bottomY - topY);
+                ctx.stroke();
+            } else {
+                // Paralel Ana Çerçeve
+                ctx.beginPath();
+                // Sol Dikey
+                ctx.moveTo(leftX, topY);
+                ctx.lineTo(leftX, bottomY);
+                // Sağ Dikey
+                ctx.moveTo(rightX, topY);
+                ctx.lineTo(rightX, bottomY);
+                // Alt Ana Hattı (Pil İçi)
+                ctx.moveTo(leftX, bottomY);
+                ctx.lineTo(rightX, bottomY);
+                ctx.stroke();
+
+                // Paralel Kolları Çiz
+                bulbs.forEach(b => {
+                    ctx.beginPath();
+                    ctx.moveTo(leftX, b.y);
+                    ctx.lineTo(rightX, b.y);
+                    ctx.stroke();
+                });
+            }
+
+            // 2. PİL (BATTERY) ÇİZİMİ (Alt Kenarın Ortasında)
+            const batX = w / 2;
+            const batY = bottomY;
+
+            // Pil Arka Plan Temizleme
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(batX - 45, batY - 15, 90, 30);
+
+            // Pil Gövdesi
+            ctx.fillStyle = '#ef4444'; // Pozitif Taraf (Kırmızı)
+            ctx.fillRect(batX - 35, batY - 12, 35, 24);
+            ctx.fillStyle = '#3b82f6'; // Negatif Taraf (Mavi)
+            ctx.fillRect(batX, batY - 12, 35, 24);
+
+            // Pil Kutup İşaretleri
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px Inter';
+            ctx.fillText('+', batX - 24, batY + 4);
+            ctx.fillText('-', batX + 16, batY + 4);
+
+            // Pil Başlığı
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(batX - 40, batY - 5, 5, 10);
+
+            // 3. ANAHTAR (SWITCH) ÇİZİMİ (Sol Kenarda)
+            const switchX = leftX;
+            const switchY = h / 2;
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(switchX - 15, switchY - 25, 30, 50);
+
+            ctx.strokeStyle = switchClosed ? '#10b981' : '#f43f5e';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(switchX, switchY - 15, 4, 0, Math.PI * 2);
+            ctx.arc(switchX, switchY + 15, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(switchX, switchY + 15);
+            if (switchClosed) {
+                ctx.lineTo(switchX, switchY - 15);
+            } else {
+                ctx.lineTo(switchX - 20, switchY - 10); // Açık kontak
+            }
+            ctx.stroke();
+
+            // 4. AMPULLERİN ÇİZİMİ VE IŞIK EFEKTİ (BULBS)
+            bulbs.forEach((bulb, idx) => {
+                const bulbI = physics.bulbCurrents[idx];
+                const isLighting = switchClosed && !bulb.isBroken && bulbI > 0;
+
+                // Işık Halesi / Glow Effect
+                if (isLighting) {
+                    const glowRadius = Math.min(25 + bulbI * 20, 65);
+                    const gradient = ctx.createRadialGradient(bulb.x, bulb.y, 5, bulb.x, bulb.y, glowRadius);
+                    gradient.addColorStop(0, 'rgba(250, 204, 21, 0.9)');
+                    gradient.addColorStop(0.5, 'rgba(250, 204, 21, 0.4)');
+                    gradient.addColorStop(1, 'rgba(250, 204, 21, 0)');
+
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(bulb.x, bulb.y, glowRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Ampul Soketi/Duy
+                ctx.fillStyle = '#64748b';
+                ctx.fillRect(bulb.x - 12, bulb.y + 12, 24, 12);
+
+                // Ampul Cam Gövdesi
+                ctx.beginPath();
+                ctx.arc(bulb.x, bulb.y, 18, 0, Math.PI * 2);
+                ctx.fillStyle = isLighting ? '#fde047' : (bulb.isBroken ? '#334155' : '#e2e8f0');
+                ctx.fill();
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Ampul Filament Tel Çizimi
+                ctx.beginPath();
+                if (bulb.isBroken) {
+                    // Kopuk Filament
+                    ctx.moveTo(bulb.x - 7, bulb.y + 8);
+                    ctx.lineTo(bulb.x - 2, bulb.y - 2);
+                    ctx.moveTo(bulb.x + 7, bulb.y + 8);
+                    ctx.lineTo(bulb.x + 3, bulb.y + 1);
+                    ctx.strokeStyle = '#ef4444';
+                } else {
+                    // Sağlam Filament
+                    ctx.moveTo(bulb.x - 7, bulb.y + 8);
+                    ctx.lineTo(bulb.x - 3, bulb.y - 4);
+                    ctx.lineTo(bulb.x + 3, bulb.y - 4);
+                    ctx.lineTo(bulb.x + 7, bulb.y + 8);
+                    ctx.strokeStyle = isLighting ? '#b45309' : '#64748b';
+                }
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Ampul Etiketi (Direnç ve Akım Değeri)
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = '11px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText(`A${bulb.id}: ${bulb.resistance}Ω`, bulb.x, bulb.y - 26);
+                if (isLighting) {
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fillText(`${bulbI.toFixed(2)}A`, bulb.x, bulb.y + 36);
+                } else if (bulb.isBroken) {
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.fillText(`BOZUK`, bulb.x, bulb.y + 36);
+                }
+            });
+
+            // 5. ELEKTRON VEYA AKIM HAREKETİ ANIMASYONU
+            if (switchClosed && physics.totalI > 0) {
+                let speed = physics.totalI * 1.8;
+                electronOffset = (electronOffset + speed) % 20;
+
+                ctx.fillStyle = flowType === 'electron' ? '#60a5fa' : '#f59e0b';
+
+                // Seri devrede veya paralel devrede hareket noktaları
+                if (currentMode === 'series') {
+                    drawFlowDotsOnRect(leftX, topY, rightX - leftX, bottomY - topY, electronOffset);
+                } else {
+                    // Paralel kollarda elektron akışları
+                    drawParallelFlowDots(leftX, rightX, topY, bottomY, electronOffset, physics);
+                }
+            }
+
+            // Ölçüm Ekranlarını Güncelle
+            updateReadoutUI(physics);
+        }
+
+        function drawFlowDotsOnRect(x, y, width, height, offset) {
+            const perimeter = 2 * (width + height);
+            const dotSpacing = 22;
+
+            for (let d = offset; d < perimeter; d += dotSpacing) {
+                let actualD = flowType === 'electron' ? d : (perimeter - d);
+                actualD = (actualD + perimeter) % perimeter;
+
+                let px, py;
+                if (actualD < width) {
+                    px = x + actualD; py = y;
+                } else if (actualD < width + height) {
+                    px = x + width; py = y + (actualD - width);
+                } else if (actualD < 2 * width + height) {
+                    px = x + width - (actualD - (width + height)); py = y + height;
+                } else {
+                    px = x; py = y + height - (actualD - (2 * width + height));
+                }
+
+                ctx.beginPath();
+                ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawParallelFlowDots(leftX, rightX, topY, bottomY, offset, physics) {
+            bulbs.forEach((bulb, idx) => {
+                if (bulb.isBroken || physics.bulbCurrents[idx] <= 0) return;
+
+                // Her bir paralel döngü için elektron hareketi
+                let loopWidth = rightX - leftX;
+                let loopHeight = bottomY - bulb.y;
+                let perimeter = 2 * (loopWidth + loopHeight);
+
+                for (let d = offset; d < perimeter; d += 24) {
+                    let actualD = flowType === 'electron' ? d : (perimeter - d);
+                    actualD = (actualD + perimeter) % perimeter;
+
+                    let px, py;
+                    if (actualD < loopWidth) {
+                        px = leftX + actualD; py = bulb.y;
+                    } else if (actualD < loopWidth + loopHeight) {
+                        px = rightX; py = bulb.y + (actualD - loopWidth);
+                    } else if (actualD < 2 * loopWidth + loopHeight) {
+                        px = rightX - (actualD - (loopWidth + loopHeight)); py = bottomY;
+                    } else {
+                        px = leftX; py = bottomY - (actualD - (2 * loopWidth + loopHeight));
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+
+        function toggleSwitch() {
+            switchClosed = !switchClosed;
+            const btn = document.getElementById('switch-btn');
+            const badge = document.getElementById('circuit-status-badge');
+
+            if (switchClosed) {
+                btn.textContent = 'AÇIK (Akım Geçiyor)';
+                btn.className = 'px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition shadow';
+                badge.textContent = 'Kapalı Devre (Akım Var)';
+                badge.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700';
+            } else {
+                btn.textContent = 'KAPALI (Akım Kesildi)';
+                btn.className = 'px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-lg transition shadow';
+                badge.textContent = 'Açık Devre (Akım Yok)';
+                badge.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700';
+            }
+        }
+
+        function updateVoltage(val) {
+            batteryVoltage = parseFloat(val);
+            document.getElementById('voltage-val').textContent = `${batteryVoltage.toFixed(1)} V`;
+        }
+
+        function setFlowType(type) {
+            flowType = type;
+            const btnE = document.getElementById('flow-electron');
+            const btnC = document.getElementById('flow-conventional');
+
+            if (type === 'electron') {
+                btnE.className = 'py-2 px-2 text-xs font-semibold rounded-lg bg-indigo-100 text-indigo-700 border border-indigo-300';
+                btnC.className = 'py-2 px-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 border border-slate-200';
+            } else {
+                btnC.className = 'py-2 px-2 text-xs font-semibold rounded-lg bg-indigo-100 text-indigo-700 border border-indigo-300';
+                btnE.className = 'py-2 px-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 border border-slate-200';
+            }
+        }
+
+        function toggleBulbBreak(id) {
+            const b = bulbs.find(item => item.id === id);
+            if (b) {
+                b.isBroken = !b.isBroken;
+                renderBulbControls();
+            }
+        }
+
+        function updateBulbResistance(id, val) {
+            const b = bulbs.find(item => item.id === id);
+            if (b) {
+                b.resistance = parseFloat(val);
+                renderBulbControls();
+            }
+        }
+
+        function addBulb() {
+            if (bulbs.length >= 4) return;
+            const newId = bulbs.length > 0 ? Math.max(...bulbs.map(b => b.id)) + 1 : 1;
+            bulbs.push({ id: newId, resistance: 10, isBroken: false, x: 0, y: 0 });
+            rebuildCircuitGeometry();
+            renderBulbControls();
+        }
+
+        function removeBulb(id) {
+            if (bulbs.length <= 1) return;
+            bulbs = bulbs.filter(b => b.id !== id);
+            rebuildCircuitGeometry();
+            renderBulbControls();
+        }
+
+        function resetCircuit() {
+            loadPreset(currentMode);
+        }
+
+        function renderBulbControls() {
+            const container = document.getElementById('bulbs-control-container');
+            container.innerHTML = '';
+
+            bulbs.forEach(b => {
+                const div = document.createElement('div');
+                div.className = `p-2.5 rounded-xl border transition-all ${b.isBroken ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200'}`;
+                
+                div.innerHTML = `
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="font-bold text-xs ${b.isBroken ? 'text-rose-700' : 'text-slate-700'} flex items-center gap-1.5">
+                            <i class="fa-solid fa-lightbulb ${b.isBroken ? 'text-rose-500' : 'text-yellow-500'}"></i> Ampul ${b.id}
+                        </span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="toggleBulbBreak(${b.id})" class="px-2 py-0.5 text-[11px] font-semibold rounded ${b.isBroken ? 'bg-emerald-600 text-white' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}">
+                                ${b.isBroken ? 'Tamir Et' : 'Patlat / Sök'}
+                            </button>
+                            ${bulbs.length > 1 ? `<button onclick="removeBulb(${b.id})" class="text-slate-400 hover:text-rose-500 px-1 text-xs"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] text-slate-500 w-16">Direnç: <b>${b.resistance} Ω</b></span>
+                        <input type="range" min="1" max="50" value="${b.resistance}" oninput="updateBulbResistance(${b.id}, this.value)" class="w-full accent-indigo-600 h-1.5 bg-slate-200 rounded cursor-pointer">
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            if (bulbs.length < 4) {
+                const addBtn = document.createElement('button');
+                addBtn.onclick = addBulb;
+                addBtn.className = "w-full py-2 border-2 border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5";
+                addBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Yeni Ampul Ekle`;
+                container.appendChild(addBtn);
+            }
+        }
+
+        function updateReadoutUI(physics) {
+            document.getElementById('readout-v').textContent = `${batteryVoltage.toFixed(1)} V`;
+            
+            if (physics.totalR === Infinity) {
+                document.getElementById('readout-r').textContent = `∞ Ω`;
+                document.getElementById('readout-i').textContent = `0.00 A`;
+            } else {
+                document.getElementById('readout-r').textContent = `${physics.totalR.toFixed(1)} Ω`;
+                document.getElementById('readout-i').textContent = `${physics.totalI.toFixed(2)} A`;
+            }
+        }
+
+        // Canvas Tıklama Etkileşimi (Ampulleri Tıklayarak Patlatma)
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            bulbs.forEach(b => {
+                const dist = Math.hypot(clickX - b.x, clickY - b.y);
+                if (dist <= 25) {
+                    toggleBulbBreak(b.id);
+                }
+            });
+        });
+
+        function switchTab(tab) {
+            const notesTab = document.getElementById('tab-notes');
+            const quizTab = document.getElementById('tab-quiz');
+            const btnNotes = document.getElementById('tab-btn-notes');
+            const btnQuiz = document.getElementById('tab-btn-quiz');
+
+            if (tab === 'notes') {
+                notesTab.classList.remove('hidden');
+                quizTab.classList.add('hidden');
+                btnNotes.className = "pb-2 border-b-2 border-indigo-600 text-indigo-600 transition";
+                btnQuiz.className = "pb-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition";
+            } else {
+                notesTab.classList.add('hidden');
+                quizTab.classList.remove('hidden');
+                btnQuiz.className = "pb-2 border-b-2 border-indigo-600 text-indigo-600 transition";
+                btnNotes.className = "pb-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition";
+                renderQuiz();
+            }
+        }
+
+        function renderQuiz() {
+            const q = quizQuestions[currentQuizIdx];
+            const container = document.getElementById('quiz-container');
+
+            container.innerHTML = `
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Soru ${currentQuizIdx + 1} / ${quizQuestions.length}</span>
+                    <span class="text-xs text-slate-400">7. Sınıf Müfredat Sorusu</span>
+                </div>
+                <h4 class="font-bold text-sm text-slate-800 mb-3">${q.q}</h4>
+                <div class="space-y-2 mb-3">
+                    ${q.options.map((opt, i) => `
+                        <button onclick="checkAnswer(${i})" class="w-full text-left p-2.5 text-xs rounded-lg border border-slate-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 font-medium transition flex items-center gap-2">
+                            <span class="w-5 h-5 rounded-full bg-slate-100 border text-slate-600 flex items-center justify-center font-bold text-[10px]">${String.fromCharCode(65 + i)}</span>
+                            ${opt}
+                        </button>
+                    `).join('')}
+                </div>
+                <div id="quiz-feedback" class="hidden text-xs p-2.5 rounded-lg mb-2"></div>
+            `;
+        }
+
+        function checkAnswer(selectedIdx) {
+            const q = quizQuestions[currentQuizIdx];
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.classList.remove('hidden');
+
+            if (selectedIdx === q.answer) {
+                feedback.className = "text-xs p-2.5 rounded-lg mb-2 bg-emerald-100 text-emerald-800 font-medium border border-emerald-300";
+                feedback.innerHTML = `DOĞRU! 🎉 <br><span class="font-normal text-[11px]">${q.desc}</span>`;
+            } else {
+                feedback.className = "text-xs p-2.5 rounded-lg mb-2 bg-rose-100 text-rose-800 font-medium border border-rose-300";
+                feedback.innerHTML = `YANLIŞ! ❌ <br><span class="font-normal text-[11px]">${q.desc}</span>`;
+            }
+
+            setTimeout(() => {
+                currentQuizIdx = (currentQuizIdx + 1) % quizQuestions.length;
+            }, 3500);
+        }
+
+        function animate() {
+            drawCircuit();
+            requestAnimationFrame(animate);
+        }
+
+        window.onload = function() {
+            initCanvasSize();
+            loadPreset('series');
+            animate();
+        };
+    </script>
+</body>
+</html>

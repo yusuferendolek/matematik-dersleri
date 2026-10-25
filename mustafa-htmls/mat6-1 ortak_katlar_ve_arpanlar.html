@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ortak Katlar ve Çarpanlar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
+        
+        <!-- Header -->
+        <div class="bg-indigo-600 p-6 text-center text-white">
+            <h1 class="text-3xl font-bold mb-2">Ortak Katlar ve Çarpanlar Bulucu</h1>
+            <p class="text-indigo-200 text-sm">İki sayı girin, listeleri oluşturun ve ortak olanları tıklayarak KENDİNİZ seçin.</p>
+        </div>
+
+        <div class="p-6 md:p-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                
+                <!-- Number 1 Input -->
+                <div class="flex flex-col">
+                    <label for="num1" class="mb-2 text-sm font-semibold text-gray-700">1. Sayı</label>
+                    <input type="number" id="num1" min="1" placeholder="Örn: 12" class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-lg">
+                </div>
+
+                <!-- Number 2 Input -->
+                <div class="flex flex-col">
+                    <label for="num2" class="mb-2 text-sm font-semibold text-gray-700">2. Sayı</label>
+                    <input type="number" id="num2" min="1" placeholder="Örn: 18" class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-lg">
+                </div>
+
+                <!-- Mode Selection -->
+                <div class="flex flex-col">
+                    <label for="mode" class="mb-2 text-sm font-semibold text-gray-700">İşlem Türü</label>
+                    <select id="mode" class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-lg bg-white">
+                        <option value="katlar">Katlar (İlk 50 Kat)</option>
+                        <option value="carpanlar">Çarpanlar (Bölenler)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <button onclick="calculate()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 transform hover:scale-[1.01] shadow-md">
+                Hesapla ve Karşılaştır
+            </button>
+
+            <!-- Results Area -->
+            <div id="resultsArea" class="mt-10 hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    
+                    <!-- Result 1 Container -->
+                    <div class="bg-gray-50 p-6 rounded-xl border border-gray-100 shadow-sm">
+                        <h2 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4">
+                            <span id="resultTitle1" class="text-indigo-600">Sayı 1</span> <span id="resultSubtitle1" class="text-gray-500 text-base font-medium"></span>
+                        </h2>
+                        <div id="list1" class="flex flex-wrap gap-2">
+                            <!-- Items will be injected here via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Result 2 Container -->
+                    <div class="bg-gray-50 p-6 rounded-xl border border-gray-100 shadow-sm">
+                        <h2 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4">
+                            <span id="resultTitle2" class="text-indigo-600">Sayı 2</span> <span id="resultSubtitle2" class="text-gray-500 text-base font-medium"></span>
+                        </h2>
+                        <div id="list2" class="flex flex-wrap gap-2">
+                            <!-- Items will be injected here via JS -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Common Elements Summary -->
+                <div class="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-lg text-center">
+                    <p class="text-blue-800 font-medium">
+                        <span class="inline-block w-4 h-4 bg-blue-500 rounded-full mr-2 align-middle"></span>
+                        Ortak olduğunu düşündüğünüz sayılara tıklayarak onları maviye boyayın.
+                    </p>
+                </div>
+
+                <!-- Check Answers Button & Feedback -->
+                <div class="mt-8">
+                    <div class="flex flex-col sm:flex-row justify-center gap-4">
+                        <button onclick="checkAnswers()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition shadow-md">
+                            Seçimlerimi Kontrol Et
+                        </button>
+                        <button onclick="showAnswers()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg transition shadow-md">
+                            Cevabı Göster
+                        </button>
+                    </div>
+                    <div id="feedbackMessage" class="mt-4 font-bold text-lg hidden text-center"></div>
+                </div>
+            </div>
+            
+            <!-- Error Message Container -->
+            <div id="errorMessage" class="mt-6 p-4 bg-red-50 text-red-600 rounded-lg hidden text-center font-medium">
+                Lütfen her iki kutuya da geçerli pozitif tam sayılar giriniz.
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let currentCommonElements = [];
+
+        function calculate() {
+            // Get values from DOM
+            const num1Input = document.getElementById('num1').value;
+            const num2Input = document.getElementById('num2').value;
+            const mode = document.getElementById('mode').value;
+            
+            const resultsArea = document.getElementById('resultsArea');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Parse inputs
+            const num1 = parseInt(num1Input);
+            const num2 = parseInt(num2Input);
+
+            // Validation
+            if (isNaN(num1) || isNaN(num2) || num1 <= 0 || num2 <= 0) {
+                errorMessage.classList.remove('hidden');
+                resultsArea.classList.add('hidden');
+                return;
+            }
+
+            // Hide error, show results
+            errorMessage.classList.add('hidden');
+            resultsArea.classList.remove('hidden');
+
+            let arr1 = [];
+            let arr2 = [];
+            let subtitle = "";
+
+            if (mode === 'katlar') {
+                subtitle = "Katları";
+                // Generate first 50 multiples
+                for (let i = 1; i <= 50; i++) {
+                    arr1.push(num1 * i);
+                    arr2.push(num2 * i);
+                }
+            } else if (mode === 'carpanlar') {
+                subtitle = "Çarpanları (Bölenleri)";
+                // Generate factors for num1
+                for (let i = 1; i <= num1; i++) {
+                    if (num1 % i === 0) arr1.push(i);
+                }
+                // Generate factors for num2
+                for (let i = 1; i <= num2; i++) {
+                    if (num2 % i === 0) arr2.push(i);
+                }
+            }
+
+            // Find common elements
+            currentCommonElements = arr1.filter(value => arr2.includes(value));
+
+            // Hide feedback
+            document.getElementById('feedbackMessage').classList.add('hidden');
+
+            // Update UI Titles
+            document.getElementById('resultTitle1').innerText = num1;
+            document.getElementById('resultSubtitle1').innerText = subtitle;
+            
+            document.getElementById('resultTitle2').innerText = num2;
+            document.getElementById('resultSubtitle2').innerText = subtitle;
+
+            // Render lists
+            renderList('list1', arr1);
+            renderList('list2', arr2);
+        }
+
+        function renderList(containerId, list) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = ''; // Clear previous content
+
+            list.forEach(num => {
+                const btn = document.createElement('button');
+                
+                btn.innerText = num;
+                btn.dataset.val = num; // Store number for checking
+                
+                // Base classes for number "pills"
+                btn.className = "number-btn px-3 py-1.5 rounded-md text-sm font-semibold shadow-sm transition-all duration-300 bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 cursor-pointer";
+                
+                // Toggle selection on click
+                btn.onclick = function() {
+                    this.classList.toggle('selected');
+                    this.classList.toggle('bg-blue-500');
+                    this.classList.toggle('text-white');
+                    this.classList.toggle('hover:bg-blue-600');
+                    
+                    this.classList.toggle('bg-white');
+                    this.classList.toggle('text-gray-700');
+                    this.classList.toggle('hover:bg-gray-100');
+                    
+                    // Reset feedback message when user changes selection
+                    document.getElementById('feedbackMessage').classList.add('hidden');
+                };
+
+                container.appendChild(btn);
+            });
+        }
+
+        function checkAnswers() {
+            const allButtons = document.querySelectorAll('.number-btn');
+            let isCorrect = true;
+            let missedCommon = false;
+            
+            allButtons.forEach(btn => {
+                const val = parseInt(btn.dataset.val);
+                const isSelected = btn.classList.contains('selected');
+                const isActuallyCommon = currentCommonElements.includes(val);
+
+                if (isSelected && !isActuallyCommon) {
+                    isCorrect = false; // Selected a wrong number
+                }
+                if (!isSelected && isActuallyCommon) {
+                    missedCommon = true; // Missed a correct number
+                }
+            });
+
+            const feedbackEl = document.getElementById('feedbackMessage');
+            feedbackEl.classList.remove('hidden');
+
+            if (isCorrect && !missedCommon) {
+                feedbackEl.innerText = "🎉 Harika! Tüm ortak sayıları doğru buldun.";
+                feedbackEl.className = "mt-4 font-bold text-lg text-green-600 text-center";
+            } else if (!isCorrect) {
+                feedbackEl.innerText = "❌ Ortak olmayan bazı sayıları seçtin. Lütfen tekrar kontrol et.";
+                feedbackEl.className = "mt-4 font-bold text-lg text-red-500 text-center";
+            } else if (missedCommon) {
+                feedbackEl.innerText = "⚠️ Doğru gidiyorsun ama henüz seçmediğin ortak sayılar var!";
+                feedbackEl.className = "mt-4 font-bold text-lg text-yellow-600 text-center";
+            }
+        }
+
+        function showAnswers() {
+            const allButtons = document.querySelectorAll('.number-btn');
+            
+            allButtons.forEach(btn => {
+                const val = parseInt(btn.dataset.val);
+                const isActuallyCommon = currentCommonElements.includes(val);
+                
+                // Reset styles
+                btn.classList.remove('selected', 'bg-blue-500', 'text-white', 'hover:bg-blue-600');
+                btn.classList.add('bg-white', 'text-gray-700', 'hover:bg-gray-100');
+
+                // Apply selected styles if it is a common element
+                if (isActuallyCommon) {
+                    btn.classList.add('selected', 'bg-blue-500', 'text-white', 'hover:bg-blue-600');
+                    btn.classList.remove('bg-white', 'text-gray-700', 'hover:bg-gray-100');
+                }
+            });
+
+            // Show feedback message for auto-selection
+            const feedbackEl = document.getElementById('feedbackMessage');
+            feedbackEl.classList.remove('hidden');
+            feedbackEl.innerText = "💡 Tüm ortak sayılar mavi renkle işaretlendi.";
+            feedbackEl.className = "mt-4 font-bold text-lg text-indigo-600 text-center";
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maarif Model - Alan ve Çevre Oyunu</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 450px;
+            text-align: center;
+        }
+        h2 { color: #2c3e50; margin-bottom: 5px; }
+        p { color: #7f8c8d; font-size: 14px; }
+        
+        .dice-area {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #eef2f5;
+            border-radius: 8px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover { background-color: #2980b9; }
+        
+        .inputs {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            width: 45%;
+        }
+        input {
+            padding: 8px;
+            font-size: 16px;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        #grid-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 20px);
+            grid-template-rows: repeat(10, 20px);
+            gap: 1px;
+            background-color: #ddd;
+            border: 2px solid #333;
+        }
+        .cell { background-color: #fff; }
+        .cell.active { background-color: #2ecc71; }
+
+        .result {
+            font-weight: bold;
+            margin-top: 15px;
+            font-size: 16px;
+            min-height: 24px;
+        }
+        .success { color: #27ae60; }
+        .error { color: #c0392b; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>En Küçük Çevre Avcısı</h2>
+    <p>Maarif Modeli 5. Sınıf Alan-Çevre İlişkisi Etkinliği</p>
+
+    <div class="dice-area">
+        <button id="roll-btn" onclick="zarAt()">Zar At</button>
+        <div id="dice-result" style="margin-top: 10px; font-weight: bold; color: #2c3e50;">
+            Zar bekleniyor...
+        </div>
+    </div>
+
+    <div class="inputs">
+        <div class="input-group">
+            <label for="kenar1">1. Kenar (birim):</label>
+            <input type="number" id="kenar1" min="1" placeholder="a">
+        </div>
+        <div class="input-group">
+            <label for="kenar2">2. Kenar (birim):</label>
+            <input type="number" id="kenar2" min="1" placeholder="b">
+        </div>
+    </div>
+
+    <button onclick="kontrolEt()" style="background-color: #2ecc71;">Dikdörtgeni Çiz ve Kontrol Et</button>
+
+    <div id="grid-container">
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <div id="result-message" class="result"></div>
+</div>
+
+<script>
+    let hedefAlan = 0;
+
+    // 10x10 Görsel Izgarayı Oluştur
+    const grid = document.getElementById('grid');
+    for (let i = 0; i < 100; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        grid.appendChild(cell);
+    }
+
+    function zarAt() {
+        let z1, z2;
+        // Çarpım maksimum 20 olana kadar zar üret
+        do {
+            z1 = Math.floor(Math.random() * 6) + 1;
+            z2 = Math.floor(Math.random() * 6) + 1;
+        } while (z1 * z2 > 20);
+
+        hedefAlan = z1 * z2;
+
+        document.getElementById('dice-result').innerText = `Zarlar: ${z1} ve ${z2} | Hedef Alan: ${hedefAlan} birimkare`;
+        document.getElementById('result-message').innerText = '';
+        temizleGrid();
+    }
+
+    function kontrolEt() {
+        if (hedefAlan === 0) {
+            alert("Lütfen önce zar atın!");
+            return;
+        }
+
+        const k1 = parseInt(document.getElementById('kenar1').value);
+        const k2 = parseInt(document.getElementById('kenar2').value);
+        const msg = document.getElementById('result-message');
+
+        if (!k1 || !k2 || k1 <= 0 || k2 <= 0) {
+            msg.className = "result error";
+            msg.innerText = "Lütfen geçerli kenar uzunlukları girin.";
+            return;
+        }
+
+        const olusanAlan = k1 * k2;
+
+        if (olusanAlan !== hedefAlan) {
+            msg.className = "result error";
+            msg.innerText = `Hata: Kenarların çarpımı ${olusanAlan} yapıyor. Hedef alan ${hedefAlan} olmalı!`;
+            temizleGrid();
+            return;
+        }
+
+        // En küçük çevre kontrolü (Çarpanlardan birbirine en yakın olanlar seçilmeli)
+        let enKucukCevre = Infinity;
+        for (let i = 1; i <= hedefAlan; i++) {
+            if (hedefAlan % i === 0) {
+                let j = hedefAlan / i;
+                let cevre = 2 * (i + j);
+                if (cevre < enKucukCevre) {
+                    enKucukCevre = cevre;
+                }
+            }
+        }
+
+        const oyuncuCevre = 2 * (k1 + k2);
+        cizGrid(k1, k2);
+
+        if (oyuncuCevre === enKucukCevre) {
+            msg.className = "result success";
+            msg.innerText = `Tebrikler! Doğru Alan (${hedefAlan}) ve En Küçük Çevre (${oyuncuCevre} birim) sağlandı!`;
+        } else {
+            msg.className = "result error";
+            msg.innerText = `Alan doğru (${hedefAlan}), ancak daha küçük çevre elde edebilirsin! Senin çevren: ${oyuncuCevre}`;
+        }
+    }
+
+    function cizGrid(k1, k2) {
+        temizleGrid();
+        const cells = document.querySelectorAll('.cell');
+        for (let r = 0; r < k2 && r < 10; r++) {
+            for (let c = 0; c < k1 && c < 10; c++) {
+                const index = r * 10 + c;
+                if (cells[index]) cells[index].classList.add('active');
+            }
+        }
+    }
+
+    function temizleGrid() {
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach(c => c.classList.remove('active'));
+    }
+</script>
+
+</body>
+</html>

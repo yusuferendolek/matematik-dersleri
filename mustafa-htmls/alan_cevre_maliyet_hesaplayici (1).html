@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gelişmiş Alan ve Çevre Maliyet Hesaplayıcı</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        p.subtitle {
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 30px;
+            margin-top: 10px;
+            max-width: 1000px;
+            width: 100%;
+            justify-content: center;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(20, 25px);
+            grid-template-rows: repeat(20, 25px);
+            gap: 1px;
+            background-color: #ccc;
+            border: 2px solid #666;
+            padding: 1px;
+            user-select: none;
+            height: 521px; /* 20 * 25 + 21 gap/border approx */
+        }
+        .cell {
+            background-color: #fff;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+        .cell.active {
+            background-color: #4CAF50;
+        }
+        .cell.active:hover {
+            background-color: #45a049;
+        }
+        .dashboard {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #444;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .stat-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .stat {
+            font-size: 1rem;
+            color: #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stat-value {
+            font-weight: bold;
+            color: #2196F3;
+            font-size: 1.2rem;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .input-field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+            color: #444;
+        }
+        .input-field input {
+            width: 100px;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            text-align: right;
+        }
+        .total-cost-box {
+            background-color: #e3f2fd;
+            border: 1px solid #90caf9;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            margin-top: 5px;
+        }
+        .total-cost-title {
+            font-size: 1rem;
+            color: #1565c0;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .total-cost-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #0d47a1;
+        }
+        .controls {
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #da190b;
+        }
+        .info {
+            margin-top: 25px;
+            max-width: 800px;
+            color: #555;
+            text-align: center;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Birim Kare Alan ve Çevre Maliyet Hesaplayıcı</h1>
+    <p class="subtitle">Şeklinizi çizin, birim maliyetleri girin ve bütçenizi anlık hesaplayın.</p>
+    
+    <div class="container">
+        <!-- Sol Taraf: Çizim Alanı -->
+        <div class="grid-container" id="grid">
+            <!-- Hücreler JavaScript ile buraya eklenecek -->
+        </div>
+
+        <!-- Sağ Taraf: Kontrol ve Hesaplama Paneli -->
+        <div class="dashboard">
+            <!-- Metrikler Bölümü -->
+            <div>
+                <h3 class="section-title">Şekil Ölçüleri</h3>
+                <div class="stat-group">
+                    <div class="stat">
+                        <span>Toplam Alan:</span>
+                        <span><span class="stat-value" id="areaDisplay">0</span> <small>birim²</small></span>
+                    </div>
+                    <div class="stat">
+                        <span>Toplam Çevre :</span>
+                        <span><span class="stat-value" id="perimeterDisplay">0</span> <small>birim</small></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maliyet Girdileri Bölümü -->
+            <div>
+                <h3 class="section-title">Birim Maliyet Ayarları</h3>
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="unitAreaCost">Alan Birim Maliyeti (TL/birim²):</label>
+                        <input type="number" id="unitAreaCost" value="10" min="0" step="0.5" oninput="calculateMetrics()">
+                    </div>
+                    <div class="input-field">
+                        <label for="unitPerimeterCost">Çevre Birim Maliyeti (TL/birim):</label>
+                        <input type="number" id="unitPerimeterCost" value="25" min="0" step="0.5" oninput="calculateMetrics()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sonuç Bölümü -->
+            <div class="total-cost-box">
+                <div class="total-cost-title">TOPLAM MALİYET</div>
+                <div class="total-cost-value"><span id="totalCostDisplay">0.00</span> <span style="font-size: 1.2rem;">TL</span></div>
+            </div>
+
+            <!-- Temizleme Butonu -->
+            <div class="controls">
+                <button onclick="clearGrid()">Tümünü Temizle</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="info">
+        <p><strong>Kullanım İpuçları:</strong> Kareleri boyamak için tıklayın veya farenin sol tuşuna basılı tutarak sürükleyin. Silmek için boyalı karelerin üzerinden tekrar geçebilirsiniz. Alan ve Çevre Birim Maliyetlerini dilediğiniz gibi değiştirebilirsiniz; toplam maliyet otomatik olarak güncellenecektir.</p>
+    </div>
+
+    <script>
+        const gridElement = document.getElementById('grid');
+        const areaDisplay = document.getElementById('areaDisplay');
+        const perimeterDisplay = document.getElementById('perimeterDisplay');
+        const unitAreaCostInput = document.getElementById('unitAreaCost');
+        const unitPerimeterCostInput = document.getElementById('unitPerimeterCost');
+        const totalCostDisplay = document.getElementById('totalCostDisplay');
+        
+        const ROWS = 20;
+        const COLS = 20;
+        
+        let gridData = Array(ROWS).fill().map(() => Array(COLS).fill(false));
+        let isDrawing = false;
+        let drawMode = true; // true: kare ekle, false: kare sil
+
+        // Izgarayı oluştur
+        function createGrid() {
+            gridElement.innerHTML = '';
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+                    
+                    // Fare olayları
+                    cell.addEventListener('mousedown', (e) => startDrawing(e, r, c));
+                    cell.addEventListener('mouseenter', (e) => continueDrawing(e, r, c));
+                    
+                    gridElement.appendChild(cell);
+                }
+            }
+        }
+
+        function startDrawing(e, r, c) {
+            isDrawing = true;
+            drawMode = !gridData[r][c];
+            toggleCell(r, c, drawMode);
+        }
+
+        function continueDrawing(e, r, c) {
+            if (isDrawing) {
+                toggleCell(r, c, drawMode);
+            }
+        }
+
+        // Fare bırakıldığında çizimi durdur
+        document.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        function toggleCell(r, c, state) {
+            if (gridData[r][c] !== state) {
+                gridData[r][c] = state;
+                const cellIndex = r * COLS + c;
+                const cellElement = gridElement.children[cellIndex];
+                
+                if (state) {
+                    cellElement.classList.add('active');
+                } else {
+                    cellElement.classList.remove('active');
+                }
+                
+                calculateMetrics();
+            }
+        }
+
+        function clearGrid() {
+            gridData = Array(ROWS).fill().map(() => Array(COLS).fill(false));
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => cell.classList.remove('active'));
+            calculateMetrics();
+        }
+
+        // Hesaplamaları gerçekleştiren ana fonksiyon
+        function calculateMetrics() {
+            let area = 0;
+            let perimeter = 0;
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (gridData[r][c]) {
+                        area++; // Aktif her hücre alanı artırır
+
+                        // Çevre hesabı için komşuları kontrol et
+                        if (r === 0 || !gridData[r-1][c]) perimeter++; // Üst
+                        if (r === ROWS - 1 || !gridData[r+1][c]) perimeter++; // Alt
+                        if (c === 0 || !gridData[r][c-1]) perimeter++; // Sol
+                        if (c === COLS - 1 || !gridData[r][c+1]) perimeter++; // Sağ
+                    }
+                }
+            }
+
+            // Girdilerden maliyet değerlerini al (Boş veya hatalı girilirse 0 kabul et)
+            const unitAreaCost = parseFloat(unitAreaCostInput.value) || 0;
+            const unitPerimeterCost = parseFloat(unitPerimeterCostInput.value) || 0;
+
+            // Toplam maliyet formülü: (Alan * Alan Birim Maliyeti) + (Çevre * çevre Birim Maliyeti)
+            const totalCost = (area * unitAreaCost) + (perimeter * unitPerimeterCost);
+
+            // Arayüzü güncelle
+            areaDisplay.textContent = area;
+            perimeterDisplay.textContent = perimeter;
+            totalCostDisplay.textContent = totalCost.toFixed(2);
+        }
+
+        // Başlangıç kurulumu
+        createGrid();
+        calculateMetrics();
+    </script>
+</body>
+</html>

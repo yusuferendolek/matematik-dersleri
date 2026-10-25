@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sihirli Sayı Çözümleyici - Yatay Şema</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Baloo 2', cursive;
+            background-color: #f0f7fb;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+        }
+
+        p.subtitle {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+
+        .input-section {
+            background: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        input[type="text"] {
+            font-family: 'Baloo 2', cursive;
+            font-size: 24px;
+            padding: 10px 15px;
+            border: 3px solid #3498db;
+            border-radius: 10px;
+            width: 250px;
+            text-align: center;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #e74c3c;
+            box-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
+        }
+
+        button {
+            font-family: 'Baloo 2', cursive;
+            font-size: 22px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .error-msg {
+            color: #e74c3c;
+            font-weight: 600;
+            margin-top: -20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        /* YATAY ŞEMA KONTEYNERİ */
+        .board-container {
+            width: 100%;
+            max-width: 1500px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .board {
+            display: flex;
+            gap: 15px;
+            padding: 10px;
+        }
+
+        /* BÖLÜK KUTULARI */
+        .boluk-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-radius: 15px;
+            padding: 15px 10px;
+            background: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border-top: 5px solid;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .milyonlar-bg { border-top-color: #e74c3c; background-color: #fdf2f1; }
+        .binler-bg { border-top-color: #2ecc71; background-color: #f0fbf4; }
+        .birler-bg { border-top-color: #f39c12; background-color: #fef7ec; }
+
+        .boluk-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        .milyonlar-bg .boluk-title { color: #e74c3c; }
+        .binler-bg .boluk-title { color: #2ecc71; }
+        .birler-bg .boluk-title { color: #f39c12; }
+
+        .digits-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* RAKAM, OK VE KART SÜTUNU */
+        .digit-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 150px; /* Genişletildi! Sığmama problemi çözüldü */
+        }
+
+        .digit-box {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #2c3e50;
+            line-height: 1;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+        }
+
+        .arrow {
+            font-size: 2rem;
+            color: #95a5a6;
+            margin: 5px 0 10px 0;
+            animation: bounce 1.5s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(8px); }
+        }
+
+        .card {
+            background: white;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border: 1px solid #e0e0e0;
+            height: 100%; /* Kartların hepsi aynı boyda olsun */
+        }
+
+        .card-title {
+            font-size: 0.9rem; /* Uzun isimler için bir tık küçültüldü */
+            font-weight: 800;
+            color: #34495e;
+            border-bottom: 2px dashed #bdc3c7;
+            padding-bottom: 5px;
+            min-height: 30px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap; /* Asla alt satıra geçme! */
+        }
+
+        .card-row {
+            display: flex;
+            flex-direction: column;
+            background-color: #f8f9fa;
+            padding: 5px;
+            border-radius: 6px;
+        }
+
+        .card-label {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+            font-weight: 600;
+        }
+
+        .card-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #2980b9;
+        }
+
+        .basamak-degeri {
+            color: #8e44ad;
+            font-size: 1rem; /* Uzun sayılar (900.000.000) için sığsın diye küçültüldü */
+            white-space: nowrap; /* Asla alt satıra geçme! */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Çok acil bir durumda taşarsa üç nokta koysun (gerçi 150px buna yetecek) */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Sihirli Sayı Çözümleyici</h1>
+    <p class="subtitle">Sayıyı gir, rakamların altından süzülen çözümlemeyi izle!</p>
+
+    <div class="input-section">
+        <input type="text" id="numberInput" placeholder="Örn: 14532071" maxlength="9" autocomplete="off" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        <button onclick="cozumle()">Çözümle</button>
+    </div>
+    
+    <div id="errorMsg" class="error-msg">Lütfen 1 ile 9 basamaklı geçerli bir sayı girin!</div>
+
+    <div class="board-container">
+        <div class="board" id="board">
+            <!-- JavaScript ile Bölükler ve Sütunlar Buraya Eklenecek -->
+        </div>
+    </div>
+
+    <script>
+        const basamakAdlari = [
+            "Birler", "Onlar", "Yüzler", 
+            "Binler", "On Binler", "Yüz Binler", 
+            "Milyonlar", "On Milyonlar", "Yüz Milyonlar"
+        ];
+
+        document.getElementById('numberInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                cozumle();
+            }
+        });
+
+        function formatNumberWithDots(num) {
+            return new Intl.NumberFormat('tr-TR').format(num);
+        }
+
+        function cozumle() {
+            const inputEl = document.getElementById('numberInput');
+            let numStr = inputEl.value;
+            const errorMsg = document.getElementById('errorMsg');
+            const boardEl = document.getElementById('board');
+
+            boardEl.innerHTML = '';
+            errorMsg.style.display = 'none';
+
+            // Baştaki gereksiz sıfırları temizle
+            numStr = numStr.replace(/^0+/, '');
+            if (inputEl.value.length > 0 && numStr === '') numStr = '0'; 
+
+            if (numStr.length === 0 || numStr.length > 9) {
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            // Sayıyı sağdan sola üçerli gruplara ayır
+            let bolukler = [];
+            let tempStr = numStr;
+            while(tempStr.length > 0) {
+                let start = Math.max(0, tempStr.length - 3);
+                let chunk = tempStr.substring(start, tempStr.length);
+                bolukler.unshift(chunk); 
+                tempStr = tempStr.substring(0, start);
+            }
+
+            const bolukTipleri = [
+                { isim: 'Birler Bölüğü', class: 'birler-bg' },
+                { isim: 'Binler Bölüğü', class: 'binler-bg' },
+                { isim: 'Milyonlar Bölüğü', class: 'milyonlar-bg' }
+            ];
+
+            let toplamRakamSayisi = numStr.length;
+            let currentGlobalIndex = 0; 
+
+            bolukler.forEach((chunk, index) => {
+                let bolukTipiIndex = bolukler.length - 1 - index; 
+                let bolukBilgisi = bolukTipleri[bolukTipiIndex];
+
+                const groupDiv = document.createElement('div');
+                groupDiv.className = `boluk-group ${bolukBilgisi.class}`;
+                
+                groupDiv.innerHTML = `<div class="boluk-title">${bolukBilgisi.isim}</div>`;
+                
+                const digitsRow = document.createElement('div');
+                digitsRow.className = 'digits-row';
+
+                let rakamlar = chunk.split('');
+                rakamlar.forEach((rakam) => {
+                    let basamakUssu = toplamRakamSayisi - 1 - currentGlobalIndex;
+                    
+                    let basamakAdi = basamakAdlari[basamakUssu] + " Bas.";
+                    let sayiDegeri = rakam;
+                    let basamakDegeri = parseInt(rakam) * Math.pow(10, basamakUssu);
+                    let formatliBasamakDegeri = formatNumberWithDots(basamakDegeri);
+
+                    if (rakam === '0') formatliBasamakDegeri = '0';
+
+                    const colDiv = document.createElement('div');
+                    colDiv.className = 'digit-col';
+                    
+                    colDiv.innerHTML = `
+                        <div class="digit-box">${rakam}</div>
+                        <div class="arrow">↓</div>
+                        <div class="card">
+                            <div class="card-title">${basamakAdi}</div>
+                            <div class="card-row">
+                                <span class="card-label">Sayı Değeri</span>
+                                <span class="card-value">${sayiDegeri}</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="card-label">Basamak Değeri</span>
+                                <span class="card-value basamak-degeri">${formatliBasamakDegeri}</span>
+                            </div>
+                        </div>
+                    `;
+
+                    digitsRow.appendChild(colDiv);
+                    currentGlobalIndex++;
+                });
+
+                groupDiv.appendChild(digitsRow);
+                boardEl.appendChild(groupDiv);
+            });
+        }
+    </script>
+</body>
+</html>

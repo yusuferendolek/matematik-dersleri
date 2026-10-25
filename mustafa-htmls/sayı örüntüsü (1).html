@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Sayı Örüntüleri - Kayıp Vagon</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;800&display=swap');
+        
+        body { 
+            margin: 0; 
+            font-family: 'Nunito', sans-serif; 
+            background-color: #87CEEB; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+        }
+
+        /* Üst Menü (HUD) */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #2c3e50;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .hud-item { margin: 0 15px; }
+        .hud-level { color: #d35400; }
+        .hud-score { color: #27ae60; }
+        .hud-highscore { color: #8e44ad; }
+        .hud-lives { color: #e74c3c; letter-spacing: 2px; }
+        
+        h1 { 
+            font-family: 'Fredoka One', cursive; 
+            color: #2c3e50; 
+            font-size: 3rem; 
+            text-shadow: 2px 2px white; 
+            margin-top: 80px;
+            margin-bottom: 5px; 
+        }
+        
+        p.subtitle { 
+            font-size: 1.2rem; 
+            background: white; 
+            padding: 10px 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        
+        .game-area { 
+            width: 100%; 
+            height: 250px; 
+            position: relative; 
+            margin-top: 30px; 
+        }
+        
+        .track { 
+            width: 100%; 
+            height: 10px; 
+            background: #333; 
+            position: absolute; 
+            bottom: 30px; 
+        }
+        
+        .track::after { 
+            content: ''; 
+            position: absolute; 
+            width: 100%; 
+            height: 5px; 
+            border-bottom: 5px dashed #bdc3c7; 
+            top: 2px; 
+        }
+        
+        /* TREN KONTEYNERİ (Tam Ortalanmış) */
+        .train-container { 
+            display: flex; 
+            position: absolute; 
+            bottom: 38px; 
+            left: 50%;
+            transform: translateX(100vw); 
+        }
+        
+        .locomotive { 
+            width: 120px; 
+            height: 100px; 
+            background: #e74c3c; 
+            border-radius: 50px 20px 0 0; 
+            position: relative; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border: 4px solid #c0392b; 
+            box-shadow: -5px 0 0 rgba(0,0,0,0.2); 
+            z-index: 2;
+            transition: background-color 0.5s, border-color 0.5s;
+        }
+        
+        .locomotive::before { 
+            content: '🚂'; 
+            font-size: 60px; 
+        }
+        
+        .wagon { 
+            width: 90px; 
+            height: 80px; 
+            background: #f1c40f; 
+            border: 4px solid #f39c12; 
+            margin-left: 10px; 
+            border-radius: 10px 10px 0 0; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 1.8rem; 
+            font-weight: 800; 
+            color: #2c3e50; 
+            position: relative; 
+            box-shadow: inset 0 -15px 0 rgba(0,0,0,0.1); 
+            transition: border-color 0.5s;
+        }
+        
+        .wagon::before { 
+            content: ''; 
+            position: absolute; 
+            left: -14px; 
+            top: 50%; 
+            width: 10px; 
+            height: 6px; 
+            background: #333; 
+        }
+        
+        .wagon input { 
+            width: 70px; 
+            height: 50px; 
+            font-size: 1.6rem; 
+            font-family: 'Nunito', sans-serif; 
+            font-weight: 800; 
+            text-align: center; 
+            border: 3px dashed #333; 
+            border-radius: 5px; 
+            outline: none; 
+            background: white;
+            transition: 0.3s;
+        }
+        
+        .wagon input:focus { 
+            border-color: #3498db; 
+            box-shadow: 0 0 10px #3498db;
+        }
+        
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .controls { 
+            margin-top: 30px; 
+            text-align: center; 
+            z-index: 10; 
+        }
+        
+        button { 
+            font-family: 'Fredoka One', cursive; 
+            font-size: 1.5rem; 
+            padding: 15px 30px; 
+            background: #2ecc71; 
+            color: white; 
+            border: none; 
+            border-radius: 15px; 
+            cursor: pointer; 
+            box-shadow: 0 5px 0 #27ae60; 
+            transition: 0.2s; 
+        }
+        
+        button:hover {
+            transform: translateY(2px);
+            box-shadow: 0 3px 0 #27ae60;
+        }
+        button:active { 
+            transform: translateY(5px); 
+            box-shadow: none; 
+        }
+        
+        #message { 
+            font-size: 1.5rem; 
+            font-weight: 800; 
+            margin-top: 20px; 
+            min-height: 35px; 
+        }
+        
+        .success { color: #27ae60; }
+        .error { color: #c0392b; animation: shake 0.5s; }
+        
+        @keyframes shake { 
+            0%, 100% { transform: translateX(0); } 
+            25% { transform: translateX(-10px); } 
+            75% { transform: translateX(10px); } 
+        }
+
+        /* Oyun Bitti Ekranı */
+        #game-over-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 12, 16, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .hidden { display: none !important; }
+
+        #game-over-screen h2 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 4rem;
+            color: #e74c3c;
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px #e74c3c;
+        }
+
+        #game-over-screen p {
+            font-size: 2rem;
+            color: white;
+            margin: 10px 0;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .new-record-msg {
+            color: #f1c40f;
+            font-size: 2rem;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Üst Menü -->
+    <div id="hud">
+        <div class="hud-item hud-level">Seviye: <span id="level-display">1</span></div>
+        <div class="hud-item hud-score">Puan: <span id="score-display">0</span></div>
+        <div class="hud-item hud-highscore">Rekor: <span id="highscore-display">0</span></div>
+        <div class="hud-item hud-lives"><span id="lives-display">❤️❤️❤️</span></div>
+    </div>
+
+    <h1>Sayı Örüntüsü Treni</h1>
+    <p class="subtitle">Trenin yola çıkabilmesi için örüntü kuralını bul ve eksik vagonu doldur!</p>
+
+    <div class="game-area">
+        <div class="track"></div>
+        <div class="train-container" id="train">
+            <div class="locomotive" id="locomotive"></div>
+            <!-- Vagonlar JS ile eklenecek -->
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="checkAnswer()">Yükle ve Gönder!</button>
+        <div id="message"></div>
+    </div>
+
+    <!-- Oyun Bitti Ekranı -->
+    <div id="game-over-screen" class="hidden">
+        <h2>Oyun Bitti!</h2>
+        <div id="new-record-msg" class="new-record-msg">🎉 YENİ REKOR! 🎉</div>
+        <p>Toplam Puanın: <span id="final-score">0</span></p>
+        <p>En Yüksek Puan: <span id="final-highscore">0</span></p>
+        <button onclick="restartGame()" style="margin-top: 30px; padding: 20px 40px; font-size: 2rem;">Tekrar Oyna</button>
+    </div>
+
+    <script>
+        // Oyun Değişkenleri
+        let correctValue = 0;
+        let isMoving = false;
+        let score = 0;
+        let level = 1;
+        let lives = 3;
+        
+        // Yerel depolamadan rekoru al (Yoksa 0 olsun)
+        let highScore = localStorage.getItem("oruntuTreniHighScore") || 0;
+        document.getElementById('highscore-display').innerText = highScore;
+
+        // Tren Renk Kombinasyonları
+        const trainColors = [
+            { bg: '#e74c3c', border: '#c0392b', wagonBorder: '#e74c3c' },
+            { bg: '#3498db', border: '#2980b9', wagonBorder: '#3498db' },
+            { bg: '#2ecc71', border: '#27ae60', wagonBorder: '#2ecc71' },
+            { bg: '#9b59b6', border: '#8e44ad', wagonBorder: '#9b59b6' },
+            { bg: '#f39c12', border: '#d35400', wagonBorder: '#d35400' }
+        ];
+
+        // Can UI Güncellemesi
+        function updateLivesUI() {
+            let hearts = "";
+            for (let i = 0; i < lives; i++) hearts += "❤️";
+            for (let i = lives; i < 3; i++) hearts += "🖤"; // Kaybedilen canlar siyah kalp olsun
+            document.getElementById('lives-display').innerText = hearts;
+        }
+
+        function getDifficulty() {
+            if (level === 1) return { stepMin: 2, stepMax: 10, startMin: 5, startMax: 50 };
+            if (level === 2) return { stepMin: 10, stepMax: 25, startMin: 50, startMax: 150 };
+            if (level === 3) return { stepMin: 25, stepMax: 50, startMin: 150, startMax: 500 };
+            return { stepMin: 50, stepMax: 200, startMin: 500, startMax: 2000 };
+        }
+
+        function generatePattern() {
+            if(isMoving) return;
+            const train = document.getElementById('train');
+            const locomotive = document.getElementById('locomotive');
+            
+            // Treni sağda ekran dışına al
+            train.style.transition = 'none';
+            train.style.transform = 'translateX(100vw)';
+            document.getElementById('message').innerText = '';
+            
+            // Vagonları temizle
+            const wagons = document.querySelectorAll('.wagon');
+            wagons.forEach(w => w.remove());
+
+            // Yeni renk seç ve uygula
+            let colorObj = trainColors[Math.floor(Math.random() * trainColors.length)];
+            locomotive.style.backgroundColor = colorObj.bg;
+            locomotive.style.borderColor = colorObj.border;
+
+            // Seviyeye göre örüntü üret
+            let diff = getDifficulty();
+            let step = Math.floor(Math.random() * (diff.stepMax - diff.stepMin + 1)) + diff.stepMin;
+            let isIncreasing = Math.random() > 0.4; 
+            
+            let start = Math.floor(Math.random() * (diff.startMax - diff.startMin + 1)) + diff.startMin;
+            
+            if (!isIncreasing) {
+                start = start + (step * 5); 
+            }
+
+            let pattern = [];
+            for (let i = 0; i < 5; i++) {
+                pattern.push(isIncreasing ? start + (i * step) : start - (i * step));
+            }
+
+            // Eksik vagonu seç
+            let missingIndex = Math.floor(Math.random() * 3) + 1; 
+            correctValue = pattern[missingIndex];
+
+            // Vagonları oluştur
+            for (let i = 0; i < 5; i++) {
+                const w = document.createElement('div');
+                w.className = 'wagon';
+                w.style.borderColor = colorObj.wagonBorder;
+                
+                if (i === missingIndex) {
+                    w.innerHTML = `<input type="number" id="answer" autocomplete="off" placeholder="?">`;
+                } else {
+                    w.innerText = pattern[i];
+                }
+                train.appendChild(w);
+            }
+            
+            // Treni merkeze getir
+            setTimeout(() => {
+                train.style.transition = 'transform 1.5s cubic-bezier(0.25, 1, 0.5, 1)';
+                train.style.transform = 'translateX(-50%)';
+                
+                setTimeout(() => {
+                    document.getElementById('answer').focus();
+                }, 1500);
+            }, 50);
+        }
+
+        function checkAnswer() {
+            if(isMoving) return;
+            const input = document.getElementById('answer');
+            const msg = document.getElementById('message');
+            
+            if (parseInt(input.value) === correctValue) {
+                // DOĞRU CEVAP
+                score += 100;
+                document.getElementById('score-display').innerText = score;
+
+                // Rekor kırıldıysa anında güncelle
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem("oruntuTreniHighScore", highScore);
+                    document.getElementById('highscore-display').innerText = highScore;
+                }
+
+                if (score % 300 === 0) {
+                    level++;
+                    document.getElementById('level-display').innerText = level;
+                    msg.innerText = `Harika! +100 Puan. SEVİYE ${level}'E GEÇTİN! 🚀`;
+                } else {
+                    msg.innerText = "Yükleme tamamlandı, tren yola çıkıyor!";
+                }
+
+                msg.className = 'success';
+                input.style.backgroundColor = '#2ecc71';
+                input.style.color = 'white';
+                input.style.borderColor = '#27ae60';
+                
+                // Treni SOLA doğru gönder
+                isMoving = true;
+                const train = document.getElementById('train');
+                train.style.transition = 'transform 2s ease-in'; 
+                train.style.transform = `translateX(calc(-50vw - 1200px))`; 
+                
+                setTimeout(() => {
+                    isMoving = false;
+                    generatePattern();
+                }, 2200);
+
+            } else {
+                // YANLIŞ CEVAP - Can Kaybetme
+                lives--;
+                updateLivesUI();
+
+                if (lives <= 0) {
+                    gameOver();
+                } else {
+                    msg.innerText = `Hata! Kuralı tekrar düşün. (Kalan Can: ${lives})`;
+                    msg.className = 'error';
+                    input.value = '';
+                    input.focus();
+                    
+                    msg.style.animation = 'none';
+                    setTimeout(() => msg.style.animation = '', 10);
+                }
+            }
+        }
+
+        function gameOver() {
+            isMoving = true; // Oyunu dondur
+            
+            // Rekor kontrolü ve UI
+            let isNewRecord = score > 0 && score >= highScore;
+            document.getElementById('new-record-msg').style.display = isNewRecord ? 'block' : 'none';
+            
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-highscore').innerText = highScore;
+            
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        function restartGame() {
+            // Değişkenleri sıfırla
+            score = 0;
+            level = 1;
+            lives = 3;
+            isMoving = false;
+            
+            // UI'ı sıfırla
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('level-display').innerText = level;
+            updateLivesUI();
+            
+            // Oyun bitti ekranını gizle ve yeni soru üret
+            document.getElementById('game-over-screen').classList.add('hidden');
+            generatePattern();
+        }
+
+        // Oyunu Başlat
+        updateLivesUI();
+        generatePattern();
+        
+        document.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter') checkAnswer(); 
+        });
+    </script>
+</body>
+</html>
