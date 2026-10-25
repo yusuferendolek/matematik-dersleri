@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oyun Defteri</title>
+<meta name="description" content="Matematik ve fen için sınıfta oynanan etkileşimli oyunlar.">
+<link rel="stylesheet" href="ortak/tema.css">
+<script src="ortak/kabuk.js"></script>
+</head>
+<body class="ana-sayfa">
+<header class="bar" id="bar"></header>
+<script>Kabuk.bar();</script>
+
+<main class="ana">
+  <div class="ana-ic">
+    <p class="ana-giris">Bir oyun seç. Oyun açıkken sol üstteki menüden başka bir oyuna, oklarla da sıradakine geçebilirsin.</p>
+    <div id="liste"></div>
+  </div>
+</main>
+<script>document.getElementById('liste').innerHTML = Kabuk.liste();</script>
+</body>
+</html>

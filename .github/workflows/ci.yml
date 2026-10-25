@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Statik kontroller
+        run: node scripts/check.js
+      - name: Duman testi (her sayfa internetsiz headless Chrome'da)
+        run: node scripts/smoke.js
