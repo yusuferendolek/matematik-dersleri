@@ -90,7 +90,7 @@
 </head>
 <body class="oyun-sayfasi">
 <header class="bar" id="bar">
-    <div class="bar-orta"><span class="ipucu">İki sayı gir, listeleri oluştur ve ortak olanları tıklayarak kendin seç.</span></div>
+    <div class="bar-orta"><span class="ipucu">İki sayı girin, listeleri oluşturun ve ortak olanları tıklayarak kendiniz seçin.</span></div>
 </header>
 <script>Kabuk.bar('ortak-katlar');</script>
 
@@ -113,12 +113,12 @@
                 <button class="sekme" role="tab" data-mod="carpanlar" aria-selected="false">Çarpanlar (bölenler)</button>
             </div>
         </div>
-        <button class="dugme ana buyuk" id="hesapla" onclick="calculate()">Hesapla ve karşılaştır</button>
+        <button class="dugme ana buyuk" id="hesapla" onclick="calculate()">Hesaplayın ve karşılaştırın</button>
     </section>
 
     <!-- Hata mesajı -->
     <div id="errorMessage" class="geri-bildirim yanlis" role="alert" hidden>
-        Lütfen her iki kutuya da geçerli pozitif tam sayılar gir.
+        Lütfen her iki kutuya da geçerli pozitif tam sayılar giriniz.
     </div>
 
     <!-- Sonuçlar -->
@@ -140,12 +140,12 @@
 
         <p class="yonerge">
             <span class="mavi-nokta" aria-hidden="true"></span>
-            Ortak olduğunu düşündüğün sayılara tıklayarak onları maviye boya.
+            Ortak olduğunu düşündüğünüz sayılara tıklayarak onları maviye boyayın.
         </p>
 
         <div class="eylemler">
-            <button class="dugme basari buyuk" onclick="checkAnswers()">Seçimlerimi kontrol et</button>
-            <button class="dugme buyuk" onclick="showAnswers()">Cevabı göster</button>
+            <button class="dugme basari buyuk" onclick="checkAnswers()">Seçimleri kontrol edin</button>
+            <button class="dugme buyuk" onclick="showAnswers()">Cevabı gösterin</button>
         </div>
         <div id="feedbackMessage" class="geri-bildirim" role="status" hidden></div>
     </section>
@@ -157,7 +157,7 @@
     let currentCommonElements = [];
 
     // İşlem türü (orijinaldeki açılır liste yerine sekmeler): seçim yalnızca hatırlanır,
-    // listeler "Hesapla ve karşılaştır"a basınca oluşur
+    // listeler "Hesaplayın ve karşılaştırın"a basınca oluşur
     let selectedMode = 'katlar';
     document.querySelectorAll('#mode .sekme').forEach(tab => {
         tab.onclick = () => {
@@ -284,13 +284,13 @@
         feedbackEl.hidden = false;
 
         if (isCorrect && !missedCommon) {
-            feedbackEl.innerText = "Harika! Tüm ortak sayıları doğru buldun.";
+            feedbackEl.innerText = "Harika! Tüm ortak sayıları doğru buldunuz.";
             feedbackEl.className = "geri-bildirim dogru";
         } else if (!isCorrect) {
-            feedbackEl.innerText = "Ortak olmayan bazı sayıları seçtin. Lütfen tekrar kontrol et.";
+            feedbackEl.innerText = "Ortak olmayan bazı sayıları seçtiniz. Lütfen tekrar kontrol edin.";
             feedbackEl.className = "geri-bildirim yanlis";
         } else if (missedCommon) {
-            feedbackEl.innerText = "Doğru gidiyorsun ama henüz seçmediğin ortak sayılar var!";
+            feedbackEl.innerText = "Doğru gidiyorsunuz ama henüz seçmediğiniz ortak sayılar var!";
             feedbackEl.className = "geri-bildirim uyari";
         }
     }

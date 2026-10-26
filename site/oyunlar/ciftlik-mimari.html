@@ -75,7 +75,7 @@
     .table-header-row .col-area { color: var(--yesil); }
     .table-header-row .col-perim { color: var(--turuncu); }
     #discovery-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-    #discovery-list:empty::before { content: "Çizdiğin dikdörtgenler burada listelenir."; color: var(--murekkep-2); font-size: 15px; padding: 8px 12px; }
+    #discovery-list:empty::before { content: "Çizdiğiniz dikdörtgenler burada listelenir."; color: var(--murekkep-2); font-size: 15px; padding: 8px 12px; }
     .table-row { border: 1.5px solid var(--kenarlik); font-size: 18px; font-weight: 800; animation: highlight 1s; }
     .col-area, .col-perim { text-align: center; }
     .table-row .col-area { color: var(--yesil); }
@@ -146,7 +146,7 @@
     <!-- Görev -->
     <section class="panel gorev" id="mission-card-bg" data-tur="alan">
         <span class="rozet" id="mission-type">Görev</span>
-        <p class="gorev-metin" id="mission-text">Alanı 16 br² olan 3 <strong>farklı</strong> dikdörtgen çiz.</p>
+        <p class="gorev-metin" id="mission-text">Alanı 16 br² olan 3 <strong>farklı</strong> dikdörtgen çizin.</p>
         <div class="ilerleme" role="progressbar" aria-label="Görev ilerlemesi"><div class="ilerleme-dolu" id="progress-fill"></div></div>
     </section>
 
@@ -168,8 +168,8 @@
             <div class="toast" id="toast-msg" role="status"></div>
         </div>
         <div class="cizim-alt">
-            <span class="ipucu">Kareler üzerinde sürükleyerek dikdörtgen çiz.</span>
-            <button class="dugme tehlike" onclick="clearCanvas()">Tuvali temizle</button>
+            <span class="ipucu">Kareler üzerinde sürükleyerek dikdörtgen çizin.</span>
+            <button class="dugme tehlike" onclick="clearCanvas()">Tuvali temizleyin</button>
         </div>
     </section>
 
@@ -178,14 +178,14 @@
 
 <script>
     const levels = [
-        { type: 'AREA', target: 12, required: 3, text: "Alanı <span class=\"fosfor\">12 br²</span> olan 3 <strong>farklı</strong> dikdörtgen çiz.", insight: "Fark ettin mi? Alanı aynı olan dikdörtgenlerde şekil kareye yaklaştıkça <strong>çevresi küçülür</strong>!" },
-        { type: 'PERIMETER', target: 14, required: 3, text: "Çevresi tam <span class=\"fosfor\">14 br</span> olan 3 <strong>farklı</strong> dikdörtgen çiz.", insight: "Harika! Çevresi aynı olan dikdörtgenlerde ise şekil kareye yaklaştıkça <strong>alanı büyür</strong>!" },
-        { type: 'AREA', target: 16, required: 3, text: "Alanı <span class=\"fosfor\">16 br²</span> olan 3 <strong>farklı</strong> dikdörtgen çiz.", insight: "Süper! 4 × 4'ün bir <strong>kare</strong> olduğunu ve karenin de özel bir dikdörtgen olduğunu kanıtladın." },
-        { type: 'PERIMETER', target: 18, required: 4, text: "Çevresi tam <span class=\"fosfor\">18 br</span> olan 4 <strong>farklı</strong> dikdörtgen çiz.", insight: "Gördüğün gibi aynı çit uzunluğu ile 8'den 20'ye kadar çok farklı alanlar kaplayabiliyoruz." },
-        { type: 'AREA', target: 20, required: 3, text: "Alanı <span class=\"fosfor\">20 br²</span> olan 3 <strong>farklı</strong> dikdörtgen çiz.", insight: "Çok iyi! Alan sabitken çevre 18'den 42'ye kadar uzayabiliyor." },
-        { type: 'PERIMETER', target: 20, required: 5, text: "Çevresi <span class=\"fosfor\">20 br</span> olan 5 <strong>farklı</strong> dikdörtgen çiz.", insight: "Mükemmel mimar! Çit uzunluğun sabitken alanı 9 ile 25 arasında değiştirebildiğini gördün." },
-        { type: 'AREA', target: 24, required: 4, text: "Zor görev: Alanı <span class=\"fosfor\">24 br²</span> olan 4 <strong>farklı</strong> dikdörtgen çiz.", insight: "Devasa şekilleri sığdırmayı başardın! Aynı alana sahip 4 farklı çevre uzunluğu keşfettin." },
-        { type: 'PERIMETER', target: 26, required: 6, text: "Efsane görev: Çevresi <span class=\"fosfor\">26 br</span> olan 6 <strong>farklı</strong> dikdörtgen sığdır.", insight: "Efsanevi mimar! Tüm olasılıkları buldun. Artık bir geometri ustasısın!" }
+        { type: 'AREA', target: 12, required: 3, text: "Alanı <span class=\"fosfor\">12 br²</span> olan 3 <strong>farklı</strong> dikdörtgen çizin.", insight: "Fark ettiniz mi? Alanı aynı olan dikdörtgenlerde şekil kareye yaklaştıkça <strong>çevresi küçülür</strong>!" },
+        { type: 'PERIMETER', target: 14, required: 3, text: "Çevresi tam <span class=\"fosfor\">14 br</span> olan 3 <strong>farklı</strong> dikdörtgen çizin.", insight: "Harika! Çevresi aynı olan dikdörtgenlerde ise şekil kareye yaklaştıkça <strong>alanı büyür</strong>!" },
+        { type: 'AREA', target: 16, required: 3, text: "Alanı <span class=\"fosfor\">16 br²</span> olan 3 <strong>farklı</strong> dikdörtgen çizin.", insight: "Süper! 4 × 4'ün bir <strong>kare</strong> olduğunu ve karenin de özel bir dikdörtgen olduğunu kanıtladınız." },
+        { type: 'PERIMETER', target: 18, required: 4, text: "Çevresi tam <span class=\"fosfor\">18 br</span> olan 4 <strong>farklı</strong> dikdörtgen çizin.", insight: "Gördüğünüz gibi aynı çit uzunluğu ile 8'den 20'ye kadar çok farklı alanlar kaplayabiliyoruz." },
+        { type: 'AREA', target: 20, required: 3, text: "Alanı <span class=\"fosfor\">20 br²</span> olan 3 <strong>farklı</strong> dikdörtgen çizin.", insight: "Çok iyi! Alan sabitken çevre 18'den 42'ye kadar uzayabiliyor." },
+        { type: 'PERIMETER', target: 20, required: 5, text: "Çevresi <span class=\"fosfor\">20 br</span> olan 5 <strong>farklı</strong> dikdörtgen çizin.", insight: "Mükemmel mimar! Çit uzunluğunuz sabitken alanı 9 ile 25 arasında değiştirebildiğinizi gördünüz." },
+        { type: 'AREA', target: 24, required: 4, text: "Zor görev: Alanı <span class=\"fosfor\">24 br²</span> olan 4 <strong>farklı</strong> dikdörtgen çizin.", insight: "Devasa şekilleri sığdırmayı başardınız! Aynı alana sahip 4 farklı çevre uzunluğu keşfettiniz." },
+        { type: 'PERIMETER', target: 26, required: 6, text: "Efsane görev: Çevresi <span class=\"fosfor\">26 br</span> olan 6 <strong>farklı</strong> dikdörtgen sığdırın.", insight: "Efsanevi mimar! Tüm olasılıkları buldunuz. Artık bir geometri ustasısınız!" }
     ];
 
     // Dikdörtgen renkleri: temanın kalem renkleri (tema değişince çizim de tablo da güncellenir)
@@ -364,7 +364,7 @@
         document.getElementById('level-wrapper').hidden = true;
         document.getElementById('mission-card-bg').dataset.tur = 'serbest';
         document.getElementById('mission-type').innerText = "Sınır yok";
-        document.getElementById('mission-text').innerText = "İstediğin boyutta şekiller çizerek alan ve çevresini anında keşfet!";
+        document.getElementById('mission-text').innerText = "İstediğiniz boyutta şekiller çizerek alan ve çevresini anında keşfedin!";
 
         document.getElementById('progress-fill').style.width = "100%";
 
@@ -434,7 +434,7 @@
 
         for (let rect of permanentRects) {
             if (minC < rect.c + rect.w && minC + w > rect.c && minR < rect.r + rect.h && minR + h > rect.r) {
-                showToast("Şekiller üst üste gelemez! Boş bir alana çiz.");
+                showToast("Şekiller üst üste gelemez! Boş bir alana çizin.");
                 return;
             }
         }
@@ -446,12 +446,12 @@
             if (lvl.type === 'PERIMETER' && perimeter === lvl.target) isValid = true;
 
             if (!isValid) {
-                showToast(`Yanlış! Çizdiğin: Alan = ${area}, Çevre = ${perimeter}`);
+                showToast(`Yanlış! Çizdiğiniz: Alan = ${area}, Çevre = ${perimeter}`);
                 return;
             }
 
             if (foundRectKeys.includes(shapeKey)) {
-                showToast(`Bu boyutları (${shortSide} × ${longSide}) zaten buldun! Başka şekil dene.`);
+                showToast(`Bu boyutları (${shortSide} × ${longSide}) zaten buldunuz! Başka şekil deneyin.`);
                 return;
             }
         }
@@ -520,8 +520,8 @@
             baseScore = 0;
             Kabuk.pencere({
                 baslik: 'Mükemmel!',
-                html: '<p>Tüm görevleri bitirdin. Şimdi serbest moda geçiyorsun!</p>',
-                dugme: 'Serbest moda geç'
+                html: '<p>Tüm görevleri bitirdiniz. Şimdi serbest moda geçiyorsunuz!</p>',
+                dugme: 'Serbest moda geçin'
             }).then(toggleFreeMode);
             return;
         }

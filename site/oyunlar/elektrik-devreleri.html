@@ -37,6 +37,11 @@
     .gerilim-ust { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
     #flow-tabs { margin-top: 6px; }
     #flow-tabs .sekme { flex: 1; font-size: 14px; padding: 0 10px; justify-content: center; }
+    /* telefonda iki seçenek yan yana sığmazsa yazı iki satıra iner */
+    @media (max-width: 560px) {
+        #flow-tabs { border-radius: 16px; }
+        #flow-tabs .sekme { flex: 1 1 0; white-space: normal; text-align: center; height: auto; min-height: 36px; padding: 6px 8px; line-height: 1.2; border-radius: 12px; }
+    }
 
     /* ampul listesi */
     #bulbs-control-container { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
@@ -126,7 +131,7 @@
             <!-- Anahtar Aç/Kapa -->
             <div class="satir-kutu">
                 <span class="etiket">Anahtar</span>
-                <button id="switch-btn" class="dugme kucuk tehlike" onclick="toggleSwitch()">Anahtarı aç</button>
+                <button id="switch-btn" class="dugme kucuk tehlike" onclick="toggleSwitch()">Anahtarı açın</button>
             </div>
 
             <!-- Pil Gerilimi Ayarı -->
@@ -142,15 +147,15 @@
             <!-- Akış Gösterim Türü -->
             <span class="etiket">Akım / elektron yönü</span>
             <div class="sekmeler" id="flow-tabs" role="tablist" aria-label="Akış yönü">
-                <button id="flow-electron" class="sekme" role="tab" onclick="setFlowType('electron')">Elektron akışı (− → +)</button>
-                <button id="flow-conventional" class="sekme" role="tab" onclick="setFlowType('conventional')">Geleneksel akım (+ → −)</button>
+                <button id="flow-electron" class="sekme" role="tab" onclick="setFlowType('electron')">Elektron akışı (−&nbsp;→&nbsp;+)</button>
+                <button id="flow-conventional" class="sekme" role="tab" onclick="setFlowType('conventional')">Geleneksel akım (+&nbsp;→&nbsp;−)</button>
             </div>
         </div>
 
         <!-- Ampul Kontrolü ve Patlatma / Sökme Testi -->
         <div class="panel">
             <h2 class="panel-baslik">Ampul işlemleri ve deney</h2>
-            <p class="ipucu" style="margin-bottom: 12px">Ampulü patlatıp ya da duydan söküp seri ve paralel devrelerde neyin değiştiğini gözle.</p>
+            <p class="ipucu" style="margin-bottom: 12px">Ampulün üzerine tıklayarak patlatabilir ya da duydan sökebilirsiniz. Bu sayede seri ve paralel bağlı devrelerdeki değişimleri gözlemleyin!</p>
             <!-- Dinamik Ampul Listesi -->
             <div id="bulbs-control-container"></div>
         </div>
@@ -180,13 +185,13 @@
                     <span><i style="background:var(--mavi)"></i> Elektron</span>
                     <span><i style="background:var(--kirmizi)"></i> Pil (+ / −)</span>
                 </div>
-                <button class="dugme kucuk" onclick="resetCircuit()">Devreyi sıfırla</button>
+                <button class="dugme kucuk" onclick="resetCircuit()">Devreyi sıfırlayın</button>
             </div>
 
             <!-- Çizim Alanı (Interactive Canvas) -->
             <div class="sahne devre-sahne">
                 <canvas id="circuitCanvas"></canvas>
-                <div class="sahne-ipucu">İpucu: Ampullere tıklayarak patlatabilir ya da yenileyebilirsin.</div>
+                <div class="sahne-ipucu">İpucu: Devredeki ampullere tıklayarak patlatabilir ya da yenileyebilirsiniz.</div>
             </div>
         </div>
 
@@ -639,12 +644,12 @@
 
         // Düğme ne yapacağını, rozet devrenin durumunu söyler
         if (switchClosed) {
-            btn.textContent = 'Anahtarı aç';
+            btn.textContent = 'Anahtarı açın';
             btn.className = 'dugme kucuk tehlike';
             badge.textContent = 'Kapalı devre: akım var';
             badge.className = 'rozet dogru';
         } else {
-            btn.textContent = 'Anahtarı kapat';
+            btn.textContent = 'Anahtarı kapatın';
             btn.className = 'dugme kucuk basari';
             badge.textContent = 'Açık devre: akım yok';
             badge.className = 'rozet yanlis';
@@ -713,9 +718,9 @@
                     <span class="ampul-ad">Ampul ${b.id}</span>
                     <div style="display:flex; gap:6px">
                         <button onclick="toggleBulbBreak(${b.id})" class="dugme kucuk ${b.isBroken ? 'basari' : 'tehlike'}">
-                            ${b.isBroken ? 'Tamir et' : 'Patlat / sök'}
+                            ${b.isBroken ? 'Tamir edin' : 'Patlatın / sökün'}
                         </button>
-                        ${bulbs.length > 1 ? `<button onclick="removeBulb(${b.id})" class="ikon-btn sil-btn" aria-label="Ampul ${b.id}'i kaldır" title="Kaldır">${TRASH}</button>` : ''}
+                        ${bulbs.length > 1 ? `<button onclick="removeBulb(${b.id})" class="ikon-btn sil-btn" aria-label="Ampul ${b.id}'i kaldırın" title="Kaldırın">${TRASH}</button>` : ''}
                     </div>
                 </div>
                 <div class="ampul-alt">
@@ -730,7 +735,7 @@
             const addBtn = document.createElement('button');
             addBtn.onclick = addBulb;
             addBtn.className = 'dugme ekle-btn';
-            addBtn.textContent = '+ Yeni ampul ekle';
+            addBtn.textContent = '+ Yeni ampul ekleyin';
             container.appendChild(addBtn);
         }
     }

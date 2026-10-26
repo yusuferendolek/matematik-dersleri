@@ -150,8 +150,8 @@
 <main class="oyun">
     <div id="screen-shop" class="screen">
         <section class="panel shop-container">
-            <h2 class="panel-baslik">Toptancı hali: markete yeni ürün al</h2>
-            <p class="ipucu">Kasadaki paranla yeni ürünler aç, marketini büyüt! Müşteriler daha çok alışveriş yapsın.</p>
+            <h2 class="panel-baslik">Toptancı hali: markete yeni ürün alın</h2>
+            <p class="ipucu">Kasadaki paranızla yeni ürünler açın, marketinizi büyütün! Müşteriler daha çok alışveriş yapsın.</p>
             <div class="shop-grid" id="shop-grid"></div>
         </section>
     </div>
@@ -171,7 +171,7 @@
 
                 <div class="panel interaction-panel" id="interaction-panel" aria-live="polite">
                     <p class="bekliyor">Müşteri bekliyor!</p>
-                    <button onclick="startNextCustomer()" class="dugme ana buyuk" id="btn-start">Sıradaki müşteriyi al</button>
+                    <button onclick="startNextCustomer()" class="dugme ana buyuk" id="btn-start">Sıradaki müşteriyi alın</button>
                 </div>
             </div>
 
@@ -201,7 +201,7 @@
         const IKON_TAMAM = svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>');
         const SES_ACIK = svg('<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>');
         const SES_KAPALI = svg('<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/>');
-        document.getElementById('btn-toggle-shop').innerHTML = IKON_TOPTANCI + 'Toptancıya git';
+        document.getElementById('btn-toggle-shop').innerHTML = IKON_TOPTANCI + 'Toptancıya gidin';
         document.getElementById('btn-sound').innerHTML = SES_ACIK;
 
         // --- SES AYARLARI ---
@@ -286,19 +286,19 @@
             if (shop.classList.contains('active-screen')) {
                 shop.classList.remove('active-screen');
                 cashier.classList.add('active-screen');
-                btn.innerHTML = IKON_TOPTANCI + 'Toptancıya git';
+                btn.innerHTML = IKON_TOPTANCI + 'Toptancıya gidin';
                 if(currentPhase === 'IDLE') document.getElementById('btn-start').style.display = '';
             } else {
                 if(currentPhase !== 'IDLE') {
                     Kabuk.pencere({
                         baslik: 'Kasada müşteri var',
-                        html: '<p>Şu an kasada müşteri var, toptancıya gidemezsin!</p>'
+                        html: '<p>Şu an kasada müşteri var, toptancıya gidemezsiniz!</p>'
                     });
                     return;
                 }
                 cashier.classList.remove('active-screen');
                 shop.classList.add('active-screen');
-                btn.innerHTML = IKON_KASA + 'Kasaya dön';
+                btn.innerHTML = IKON_KASA + 'Kasaya dönün';
                 renderShop();
             }
         }
@@ -312,7 +312,7 @@
                 card.className = `urun ${p.unlocked ? 'unlocked' : ''}`;
 
                 let actionHTML = p.unlocked ? `<span class="unlocked-badge">${IKON_TAMAM}Açık</span>`
-                                            : `<button class="dugme p-btn ${money >= p.cost ? 'ana' : ''}" ${money < p.cost ? 'disabled' : ''} onclick="buyProduct(${p.id})">Satın al (${p.cost} TL)</button>`;
+                                            : `<button class="dugme p-btn ${money >= p.cost ? 'ana' : ''}" ${money < p.cost ? 'disabled' : ''} onclick="buyProduct(${p.id})">Satın alın (${p.cost} TL)</button>`;
 
                 card.innerHTML = `
                     <span class="p-icon" aria-hidden="true">${p.icon}</span>
@@ -426,7 +426,7 @@
                         <div class="alt-yazi">Yeni fiyatı nedir?</div>
                         <div class="input-group">
                             <input class="giris" type="text" inputmode="decimal" id="answer-input" placeholder="Örn: 16" autocomplete="off" aria-label="Yeni fiyat">
-                            <button class="dugme ana buyuk" onclick="checkDiscount()">Onayla</button>
+                            <button class="dugme ana buyuk" onclick="checkDiscount()">Onaylayın</button>
                         </div>
                         <div id="error-msg" class="hata" role="alert"></div>
                     `;
@@ -465,7 +465,7 @@
                 document.getElementById('money-display').innerText = formatMoney(money);
                 moveItemOffScreen();
             } else {
-                document.getElementById('error-msg').innerText = "Yanlış hesap! İndirimi tekrar düşün.";
+                document.getElementById('error-msg').innerText = "Yanlış hesap! İndirimi tekrar düşünün.";
                 document.getElementById('answer-input').value = "";
                 document.getElementById('answer-input').focus();
             }
@@ -511,10 +511,10 @@
 
             document.getElementById('interaction-panel').innerHTML = `
                 <div class="question-text">Müşteri ${formatMoney(customerCash)} TL nakit verdi</div>
-                <div class="alt-yazi">Fiş toplamı: <b>${formatMoney(runningTotal)} TL</b>.<br>Ondalık çıkarma işlemi yaparak para üstünü bul!</div>
+                <div class="alt-yazi">Fiş toplamı: <b>${formatMoney(runningTotal)} TL</b>.<br>Ondalık çıkarma işlemi yaparak para üstünü bulun!</div>
                 <div class="input-group">
                     <input class="giris" type="text" inputmode="decimal" id="change-input" placeholder="Örn: 12,50" autocomplete="off" aria-label="Para üstü">
-                    <button class="dugme ana buyuk" onclick="checkChange()">Ver</button>
+                    <button class="dugme ana buyuk" onclick="checkChange()">Verin</button>
                 </div>
                 <div id="error-msg" class="hata" role="alert"></div>
             `;
@@ -540,11 +540,11 @@
 
                 document.getElementById('interaction-panel').innerHTML = `
                     <div class="tesekkur">Teşekkürler!</div>
-                    <div class="alt-yazi">Para üstünü (${formatMoney(expectedAnswer)} TL) doğru verdin.<br>Fişin %${randomPct}${YUZDE_EKI[randomPct]} oranında <b>+${formatMoney(profit)} TL</b> kasa kârı kazandın!</div>
+                    <div class="alt-yazi">Para üstünü (${formatMoney(expectedAnswer)} TL) doğru verdiniz.<br>Fişin %${randomPct}${YUZDE_EKI[randomPct]} oranında <b>+${formatMoney(profit)} TL</b> kasa kârı kazandınız!</div>
                     <button onclick="resetForNext()" class="dugme ana buyuk">Yeni müşteri</button>
                 `;
             } else {
-                document.getElementById('error-msg').innerText = "Yanlış para üstü! Kuruşları dikkatli çıkar.";
+                document.getElementById('error-msg').innerText = "Yanlış para üstü! Kuruşları dikkatli çıkarın.";
                 document.getElementById('change-input').value = "";
                 document.getElementById('change-input').focus();
             }
@@ -554,7 +554,7 @@
             currentPhase = 'IDLE';
             document.getElementById('interaction-panel').innerHTML = `
                 <p class="bekliyor">Müşteri bekliyor!</p>
-                <button onclick="startNextCustomer()" class="dugme ana buyuk" id="btn-start">Sıradaki müşteriyi al</button>
+                <button onclick="startNextCustomer()" class="dugme ana buyuk" id="btn-start">Sıradaki müşteriyi alın</button>
             `;
             document.getElementById('receipt-items').innerHTML = '';
             document.getElementById('receipt-total').innerText = '0,00 TL';

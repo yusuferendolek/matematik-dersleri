@@ -211,7 +211,7 @@
 
 <main class="oyun">
 <div class="icerik">
-    <p class="yonerge">Trenin yola çıkabilmesi için <b class="fosfor">örüntü kuralını</b> bul ve eksik vagonu doldur!</p>
+    <p class="yonerge">Trenin yola çıkabilmesi için <b class="fosfor">örüntü kuralını</b> bulun ve eksik vagonu doldurun!</p>
 
     <div class="tren-kap">
         <div class="game-area">
@@ -244,7 +244,7 @@
     </div>
 
     <div class="controls">
-        <button class="dugme ana buyuk" onclick="checkAnswer()">Yükle ve gönder</button>
+        <button class="dugme ana buyuk" onclick="checkAnswer()">Yükleyin ve gönderin</button>
         <div id="message" role="status"></div>
     </div>
 </div>
@@ -371,7 +371,7 @@
             if (score % 300 === 0) {
                 level++;
                 document.getElementById('level-display').innerText = level;
-                msg.innerText = `Harika! +100 puan. Seviye ${yonelmeEki(level)} geçtin!`;
+                msg.innerText = `Harika! +100 puan. Seviye ${yonelmeEki(level)} geçtiniz!`;
             } else {
                 msg.innerText = "Yükleme tamamlandı, tren yola çıkıyor!";
             }
@@ -400,7 +400,7 @@
             if (lives <= 0) {
                 gameOver();
             } else {
-                msg.innerText = `Hata! Kuralı tekrar düşün. (Kalan can: ${lives})`;
+                msg.innerText = `Hata! Kuralı tekrar düşünün. (Kalan can: ${lives})`;
                 msg.className = 'error';
                 input.value = '';
                 input.focus();
@@ -420,9 +420,9 @@
         Kabuk.pencere({
             baslik: 'Oyun bitti',
             html: `${isNewRecord ? '<p class="new-record-msg">Yeni rekor!</p>' : ''}
-                   <p>Toplam puanın: <b>${score}</b></p>
+                   <p>Toplam puanınız: <b>${score}</b></p>
                    <p>En yüksek puan: <b>${highScore}</b></p>`,
-            dugme: 'Tekrar oyna'
+            dugme: 'Tekrar oynayın'
         }).then(restartGame);
     }
 

@@ -92,7 +92,7 @@
 </head>
 <body class="oyun-sayfasi">
 <header class="bar" id="bar">
-    <div class="bar-orta"><span class="ipucu">İletkinin tabanını mekiğin silik çizgisinden başlat!</span></div>
+    <div class="bar-orta"><span class="ipucu">İletkinin tabanını mekiğin silik çizgisinden başlatın!</span></div>
     <div class="bar-sag">
         <span class="durum"><span class="durum-ad">Puan</span><b class="durum-deger" id="score-display">0</b></span>
         <span class="durum" aria-label="Kalan can"><span class="durum-ad">Can</span><span class="kalpler" id="lives-display"></span></span>
@@ -105,7 +105,7 @@
         <canvas id="gameCanvas"></canvas>
 
         <div id="protractor-container">
-            <div id="rotate-handle" title="Döndürmek için sürükle"></div>
+            <div id="rotate-handle" title="Döndürmek için sürükleyin"></div>
             <div id="pivot"></div>
             <svg id="protractor-svg" viewBox="0 0 320 160">
                 <!-- Arka plan Camı -->
@@ -131,11 +131,11 @@
             derece
         </label>
         <button class="dugme buyuk btn-fire btn-ccw" id="btn-ccw" onclick="fireLaser('CCW')">
-            Ateşle
+            Ateşleyin
             <span>↺ Saat yönünün tersine</span>
         </button>
         <button class="dugme buyuk btn-fire btn-cw" id="btn-cw" onclick="fireLaser('CW')">
-            Ateşle
+            Ateşleyin
             <span>↻ Saat yönünde</span>
         </button>
     </div>
@@ -396,12 +396,12 @@
             showMessage("Tam isabet!", "var(--dogru)");
         } else {
             lives--; updateLives();
-            showMessage("Iskaladın!", "var(--yanlis)");
+            showMessage("Iskaladınız!", "var(--yanlis)");
             if (lives <= 0) setTimeout(() => {
                 Kabuk.pencere({
                     baslik: 'Oyun bitti',
-                    html: `<p>Toplam puanın: <b>${score}</b></p>`,
-                    dugme: 'Tekrar oyna'
+                    html: `<p>Toplam puanınız: <b>${score}</b></p>`,
+                    dugme: 'Tekrar oynayın'
                 }).then(() => location.reload());
             }, 1000);
         }

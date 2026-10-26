@@ -126,7 +126,7 @@
 <script>Kabuk.bar('yuvarlama-tepesi');</script>
 
 <main class="oyun">
-    <div class="instruction" id="instruction">Sayıyı en yakın <b class="fosfor">onluğa</b> yuvarla!</div>
+    <div class="instruction" id="instruction">Sayıyı en yakın <b class="fosfor">onluğa</b> yuvarlayın!</div>
 
     <div class="game-container">
         <div class="hill">
@@ -143,7 +143,7 @@
     <div class="panel">
         <div class="target-number" id="targetNum">47</div>
         <input class="giris" type="number" id="answer" placeholder="Cevap" autocomplete="off" aria-label="Yuvarlanmış sayı">
-        <button class="dugme ana buyuk" onclick="checkAnswer()">Yuvarla</button>
+        <button class="dugme ana buyuk" onclick="checkAnswer()">Yuvarlayın</button>
     </div>
 
     <div id="msg" role="status"></div>
@@ -177,7 +177,7 @@
         roundingMode = mode;
 
         let modName = mode === 10 ? "onluğa" : (mode === 100 ? "yüzlüğe" : "binliğe");
-        document.getElementById('instruction').innerHTML = `Sayıyı en yakın <b class="fosfor">${modName}</b> yuvarla!`;
+        document.getElementById('instruction').innerHTML = `Sayıyı en yakın <b class="fosfor">${modName}</b> yuvarlayın!`;
 
         // Rastgele sayı üret (Tam sınır ve ortaları hariç tutmuyoruz ki 45, 450 gibi sayılar da zirveye otursun)
         do {
@@ -273,7 +273,7 @@
                     gameOver();
                 } else {
                     msg.style.color = 'var(--yanlis)';
-                    msg.innerText = `Yanlış. Sayının tepedeki yerine tekrar bak! (Kalan can: ${lives})`;
+                    msg.innerText = `Yanlış. Sayının tepedeki yerine tekrar bakın! (Kalan can: ${lives})`;
 
                     // Kaya bulunduğu yamaçta titrer!
                     pendulum.classList.add('shake');
@@ -294,9 +294,9 @@
         Kabuk.pencere({
             baslik: 'Oyun bitti',
             html: `${isNewRecord ? '<p class="new-record-msg">Yeni rekor!</p>' : ''}
-                   <p>Toplam puanın: <b>${score}</b></p>
+                   <p>Toplam puanınız: <b>${score}</b></p>
                    <p>En yüksek puan: <b>${highScore}</b></p>`,
-            dugme: 'Tekrar oyna'
+            dugme: 'Tekrar oynayın'
         }).then(restartGame);
     }
 

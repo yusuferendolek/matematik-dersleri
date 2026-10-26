@@ -167,8 +167,8 @@
 
     <!-- 1. BAŞLANGIÇ EKRANI -->
     <section id="startScreen" class="ekran panel giris-panel">
-        <h2>Araştırma sorularını doğru sınıflandır!</h2>
-        <p class="aciklama">İstatistiksel araştırma sürecinde doğru soru türünü seçmek hayati önem taşır. Karşına çıkan araştırma sorularının değişken yapılarını hızlıca analiz et!</p>
+        <h2>Araştırma sorularını doğru sınıflandırın!</h2>
+        <p class="aciklama">İstatistiksel araştırma sürecinde doğru soru türünü seçmek hayati önem taşır. Karşınıza çıkan araştırma sorularının değişken yapılarını hızlıca analiz edin!</p>
 
         <ul class="kategoriler">
             <li class="kategori k-tek">
@@ -185,7 +185,7 @@
             </li>
         </ul>
 
-        <button class="dugme ana buyuk" onclick="startGame()">Oyuna başla</button>
+        <button class="dugme ana buyuk" onclick="startGame()">Oyuna başlayın</button>
     </section>
 
     <!-- 2. OYUN EKRANI -->
@@ -196,7 +196,7 @@
 
         <!-- Soru kartı -->
         <div id="questionCard" class="panel soru-kart">
-            <p class="soru-etiket">Bu araştırma sorusunu sınıflandır:</p>
+            <p class="soru-etiket">Bu araştırma sorusunu sınıflandırın:</p>
             <h2 id="questionText" class="soru-metni"></h2>
 
             <div class="secenekler">
@@ -232,9 +232,9 @@
         <div class="son-ust">
             <div>
                 <h2 id="endTitle">Oyun bitti</h2>
-                <p>İstatistiksel araştırma süreçleri performans analizin:</p>
+                <p>İstatistiksel araştırma süreçleri performans analiziniz:</p>
             </div>
-            <button class="dugme ana buyuk" onclick="startGame()">Tekrar oyna</button>
+            <button class="dugme ana buyuk" onclick="startGame()">Tekrar oynayın</button>
         </div>
 
         <!-- İstatistikler -->
@@ -676,7 +676,7 @@
         // son soruysa ya da can bittiyse düğme sonuca götürür
         const last = currentQuestionIndex + 1 >= currentQuestions.length || lives <= 0;
         const next = $('nextBtn');
-        next.innerText = last ? 'Sonuçları gör' : 'Sonraki soru';
+        next.innerText = last ? 'Sonuçları görün' : 'Sonraki soru';
 
         box.hidden = false;
         box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -696,7 +696,7 @@
         playSound('win');
 
         showScreen('endScreen');
-        $('endTitle').innerText = lives <= 0 ? 'Canların bitti' : 'Tüm soruları tamamladın!';
+        $('endTitle').innerText = lives <= 0 ? 'Canlarınız bitti' : 'Tüm soruları tamamladınız!';
 
         // Yüksek skoru güncelle
         const savedHighScore = parseInt(localStorage.getItem('tyym_dedektif_highscore') || 0);

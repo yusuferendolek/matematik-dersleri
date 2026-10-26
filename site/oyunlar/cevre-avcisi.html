@@ -94,7 +94,7 @@
 </head>
 <body class="oyun-sayfasi">
 <header class="bar" id="bar">
-    <div class="bar-orta"><span class="ipucu">Zarların çarpımı hedef alandır; bu alanı en küçük çevreli dikdörtgenle kur.</span></div>
+    <div class="bar-orta"><span class="ipucu">Zarların çarpımı hedef alandır; bu alanı en küçük çevreli dikdörtgenle kurun.</span></div>
 </header>
 <script>Kabuk.bar('cevre-avcisi');</script>
 
@@ -108,7 +108,7 @@
                 <span class="islem" aria-hidden="true">×</span>
                 <span class="zar bos" aria-hidden="true">?</span>
             </div>
-            <button class="dugme buyuk" id="roll-btn" onclick="zarAt()">Zar at</button>
+            <button class="dugme buyuk" id="roll-btn" onclick="zarAt()">Zar atın</button>
             <div id="dice-result" class="zar-sonuc" role="status">Zar bekleniyor…</div>
         </div>
 
@@ -122,7 +122,7 @@
                     <input class="giris" type="number" id="kenar2" min="1" placeholder="b">
                 </label>
             </div>
-            <button class="dugme ana buyuk kontrol" onclick="kontrolEt()">Dikdörtgeni çiz ve kontrol et</button>
+            <button class="dugme ana buyuk kontrol" onclick="kontrolEt()">Dikdörtgeni çizin ve kontrol edin</button>
             <div id="result-message" class="result" role="status"></div>
         </div>
     </section>
@@ -173,7 +173,7 @@
     function kontrolEt() {
         if (hedefAlan === 0) {
             Kabuk.pencere({
-                baslik: 'Önce zar at',
+                baslik: 'Önce zar atın',
                 html: '<p>Lütfen önce zar atın! Hedef alan zarlardan gelir.</p>',
                 dugme: 'Tamam'
             });
@@ -219,7 +219,7 @@
             msg.innerText = `Tebrikler! Doğru alan (${hedefAlan}) ve en küçük çevre (${oyuncuCevre} birim) sağlandı!`;
         } else {
             msg.className = "geri-bildirim yanlis";
-            msg.innerText = `Alan doğru (${hedefAlan}), ancak daha küçük çevre elde edebilirsin! Senin çevren: ${oyuncuCevre}`;
+            msg.innerText = `Alan doğru (${hedefAlan}), ancak daha küçük çevre elde edebilirsiniz! Sizin çevreniz: ${oyuncuCevre}`;
         }
     }
 

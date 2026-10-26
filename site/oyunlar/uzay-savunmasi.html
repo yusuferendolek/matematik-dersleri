@@ -190,14 +190,14 @@
 
         <!-- Başlangıç -->
         <div id="start-screen" class="panel baslangic">
-            <p>Göktaşlarında yazan sayıyı radara (kutuya) rakamlarla gir, Enter'a bas ve gemini koru!</p>
-            <button class="dugme ana buyuk" id="basla-btn" onclick="startGame()">Başla</button>
+            <p>Göktaşlarında yazan sayıyı radara (kutuya) rakamlarla girin, Enter'a basın ve geminizi koruyun!</p>
+            <button class="dugme ana buyuk" id="basla-btn" onclick="startGame()">Başlayın</button>
         </div>
     </div>
 
     <div id="controls">
-        <input class="giris" type="number" inputmode="numeric" id="answer-input" placeholder="Sayıyı rakamlarla gir" autocomplete="off" aria-label="Sayı">
-        <button class="dugme ana buyuk" id="fire-btn" type="button">Ateşle</button>
+        <input class="giris" type="number" inputmode="numeric" id="answer-input" placeholder="Rakamlarla girin" autocomplete="off" aria-label="Sayıyı rakamlarla girin">
+        <button class="dugme ana buyuk" id="fire-btn" type="button">Ateşleyin</button>
     </div>
 </main>
 
@@ -423,10 +423,10 @@
         Kabuk.pencere({
             baslik: 'Gemi parçalandı',
             html: `${isNewRecord ? '<p class="yeni-rekor">Yeni rekor!</p>' : ''}
-                   <div class="kacan">Kaçırdığın sayı<b>${missed}</b><span>${sayiyiOku(currentNumber)}</span></div>
+                   <div class="kacan">Kaçırdığınız sayı<b>${missed}</b><span>${sayiyiOku(currentNumber)}</span></div>
                    <p>Son skor: <b>${score}</b></p>
                    <p>En yüksek skor: <b>${highScore}</b></p>`,
-            dugme: 'Yeniden dene'
+            dugme: 'Yeniden deneyin'
         }).then(startGame);
     }
 </script>

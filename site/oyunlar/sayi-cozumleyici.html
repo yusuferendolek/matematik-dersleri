@@ -171,14 +171,14 @@
 </head>
 <body class="oyun-sayfasi">
 <header class="bar" id="bar">
-    <div class="bar-orta"><span class="ipucu">Sayıyı gir, rakamların altından süzülen çözümlemeyi izle!</span></div>
+    <div class="bar-orta"><span class="ipucu">Sayıyı girin, rakamların altından süzülen çözümlemeyi izleyin!</span></div>
 </header>
 <script>Kabuk.bar('sayi-cozumleyici');</script>
 
 <main class="oyun">
     <div class="panel input-section">
         <input class="giris" type="text" inputmode="numeric" id="numberInput" placeholder="Örn: 14532071" maxlength="9" autocomplete="off" aria-label="Sayı" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-        <button class="dugme ana buyuk" onclick="cozumle()">Çözümle</button>
+        <button class="dugme ana buyuk" onclick="cozumle()">Çözümleyin</button>
     </div>
 
     <div id="errorMsg" class="geri-bildirim yanlis error-msg" role="alert" style="display: none">Lütfen 1 ile 9 basamaklı geçerli bir sayı girin!</div>

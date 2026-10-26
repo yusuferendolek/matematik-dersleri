@@ -38,23 +38,23 @@
   ];
   // sinif: bilinmiyorsa null. kaynak: mustafa-htmls/ içindeki orijinal dosya.
   const OYUNLAR = [
-    { id: 'uzay-savunmasi', konu: 'sayilar', ad: 'Uzay Savunması: Milyonlar', not: 'Göktaşındaki sayının okunuşunu rakamlarla yaz.', sinif: '5', kaynak: 'mat5-1 milyonlar okuma (1).html' },
-    { id: 'sayi-cozumleyici', konu: 'sayilar', ad: 'Sihirli Sayı Çözümleyici', not: 'Sayıyı basamaklarına ve bölüklerine ayır.', sinif: '5', kaynak: 'mat5-2 basamak çözümleme (1).html' },
-    { id: 'yuvarlama-tepesi', konu: 'sayilar', ad: 'Yuvarlama Tepesi', not: 'Sayıyı en yakın onluğa, yüzlüğe ya da binliğe yuvarla.', sinif: '4–5', kaynak: 'mat5-3 yuvarlama (1).html' },
-    { id: 'oruntu-treni', konu: 'sayilar', ad: 'Sayı Örüntüsü Treni', not: 'Örüntünün kuralını bul, eksik vagonu doldur.', sinif: null, kaynak: 'sayı örüntüsü (1).html' },
-    { id: 'kesir-boyama', konu: 'kesirler', ad: 'Kesir Boyama', not: 'Şekli böl, hedef kesir kadarını boya.', sinif: '5', kaynak: 'mat 5-5 kesir boyam v2.html' },
-    { id: 'kesir-avcisi', konu: 'kesirler', ad: 'Kesir Avcısı', not: 'Kesri sayı doğrusunda doğru yere yerleştir.', sinif: '5', kaynak: 'mat5-4 kesir sayı doğrusu (1).html' },
-    { id: 'patron-kasiyer', konu: 'ondalik', ad: 'Patron Kasiyer', not: 'İndirimli fiyatları hesapla, marketini büyüt.', sinif: null, kaynak: 'market ondalık, yüzde işlem (1).html' },
-    { id: 'meteor-avcisi', konu: 'acilar', ad: 'Meteor Avcısı', not: 'İletkiyle açıyı ölç, meteoru vur.', sinif: '5', kaynak: 'mat 5-1 açı ölçme ile gök taşı.html' },
-    { id: 'aci-tahmincisi', konu: 'acilar', ad: 'Açı Tahmincisi', not: 'İstenen açıyı göz kararıyla çiz.', sinif: '5', kaynak: 'mat5-2 açı tahmin oyunu.html' },
-    { id: 'ciftlik-mimari', konu: 'alan', ad: 'Çiftlik Mimarı', not: 'Alanı ya da çevresi verilen dikdörtgenleri çiz.', sinif: '5', kaynak: 'mat 5-7 dikdörtgen alan çevre (1).html' },
-    { id: 'cevre-avcisi', konu: 'alan', ad: 'En Küçük Çevre Avcısı', not: 'Zarın verdiği alanı en küçük çevreyle kur.', sinif: '5', kaynak: 'oyun.html' },
-    { id: 'maliyet-hesaplayici', konu: 'alan', ad: 'Maliyet Hesaplayıcı', not: 'Kareleri boya, alanın ve çevrenin maliyetini gör.', sinif: null, kaynak: 'alan_cevre_maliyet_hesaplayici (1).html' },
-    { id: 'ortak-katlar', konu: 'carpan', ad: 'Ortak Katlar ve Çarpanlar', not: 'İki sayının ortak katlarını ve çarpanlarını bul.', sinif: '6', kaynak: 'mat6-1 ortak_katlar_ve_arpanlar.html' },
-    { id: 'sans-carki', konu: 'veri', ad: 'Şans Çarkı', not: 'Çarkı çevir, sonuçların grafiğini izle.', sinif: null, kaynak: 'çark (1).html' },
-    { id: 'soru-dedektifi', konu: 'veri', ad: 'Soru Dedektifi', not: 'Araştırma sorusundaki değişken türünü bul.', sinif: '11', kaynak: 'ara_t_rma_sorular_dedektifi.html' },
-    { id: 'korelasyon-dedektifi', konu: 'veri', ad: 'Korelasyon Dedektifi', not: 'Serpme grafiğindeki ilişkinin yönünü ve gücünü yorumla.', sinif: '11', kaynak: 'korelasyon_ve_serpme_grafikleri_dedektifi-2.html' },
-    { id: 'elektrik-devreleri', konu: 'elektrik', ad: 'Elektrik Devreleri', not: 'Seri ve paralel devre kur, akımı gözle.', sinif: '7', kaynak: 'elektrik_devreleri_sim_lasyonu.html' }
+    { id: 'uzay-savunmasi', konu: 'sayilar', ad: 'Uzay Savunması: Milyonlar', not: 'Göktaşındaki sayının okunuşunu rakamlarla yazın.', sinif: '5', kaynak: 'mat5-1 milyonlar okuma (1).html' },
+    { id: 'sayi-cozumleyici', konu: 'sayilar', ad: 'Sihirli Sayı Çözümleyici', not: 'Sayıyı basamaklarına ve bölüklerine ayırın.', sinif: '5', kaynak: 'mat5-2 basamak çözümleme (1).html' },
+    { id: 'yuvarlama-tepesi', konu: 'sayilar', ad: 'Yuvarlama Tepesi', not: 'Sayıyı en yakın onluğa, yüzlüğe ya da binliğe yuvarlayın.', sinif: '4–5', kaynak: 'mat5-3 yuvarlama (1).html' },
+    { id: 'oruntu-treni', konu: 'sayilar', ad: 'Sayı Örüntüsü Treni', not: 'Örüntünün kuralını bulun, eksik vagonu doldurun.', sinif: null, kaynak: 'sayı örüntüsü (1).html' },
+    { id: 'kesir-boyama', konu: 'kesirler', ad: 'Kesir Boyama', not: 'Şekli bölün, hedef kesir kadarını boyayın.', sinif: '5', kaynak: 'mat 5-5 kesir boyam v2.html' },
+    { id: 'kesir-avcisi', konu: 'kesirler', ad: 'Kesir Avcısı', not: 'Kesri sayı doğrusunda doğru yere yerleştirin.', sinif: '5', kaynak: 'mat5-4 kesir sayı doğrusu (1).html' },
+    { id: 'patron-kasiyer', konu: 'ondalik', ad: 'Patron Kasiyer', not: 'İndirimli fiyatları hesaplayın, marketinizi büyütün.', sinif: null, kaynak: 'market ondalık, yüzde işlem (1).html' },
+    { id: 'meteor-avcisi', konu: 'acilar', ad: 'Meteor Avcısı', not: 'İletkiyle açıyı ölçün, meteoru vurun.', sinif: '5', kaynak: 'mat 5-1 açı ölçme ile gök taşı.html' },
+    { id: 'aci-tahmincisi', konu: 'acilar', ad: 'Açı Tahmincisi', not: 'İstenen açıyı göz kararıyla çizin.', sinif: '5', kaynak: 'mat5-2 açı tahmin oyunu.html' },
+    { id: 'ciftlik-mimari', konu: 'alan', ad: 'Çiftlik Mimarı', not: 'Alanı ya da çevresi verilen dikdörtgenleri çizin.', sinif: '5', kaynak: 'mat 5-7 dikdörtgen alan çevre (1).html' },
+    { id: 'cevre-avcisi', konu: 'alan', ad: 'En Küçük Çevre Avcısı', not: 'Zarın verdiği alanı en küçük çevreyle kurun.', sinif: '5', kaynak: 'oyun.html' },
+    { id: 'maliyet-hesaplayici', konu: 'alan', ad: 'Maliyet Hesaplayıcı', not: 'Kareleri boyayın, alanın ve çevrenin maliyetini görün.', sinif: null, kaynak: 'alan_cevre_maliyet_hesaplayici (1).html' },
+    { id: 'ortak-katlar', konu: 'carpan', ad: 'Ortak Katlar ve Çarpanlar', not: 'İki sayının ortak katlarını ve çarpanlarını bulun.', sinif: '6', kaynak: 'mat6-1 ortak_katlar_ve_arpanlar.html' },
+    { id: 'sans-carki', konu: 'veri', ad: 'Şans Çarkı', not: 'Çarkı çevirin, sonuçların grafiğini izleyin.', sinif: null, kaynak: 'çark (1).html' },
+    { id: 'soru-dedektifi', konu: 'veri', ad: 'Soru Dedektifi', not: 'Araştırma sorusundaki değişken türünü bulun.', sinif: '11', kaynak: 'ara_t_rma_sorular_dedektifi.html' },
+    { id: 'korelasyon-dedektifi', konu: 'veri', ad: 'Korelasyon Dedektifi', not: 'Serpme grafiğindeki ilişkinin yönünü ve gücünü yorumlayın.', sinif: '11', kaynak: 'korelasyon_ve_serpme_grafikleri_dedektifi-2.html' },
+    { id: 'elektrik-devreleri', konu: 'elektrik', ad: 'Elektrik Devreleri', not: 'Seri ve paralel devre kurun, akımı gözlemleyin.', sinif: '7', kaynak: 'elektrik_devreleri_sim_lasyonu.html' }
   ];
 
   const konuOf = id => KONULAR.find(k => k.id === id);
@@ -111,7 +111,7 @@
     if (!b) return;
     const tahta = document.documentElement.dataset.tema === 'tahta';
     b.innerHTML = svg(tahta ? IKON.gunes : IKON.ay);
-    b.setAttribute('aria-label', tahta ? 'Açık moda geç' : 'Koyu moda geç');
+    b.setAttribute('aria-label', tahta ? 'Açık moda geçin' : 'Koyu moda geçin');
     b.title = b.getAttribute('aria-label');
   }
 

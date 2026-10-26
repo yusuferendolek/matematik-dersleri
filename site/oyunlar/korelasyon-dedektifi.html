@@ -236,7 +236,7 @@
 
     <!-- 1. BAŞLANGIÇ EKRANI -->
     <section id="startScreen" class="ekran panel giris-panel">
-        <h2>Serpme grafiğini incele, gerçek hayat ilişkisini yorumla!</h2>
+        <h2>Serpme grafiğini inceleyin, gerçek hayat ilişkisini yorumlayın!</h2>
         <p class="aciklama">Bu oyunda <strong>süre sınırı (stres) yoktur</strong>! Kronometre hızınızı ölçer ve doğru cevap verdiğinizde ekstra <strong>hız bonusu</strong> kazandırır.</p>
 
         <ol class="basamaklar">
@@ -250,7 +250,7 @@
             </li>
         </ol>
 
-        <button class="dugme ana buyuk" onclick="startGame()">Göreve başla</button>
+        <button class="dugme ana buyuk" onclick="startGame()">Göreve başlayın</button>
     </section>
 
     <!-- 2. OYUN EKRANI -->
@@ -284,7 +284,7 @@
                 <!-- AŞAMA 1: GRAFİĞİN YÖNÜ VE GÜCÜ -->
                 <section id="stage1Box" class="panel a-grafik">
                     <div class="asama-ust">
-                        <h2 class="panel-baslik"><span class="harf">1</span>Grafik yapısını belirle</h2>
+                        <h2 class="panel-baslik"><span class="harf">1</span>Grafik yapısını belirleyin</h2>
                         <span class="ipucu">Yön ve güç seçiniz</span>
                     </div>
 
@@ -312,7 +312,7 @@
                         <button class="dugme secim btn-select btn-str" id="btnStrNone" onclick="selectStrength('none')" aria-pressed="false">Yok<small>|r| &lt; 0,1</small></button>
                     </div>
 
-                    <button class="dugme ana tam" id="stage1Btn" onclick="confirmStage1()">Grafik seçimini onayla ve 2. aşamaya geç</button>
+                    <button class="dugme ana tam" id="stage1Btn" onclick="confirmStage1()">Grafik seçimini onaylayın ve 2. aşamaya geçin</button>
                 </section>
 
                 <!-- AŞAMA 2: ÇOKTAN SEÇMELİ YORUM SORUSU (başlangıçta kapalı) -->
@@ -323,7 +323,7 @@
                     </div>
                     <p id="mcqQuestionText" class="soru"></p>
                     <div id="mcqOptionsContainer" class="secenekler"></div>
-                    <button class="dugme ana tam" id="finalSubmitBtn" onclick="submitFinalAnswers()">Analizi tamamla ve gönder</button>
+                    <button class="dugme ana tam" id="finalSubmitBtn" onclick="submitFinalAnswers()">Analizi tamamlayın ve gönderin</button>
                 </section>
 
                 <!-- Anlık açıklamalı dönüt -->
@@ -356,7 +356,7 @@
                 <h2>Bölgesel analiz raporu</h2>
                 <p>Tüm senaryolar tamamlandı.</p>
             </div>
-            <button class="dugme ana buyuk" onclick="startGame()">Yeniden göreve başla</button>
+            <button class="dugme ana buyuk" onclick="startGame()">Yeniden göreve başlayın</button>
         </div>
 
         <!-- İstatistik özeti -->
@@ -876,7 +876,7 @@
 
     function confirmStage1() {
         if (!selectedDir || !selectedStr) {
-            Kabuk.pencere({ baslik: 'Önce seçim yap', html: '<p>Lütfen önce ilişkinin yönünü ve gücünü seçiniz.</p>' });
+            Kabuk.pencere({ baslik: 'Önce seçim yapın', html: '<p>Lütfen önce ilişkinin yönünü ve gücünü seçiniz.</p>' });
             return;
         }
 
@@ -1017,7 +1017,7 @@
 
         const last = currentIndex + 1 >= scenarios.length;
         const next = $('nextBtn');
-        next.innerText = last ? 'Raporu gör' : 'Sonraki senaryo';
+        next.innerText = last ? 'Raporu görün' : 'Sonraki senaryo';
 
         box.hidden = false;
         box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });

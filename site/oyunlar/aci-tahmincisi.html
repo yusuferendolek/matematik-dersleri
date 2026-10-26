@@ -121,7 +121,7 @@
 </head>
 <body class="oyun-sayfasi">
 <header class="bar" id="bar">
-    <div class="bar-orta"><span class="ipucu">Hareketli ışını sürükleyerek hedef açıyı göz kararı oluştur.</span></div>
+    <div class="bar-orta"><span class="ipucu">Hareketli ışını sürükleyerek hedef açıyı göz kararı oluşturun.</span></div>
     <div class="bar-sag">
         <span class="durum"><span class="durum-ad">Soru</span><b class="durum-deger" id="level-display">1</b></span>
         <span class="durum"><span class="durum-ad">Puan</span><b class="durum-deger" id="score-display">0</b></span>
@@ -133,29 +133,29 @@
 <div class="duzen">
 
     <div class="panel hedef">
-        <div class="hedef-ad">Oluşturman gereken açı</div>
+        <div class="hedef-ad">Oluşturmanız gereken açı</div>
         <b class="fosfor" id="target-angle">45°</b>
     </div>
 
     <div class="sahne aci-sahne">
-        <canvas id="angleCanvas" width="400" height="400" aria-label="Açı çizim alanı: kırmızı ışını sürükle"></canvas>
+        <canvas id="angleCanvas" width="400" height="400" aria-label="Açı çizim alanı: kırmızı ışını sürükleyin"></canvas>
 
         <!-- Renk açıklaması (sadece sonuca bakıldığında görünür) -->
         <div class="lejant" id="legend" hidden>
             <span><i class="nokta-hedef"></i> Gerçek hedef</span>
-            <span><i class="nokta-sen" id="legend-user-dot"></i> Senin çizdiğin</span>
+            <span><i class="nokta-sen" id="legend-user-dot"></i> Sizin çizdiğiniz</span>
         </div>
     </div>
 
     <div class="kontrol">
-        <button class="dugme ana buyuk" onclick="checkAngle()" id="btn-check">Açıyı sabitle ve kontrol et</button>
+        <button class="dugme ana buyuk" onclick="checkAngle()" id="btn-check">Açıyı sabitleyin ve kontrol edin</button>
 
         <!-- Sonuç kartı: ekranı kapatmaz, düğmenin yerine açılır -->
         <div class="panel" id="feedback-panel" role="status" hidden>
             <div class="fb-title" id="fb-title">Harika!</div>
             <div class="fb-stats">
                 <span>Gerçek hedef:</span> <b class="color-target" id="fb-target">45°</b>
-                <span>Senin çizdiğin:</span> <b class="color-user" id="fb-actual">48°</b>
+                <span>Sizin çizdiğiniz:</span> <b class="color-user" id="fb-actual">48°</b>
                 <span>Hata payı:</span> <b class="color-error" id="fb-error">3°</b>
             </div>
             <button class="dugme ana buyuk" id="btn-next" onclick="nextQuestion()">
@@ -407,7 +407,7 @@
             color = "var(--dogru)";
         } else if (error <= 3) {
             points = 900;
-            title = "Mükemmel! Çok yaklaştın!";
+            title = "Mükemmel! Çok yaklaştınız!";
             color = "var(--mavi)";
         } else if (error <= 5) {
             points = 800;
@@ -423,7 +423,7 @@
             color = "var(--turuncu)";
         } else {
             points = 0;
-            title = "Iskaladın! Biraz daha pratik!";
+            title = "Iskaladınız! Biraz daha pratik!";
             color = "var(--yanlis)";
         }
 
