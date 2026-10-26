@@ -425,13 +425,14 @@
             ctx.rect(leftX, topY, rightX - leftX, bottomY - topY);
             ctx.stroke();
         } else {
-            // Paralel Ana Çerçeve
+            // Paralel Ana Çerçeve: dikeyler en üstteki koldan başlar (üstte boşa uzanan uç kalmasın)
+            const ustKol = bulbs.length ? bulbs[0].y : topY;
             ctx.beginPath();
             // Sol Dikey
-            ctx.moveTo(leftX, topY);
+            ctx.moveTo(leftX, ustKol);
             ctx.lineTo(leftX, bottomY);
             // Sağ Dikey
-            ctx.moveTo(rightX, topY);
+            ctx.moveTo(rightX, ustKol);
             ctx.lineTo(rightX, bottomY);
             // Alt Ana Hattı (Pil İçi)
             ctx.moveTo(leftX, bottomY);
@@ -473,8 +474,13 @@
         ctx.fillRect(batX - 40, batY - 5, 5, 10);
 
         // 3. ANAHTAR (SWITCH) ÇİZİMİ (Sol Kenarda)
+        // Anahtar ana anahtardır: açılınca bütün devreden akım kesilir (calculateCircuitPhysics).
+        // Paralelde bu yüzden kolların arasında değil, en alttaki kol ile pil arasındaki ana hatta durur;
+        // kolların arasında dursaydı açılınca alttaki kollar yanmaya devam ederdi.
         const switchX = leftX;
-        const switchY = h / 2;
+        const switchY = currentMode === 'series' || !bulbs.length
+            ? h / 2
+            : (bulbs[bulbs.length - 1].y + bottomY) / 2;
         ctx.fillStyle = R.kagit;
         ctx.fillRect(switchX - 15, switchY - 25, 30, 50);
 
@@ -548,16 +554,22 @@
             ctx.stroke();
 
             // Ampul Etiketi (Direnç ve Akım Değeri)
+            // Seride akım ampulün altına yazılır; paralelde kollar sık olduğu için (4 ampulde üst üste biniyordu)
+            // ad ve akım ampulün üstünde yan yana durur.
+            const paralel = currentMode !== 'series';
+            const durumY = paralel ? bulb.y - 28 : bulb.y + 40;
             ctx.fillStyle = R.murekkep;
             ctx.font = `bold 13px ${FONT}`;
-            ctx.textAlign = 'center';
-            ctx.fillText(`A${bulb.id}: ${bulb.resistance} Ω`, bulb.x, bulb.y - 28);
+            ctx.textAlign = paralel ? 'right' : 'center';
+            ctx.fillText(`A${bulb.id}: ${bulb.resistance} Ω`, paralel ? bulb.x - 6 : bulb.x, bulb.y - 28);
+            ctx.textAlign = paralel ? 'left' : 'center';
+            const durumX = paralel ? bulb.x + 6 : bulb.x;
             if (isLighting) {
                 ctx.fillStyle = R.mavi;
-                ctx.fillText(`${bulbI.toFixed(2)} A`, bulb.x, bulb.y + 40);
+                ctx.fillText(`${bulbI.toFixed(2)} A`, durumX, durumY);
             } else if (bulb.isBroken) {
                 ctx.fillStyle = R.kirmizi;
-                ctx.fillText('Bozuk', bulb.x, bulb.y + 40);
+                ctx.fillText('Bozuk', durumX, durumY);
             }
         });
 
