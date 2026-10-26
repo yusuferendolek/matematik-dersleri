@@ -65,6 +65,8 @@
     #readout-v { color: var(--sari); }
     #readout-r { color: var(--mavi); }
     #readout-i { color: var(--yesil); }
+    .rozet.kismi { color: var(--turuncu); }
+    .panel-ust { flex-wrap: wrap; }
 
     /* devre sahnesi */
     .lejant { display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; font-weight: 700; color: var(--murekkep-2); }
@@ -326,11 +328,15 @@
         renderBulbControls();
     }
 
+    // Paralelde anahtar sol telde, ilk ceil(n/2) kolun hemen altında durur; açılınca yalnızca üstündeki kollar kesilir.
+    const anahtarUstKolSayisi = () => Math.ceil(bulbs.length / 2);
+
     function calculateCircuitPhysics() {
         let totalR = 0;
         let totalI = 0;
 
-        if (!switchClosed) {
+        // Seride anahtar tek döngünün üzerindedir: açılınca bütün devre kesilir
+        if (!switchClosed && currentMode === 'series') {
             return { totalR: Infinity, totalI: 0, bulbCurrents: bulbs.map(() => 0) };
         }
 
@@ -351,8 +357,9 @@
             };
         }
         else if (currentMode === 'parallel' || currentMode === 'custom') {
-            // Paralel kollar hesabı
-            let activeBulbs = bulbs.filter(b => !b.isBroken);
+            // Paralel kollar hesabı; anahtar açıksa anahtarın üstündeki kollar kesiktir
+            const kesik = switchClosed ? 0 : anahtarUstKolSayisi();
+            let activeBulbs = bulbs.filter((b, i) => !b.isBroken && i >= kesik);
             if (activeBulbs.length === 0) {
                 return { totalR: Infinity, totalI: 0, bulbCurrents: bulbs.map(() => 0) };
             }
@@ -361,8 +368,8 @@
             totalR = 1 / invR;
             totalI = batteryVoltage / totalR;
 
-            let bulbCurrents = bulbs.map(b => {
-                if (b.isBroken) return 0;
+            let bulbCurrents = bulbs.map((b, i) => {
+                if (b.isBroken || i < kesik) return 0;
                 return batteryVoltage / b.resistance;
             });
 
@@ -474,13 +481,15 @@
         ctx.fillRect(batX - 40, batY - 5, 5, 10);
 
         // 3. ANAHTAR (SWITCH) ÇİZİMİ (Sol Kenarda)
-        // Anahtar ana anahtardır: açılınca bütün devreden akım kesilir (calculateCircuitPhysics).
-        // Paralelde bu yüzden kolların arasında değil, en alttaki kol ile pil arasındaki ana hatta durur;
-        // kolların arasında dursaydı açılınca alttaki kollar yanmaya devam ederdi.
+        // Seride tek döngünün üzerindedir. Paralelde ilk ceil(n/2) kolun hemen altında, sol telin üzerinde
+        // durur: açılınca yalnızca üstündeki kollar kesilir, alttakiler yanmaya devam eder (calculateCircuitPhysics).
+        // Tek ampulde anahtar ampulün altındaki ana hatta düşer ve bütün devreyi keser.
         const switchX = leftX;
-        const switchY = currentMode === 'series' || !bulbs.length
-            ? h / 2
-            : (bulbs[bulbs.length - 1].y + bottomY) / 2;
+        let switchY = h / 2;
+        if (currentMode !== 'series' && bulbs.length) {
+            const k = anahtarUstKolSayisi();
+            switchY = (bulbs[k - 1].y + (k < bulbs.length ? bulbs[k].y : bottomY)) / 2;
+        }
         ctx.fillStyle = R.kagit;
         ctx.fillRect(switchX - 15, switchY - 25, 30, 50);
 
@@ -504,7 +513,8 @@
         // 4. AMPULLERİN ÇİZİMİ VE IŞIK EFEKTİ (BULBS)
         bulbs.forEach((bulb, idx) => {
             const bulbI = physics.bulbCurrents[idx];
-            const isLighting = switchClosed && !bulb.isBroken && bulbI > 0;
+            // anahtarın kestiği kolda bulbI zaten 0 (calculateCircuitPhysics)
+            const isLighting = !bulb.isBroken && bulbI > 0;
 
             // Işık Halesi / Glow Effect
             if (isLighting) {
@@ -574,7 +584,7 @@
         });
 
         // 5. ELEKTRON VEYA AKIM HAREKETİ ANIMASYONU
-        if (switchClosed && physics.totalI > 0) {
+        if (physics.totalI > 0) {
             let speed = physics.totalI * 1.8;
             electronOffset = (electronOffset + speed) % 20;
 
@@ -652,19 +662,32 @@
     function toggleSwitch() {
         switchClosed = !switchClosed;
         const btn = document.getElementById('switch-btn');
-        const badge = document.getElementById('circuit-status-badge');
 
         // Düğme ne yapacağını, rozet devrenin durumunu söyler
         if (switchClosed) {
             btn.textContent = 'Anahtarı açın';
             btn.className = 'dugme kucuk tehlike';
-            badge.textContent = 'Kapalı devre: akım var';
-            badge.className = 'rozet dogru';
         } else {
             btn.textContent = 'Anahtarı kapatın';
             btn.className = 'dugme kucuk basari';
+        }
+        durumRozeti();
+    }
+
+    // Paralelde anahtar açıkken yalnızca üstündeki kollar kesik olduğu için rozet hangilerinin kesildiğini söyler
+    function durumRozeti() {
+        const badge = document.getElementById('circuit-status-badge');
+        const kesik = currentMode === 'series' ? bulbs.length : anahtarUstKolSayisi();
+        if (switchClosed) {
+            badge.textContent = 'Kapalı devre: akım var';
+            badge.className = 'rozet dogru';
+        } else if (kesik >= bulbs.length) {
             badge.textContent = 'Açık devre: akım yok';
             badge.className = 'rozet yanlis';
+        } else {
+            const adlar = bulbs.slice(0, kesik).map(b => 'A' + b.id);
+            badge.textContent = `Anahtar açık: ${adlar.join(' ve ')} ${kesik > 1 ? 'kolları' : 'kolu'} kesik`;
+            badge.className = 'rozet kismi';
         }
     }
 
@@ -750,6 +773,7 @@
             addBtn.textContent = '+ Yeni ampul ekleyin';
             container.appendChild(addBtn);
         }
+        durumRozeti(); // ampul sayısı ya da devre türü değişince kesik kollar da değişir
     }
 
     function updateReadoutUI(physics) {
