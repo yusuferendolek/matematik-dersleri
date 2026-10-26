@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>En Küçük Çevre Avcısı – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    /* alan–çevre oyunlarının ortak ızgara dili (ciftlik-mimari, cevre-avcisi, maliyet-hesaplayici):
+       birim kare çizgileri, boyalı kare = konunun fosfor rengi, çevre = turuncu kalem */
+    .oyun {
+        --izgara-cizgi: color-mix(in srgb, var(--murekkep-3) 55%, var(--yuzey));
+        --izgara-cerceve: var(--murekkep-2);
+        --boya: color-mix(in srgb, var(--k-alan) var(--boya-alfa, 100%), var(--yuzey));
+        --cevre-cizgi: var(--turuncu);
+    }
+    [data-tema="tahta"] .oyun { --boya-alfa: 42%; }
+    .alan-renk { color: var(--yesil); }
+    .cevre-renk { color: var(--turuncu); }
+
+    /* birim kare ızgarası: çizgiler hücre aralığından, çevre turuncu iç gölgeyle */
+    .izgara {
+        --kc: 3px;
+        display: grid;
+        gap: 1px;
+        aspect-ratio: 1;
+        background: var(--izgara-cizgi);
+        border: 2px solid var(--izgara-cerceve);
+        border-radius: 6px;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    .izgara .cell {
+        --u: 0; --a: 0; --s: 0; --g: 0;
+        background: var(--yuzey);
+        box-shadow:
+            inset 0 calc(var(--u) * var(--kc)) 0 var(--cevre-cizgi),
+            inset 0 calc(var(--a) * var(--kc) * -1) 0 var(--cevre-cizgi),
+            inset calc(var(--s) * var(--kc)) 0 0 var(--cevre-cizgi),
+            inset calc(var(--g) * var(--kc) * -1) 0 0 var(--cevre-cizgi);
+    }
+    .izgara .cell.active { background: var(--boya); }
+
+    /* ---------- yerleşim ---------- */
+    .duzen {
+        display: grid;
+        grid-template-columns: minmax(300px, 400px) auto;
+        justify-content: center;
+        align-items: start;
+        gap: 24px;
+        padding: 24px 16px;
+    }
+    .sol { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .sag { --boy: clamp(280px, min(100vw - 480px, 100dvh - var(--bar) - 64px), 680px); }
+    .grid { width: var(--boy); grid-template-columns: repeat(20, 1fr); grid-template-rows: repeat(20, 1fr); }
+    @media (max-width: 900px) {
+        .duzen { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 16px; }
+        .sag { --boy: min(100vw - 32px, 520px); justify-self: center; }
+    }
+
+    /* zarlar */
+    .zar-panel { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+    .zarlar { display: flex; align-items: center; justify-content: center; gap: 14px; }
+    .zar {
+        width: 72px; height: 72px;
+        display: grid;
+        grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+        padding: 10px;
+        border: 2.5px solid var(--murekkep);
+        border-radius: 14px;
+        background: var(--yuzey);
+    }
+    .zar i { width: 12px; height: 12px; border-radius: 50%; background: var(--murekkep); place-self: center; visibility: hidden; }
+    .zar i.on { visibility: visible; }
+    .zar.bos { grid-template: 1fr / 1fr; place-items: center; font-size: 32px; font-weight: 800; color: var(--murekkep-3); border-style: dashed; border-color: var(--murekkep-3); }
+    .zar.yuvarlan { animation: yuvarlan .45s ease-out; }
+    @keyframes yuvarlan { 0% { transform: rotate(-25deg) scale(.85); } 60% { transform: rotate(12deg) scale(1.05); } }
+    .islem { font-size: 28px; font-weight: 800; color: var(--murekkep-2); }
+    .zar-sonuc { font-size: 18px; font-weight: 700; color: var(--murekkep-2); min-height: 26px; }
+    .zar-sonuc b { color: var(--murekkep); font-size: 24px; }
+    .zar-sonuc .fosfor { --fk: var(--k-alan); }
+
+    /* kenar girişleri */
+    .inputs { display: flex; align-items: flex-end; justify-content: center; gap: 12px; margin-bottom: 16px; }
+    .input-group { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: 15px; color: var(--murekkep-2); text-align: center; }
+    .input-group .giris { width: 100%; text-align: center; font-size: 24px; }
+    .inputs .islem { padding-bottom: 6px; }
+    .kontrol { width: 100%; white-space: normal; }
+    #result-message { margin-top: 16px; }
+    #result-message:empty { display: none; }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-orta"><span class="ipucu">Zarların çarpımı hedef alandır; bu alanı en küçük çevreli dikdörtgenle kur.</span></div>
+</header>
+<script>Kabuk.bar('cevre-avcisi');</script>
+
+<main class="oyun">
+<div class="duzen">
+
+    <section class="sol">
+        <div class="panel zar-panel">
+            <div class="zarlar" id="zarlar">
+                <span class="zar bos" aria-hidden="true">?</span>
+                <span class="islem" aria-hidden="true">×</span>
+                <span class="zar bos" aria-hidden="true">?</span>
+            </div>
+            <button class="dugme buyuk" id="roll-btn" onclick="zarAt()">Zar at</button>
+            <div id="dice-result" class="zar-sonuc" role="status">Zar bekleniyor…</div>
+        </div>
+
+        <div class="panel">
+            <div class="inputs">
+                <label class="input-group" for="kenar1">1. kenar (birim)
+                    <input class="giris" type="number" id="kenar1" min="1" placeholder="a">
+                </label>
+                <span class="islem" aria-hidden="true">×</span>
+                <label class="input-group" for="kenar2">2. kenar (birim)
+                    <input class="giris" type="number" id="kenar2" min="1" placeholder="b">
+                </label>
+            </div>
+            <button class="dugme ana buyuk kontrol" onclick="kontrolEt()">Dikdörtgeni çiz ve kontrol et</button>
+            <div id="result-message" class="result" role="status"></div>
+        </div>
+    </section>
+
+    <section class="sag" id="grid-container">
+        <div class="grid izgara" id="grid" aria-label="Birim kare ızgarası"></div>
+    </section>
+
+</div>
+</main>
+
+<script>
+    let hedefAlan = 0;
+
+    // 20x20 görsel ızgara (orijinal 10x10'du; 1 × 12, 1 × 20 gibi dikdörtgenler sığmıyordu)
+    const N = 20;
+    const grid = document.getElementById('grid');
+    for (let i = 0; i < N * N; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        grid.appendChild(cell);
+    }
+
+    // zar yüzü: 3x3 noktalı ızgarada dolu noktalar
+    const NOKTALAR = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+    function zarYuzu(n) {
+        let h = '';
+        for (let i = 0; i < 9; i++) h += `<i${NOKTALAR[n].includes(i) ? ' class="on"' : ''}></i>`;
+        return `<span class="zar yuvarlan" role="img" aria-label="Zar: ${n}">${h}</span>`;
+    }
+
+    function zarAt() {
+        let z1, z2;
+        // Çarpım maksimum 20 olana kadar zar üret
+        do {
+            z1 = Math.floor(Math.random() * 6) + 1;
+            z2 = Math.floor(Math.random() * 6) + 1;
+        } while (z1 * z2 > 20);
+
+        hedefAlan = z1 * z2;
+
+        document.getElementById('zarlar').innerHTML = `${zarYuzu(z1)}<span class="islem" aria-hidden="true">×</span>${zarYuzu(z2)}`;
+        document.getElementById('dice-result').innerHTML = `Zarlar: ${z1} ve ${z2} · Hedef alan: <b class="fosfor">${hedefAlan}</b> birimkare`;
+        document.getElementById('result-message').innerText = '';
+        temizleGrid();
+    }
+
+    function kontrolEt() {
+        if (hedefAlan === 0) {
+            Kabuk.pencere({
+                baslik: 'Önce zar at',
+                html: '<p>Lütfen önce zar atın! Hedef alan zarlardan gelir.</p>',
+                dugme: 'Tamam'
+            });
+            return;
+        }
+
+        const k1 = parseInt(document.getElementById('kenar1').value);
+        const k2 = parseInt(document.getElementById('kenar2').value);
+        const msg = document.getElementById('result-message');
+
+        if (!k1 || !k2 || k1 <= 0 || k2 <= 0) {
+            msg.className = "geri-bildirim yanlis";
+            msg.innerText = "Lütfen geçerli kenar uzunlukları girin.";
+            return;
+        }
+
+        const olusanAlan = k1 * k2;
+
+        if (olusanAlan !== hedefAlan) {
+            msg.className = "geri-bildirim yanlis";
+            msg.innerText = `Hata: Kenarların çarpımı ${olusanAlan} yapıyor. Hedef alan ${hedefAlan} olmalı!`;
+            temizleGrid();
+            return;
+        }
+
+        // En küçük çevre kontrolü (Çarpanlardan birbirine en yakın olanlar seçilmeli)
+        let enKucukCevre = Infinity;
+        for (let i = 1; i <= hedefAlan; i++) {
+            if (hedefAlan % i === 0) {
+                let j = hedefAlan / i;
+                let cevre = 2 * (i + j);
+                if (cevre < enKucukCevre) {
+                    enKucukCevre = cevre;
+                }
+            }
+        }
+
+        const oyuncuCevre = 2 * (k1 + k2);
+        cizGrid(k1, k2);
+
+        if (oyuncuCevre === enKucukCevre) {
+            msg.className = "geri-bildirim dogru";
+            msg.innerText = `Tebrikler! Doğru alan (${hedefAlan}) ve en küçük çevre (${oyuncuCevre} birim) sağlandı!`;
+        } else {
+            msg.className = "geri-bildirim yanlis";
+            msg.innerText = `Alan doğru (${hedefAlan}), ancak daha küçük çevre elde edebilirsin! Senin çevren: ${oyuncuCevre}`;
+        }
+    }
+
+    function cizGrid(k1, k2) {
+        temizleGrid();
+        const cells = document.querySelectorAll('.cell');
+        for (let r = 0; r < k2 && r < N; r++) {
+            for (let c = 0; c < k1 && c < N; c++) {
+                const index = r * N + c;
+                if (cells[index]) cells[index].classList.add('active');
+            }
+        }
+        cevreyiCiz();
+    }
+
+    function temizleGrid() {
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach(c => c.classList.remove('active'));
+        cevreyiCiz();
+    }
+
+    // boyalı bölgenin dış kenarlarını (çevreyi) turuncu kalemle çizer
+    function cevreyiCiz() {
+        const cells = grid.children;
+        const dolu = (r, c) => r >= 0 && r < N && c >= 0 && c < N && cells[r * N + c].classList.contains('active');
+        for (let r = 0; r < N; r++) {
+            for (let c = 0; c < N; c++) {
+                const d = dolu(r, c), s = cells[r * N + c].style;
+                s.setProperty('--u', d && !dolu(r - 1, c) ? 1 : 0);
+                s.setProperty('--a', d && !dolu(r + 1, c) ? 1 : 0);
+                s.setProperty('--s', d && !dolu(r, c - 1) ? 1 : 0);
+                s.setProperty('--g', d && !dolu(r, c + 1) ? 1 : 0);
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

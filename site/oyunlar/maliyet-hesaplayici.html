@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maliyet Hesaplayıcı – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    /* alan–çevre oyunlarının ortak ızgara dili (ciftlik-mimari, cevre-avcisi, maliyet-hesaplayici):
+       birim kare çizgileri, boyalı kare = konunun fosfor rengi, çevre = turuncu kalem */
+    .oyun {
+        --izgara-cizgi: color-mix(in srgb, var(--murekkep-3) 55%, var(--yuzey));
+        --izgara-cerceve: var(--murekkep-2);
+        --boya: color-mix(in srgb, var(--k-alan) var(--boya-alfa, 100%), var(--yuzey));
+        --cevre-cizgi: var(--turuncu);
+    }
+    [data-tema="tahta"] .oyun { --boya-alfa: 42%; }
+    .alan-renk { color: var(--yesil); }
+    .cevre-renk { color: var(--turuncu); }
+
+    /* birim kare ızgarası: çizgiler hücre aralığından, çevre turuncu iç gölgeyle */
+    .izgara {
+        --kc: 3px;
+        display: grid;
+        gap: 1px;
+        aspect-ratio: 1;
+        background: var(--izgara-cizgi);
+        border: 2px solid var(--izgara-cerceve);
+        border-radius: 6px;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    .izgara .cell {
+        --u: 0; --a: 0; --s: 0; --g: 0;
+        background: var(--yuzey);
+        box-shadow:
+            inset 0 calc(var(--u) * var(--kc)) 0 var(--cevre-cizgi),
+            inset 0 calc(var(--a) * var(--kc) * -1) 0 var(--cevre-cizgi),
+            inset calc(var(--s) * var(--kc)) 0 0 var(--cevre-cizgi),
+            inset calc(var(--g) * var(--kc) * -1) 0 0 var(--cevre-cizgi);
+    }
+    .izgara .cell.active { background: var(--boya); }
+
+    /* ---------- yerleşim ---------- */
+    .duzen {
+        display: grid;
+        grid-template-columns: auto minmax(280px, 340px);
+        justify-content: center;
+        align-items: start;
+        gap: 24px;
+        padding: 24px 16px;
+    }
+    .sol { --boy: clamp(280px, min(100vw - 440px, 100dvh - var(--bar) - 48px), 780px); }
+    .grid-container {
+        width: var(--boy);
+        grid-template-columns: repeat(20, 1fr);
+        grid-template-rows: repeat(20, 1fr);
+        cursor: pointer;
+        touch-action: none;           /* parmakla sürüklerken sayfa kaymasın, kareler boyansın */
+        -webkit-touch-callout: none;
+    }
+    @media (hover: hover) {
+        .grid-container .cell:hover { background: var(--yuzey-2); }
+        .grid-container .cell.active:hover { background: color-mix(in srgb, var(--boya) 82%, var(--murekkep)); }
+    }
+    @media (max-width: 860px) {
+        .duzen { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 16px; }
+        .sol { --boy: min(100vw - 32px, 600px); justify-self: center; }
+        .dashboard { width: min(100%, 600px); justify-self: center; }
+    }
+
+    /* ---------- hesap paneli ---------- */
+    .dashboard { display: flex; flex-direction: column; gap: 20px; }
+    .dashboard .panel-baslik { padding-bottom: 8px; border-bottom: 1.5px solid var(--kenarlik); }
+    .stat-group, .input-group { display: flex; flex-direction: column; gap: 10px; }
+    .stat { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; color: var(--murekkep-2); font-weight: 700; }
+    .stat-value { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .stat small, .input-field small { font-size: 14px; color: var(--murekkep-2); font-weight: 700; }
+    .input-field { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: var(--murekkep-2); }
+    .input-field .giris { width: 110px; flex: none; text-align: right; }
+
+    .total-cost-box {
+        padding: 14px 12px;
+        border-radius: 12px;
+        border: 2px solid var(--kalem);
+        background: color-mix(in srgb, var(--kalem) 8%, var(--yuzey));
+        text-align: center;
+    }
+    .total-cost-title { font-size: 16px; font-weight: 700; color: var(--murekkep-2); margin-bottom: 2px; }
+    .total-cost-value { font-size: 36px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .total-cost-value .tl { font-size: 22px; color: var(--murekkep-2); }
+    .controls .dugme { width: 100%; }
+    .info { font-size: 15px; line-height: 1.5; }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-orta"><span class="ipucu">Şeklini çiz, birim maliyetleri gir ve bütçeni anında hesapla.</span></div>
+</header>
+<script>Kabuk.bar('maliyet-hesaplayici');</script>
+
+<main class="oyun">
+<div class="duzen">
+    <!-- Sol Taraf: Çizim Alanı -->
+    <section class="sol">
+        <div class="grid-container izgara" id="grid" aria-label="Boyama ızgarası (20 × 20 birim kare)">
+            <!-- Hücreler JavaScript ile buraya eklenecek -->
+        </div>
+    </section>
+
+    <!-- Sağ Taraf: Kontrol ve Hesaplama Paneli -->
+    <aside class="panel dashboard">
+        <!-- Metrikler Bölümü -->
+        <div>
+            <h2 class="panel-baslik">Şekil ölçüleri</h2>
+            <div class="stat-group">
+                <div class="stat">
+                    <span>Toplam alan</span>
+                    <span><b class="stat-value alan-renk" id="areaDisplay">0</b> <small>birim²</small></span>
+                </div>
+                <div class="stat">
+                    <span>Toplam çevre</span>
+                    <span><b class="stat-value cevre-renk" id="perimeterDisplay">0</b> <small>birim</small></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Maliyet Girdileri Bölümü -->
+        <div>
+            <h2 class="panel-baslik">Birim maliyet ayarları</h2>
+            <div class="input-group">
+                <label class="input-field" for="unitAreaCost">
+                    <span>Alan birim maliyeti <small>(TL/birim²)</small></span>
+                    <input class="giris" type="number" id="unitAreaCost" value="10" min="0" step="0.5" oninput="calculateMetrics()">
+                </label>
+                <label class="input-field" for="unitPerimeterCost">
+                    <span>Çevre birim maliyeti <small>(TL/birim)</small></span>
+                    <input class="giris" type="number" id="unitPerimeterCost" value="25" min="0" step="0.5" oninput="calculateMetrics()">
+                </label>
+            </div>
+        </div>
+
+        <!-- Sonuç Bölümü -->
+        <div class="total-cost-box" role="status">
+            <div class="total-cost-title">Toplam maliyet</div>
+            <div class="total-cost-value"><span id="totalCostDisplay">0,00</span> <span class="tl">TL</span></div>
+        </div>
+
+        <!-- Temizleme Butonu -->
+        <div class="controls">
+            <button class="dugme tehlike" onclick="clearGrid()">Tümünü temizle</button>
+        </div>
+
+        <p class="info ipucu"><strong>Kullanım ipuçları:</strong> Kareleri boyamak için tıkla ya da basılı tutarak sürükle (fareyle ya da parmakla). Silmek için boyalı bir kareye tıkla ya da boyalı bir kareden başlayarak sürükle. Alan ve çevre birim maliyetlerini dilediğin gibi değiştirebilirsin; toplam maliyet kendiliğinden güncellenir.</p>
+    </aside>
+</div>
+</main>
+
+<script>
+    const gridElement = document.getElementById('grid');
+    const areaDisplay = document.getElementById('areaDisplay');
+    const perimeterDisplay = document.getElementById('perimeterDisplay');
+    const unitAreaCostInput = document.getElementById('unitAreaCost');
+    const unitPerimeterCostInput = document.getElementById('unitPerimeterCost');
+    const totalCostDisplay = document.getElementById('totalCostDisplay');
+
+    const ROWS = 20;
+    const COLS = 20;
+
+    let gridData = Array(ROWS).fill().map(() => Array(COLS).fill(false));
+    let isDrawing = false;
+    let drawMode = true; // true: kare ekle, false: kare sil
+
+    // Izgarayı oluştur
+    function createGrid() {
+        gridElement.innerHTML = '';
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.r = r;
+                cell.dataset.c = c;
+
+                // İşaretçi olayları (fare, kalem ve dokunmatik aynı yoldan)
+                cell.addEventListener('pointerdown', (e) => { e.preventDefault(); startDrawing(e, r, c); });
+
+                gridElement.appendChild(cell);
+            }
+        }
+    }
+
+    function startDrawing(e, r, c) {
+        isDrawing = true;
+        drawMode = !gridData[r][c];
+        toggleCell(r, c, drawMode);
+    }
+
+    function continueDrawing(e, r, c) {
+        if (isDrawing) {
+            toggleCell(r, c, drawMode);
+        }
+    }
+
+    // Sürüklerken parmağın / farenin altındaki kare bulunur.
+    // (Dokunmatikte olaylar hep ilk dokunulan kareye gelir; bu yüzden konumdan bakılır.)
+    document.addEventListener('pointermove', (e) => {
+        if (!isDrawing) return;
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const cell = el && el.parentElement === gridElement ? el : null;
+        if (cell) continueDrawing(e, +cell.dataset.r, +cell.dataset.c);
+    });
+
+    // Fare / parmak bırakıldığında çizimi durdur
+    document.addEventListener('pointerup', () => {
+        isDrawing = false;
+    });
+    document.addEventListener('pointercancel', () => {
+        isDrawing = false;
+    });
+
+    function toggleCell(r, c, state) {
+        if (gridData[r][c] !== state) {
+            gridData[r][c] = state;
+            const cellIndex = r * COLS + c;
+            const cellElement = gridElement.children[cellIndex];
+
+            if (state) {
+                cellElement.classList.add('active');
+            } else {
+                cellElement.classList.remove('active');
+            }
+
+            calculateMetrics();
+            cevreyiCiz();
+        }
+    }
+
+    function clearGrid() {
+        gridData = Array(ROWS).fill().map(() => Array(COLS).fill(false));
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach(cell => cell.classList.remove('active'));
+        calculateMetrics();
+        cevreyiCiz();
+    }
+
+    // Hesaplamaları gerçekleştiren ana fonksiyon
+    function calculateMetrics() {
+        let area = 0;
+        let perimeter = 0;
+
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (gridData[r][c]) {
+                    area++; // Aktif her hücre alanı artırır
+
+                    // Çevre hesabı için komşuları kontrol et
+                    if (r === 0 || !gridData[r-1][c]) perimeter++; // Üst
+                    if (r === ROWS - 1 || !gridData[r+1][c]) perimeter++; // Alt
+                    if (c === 0 || !gridData[r][c-1]) perimeter++; // Sol
+                    if (c === COLS - 1 || !gridData[r][c+1]) perimeter++; // Sağ
+                }
+            }
+        }
+
+        // Girdilerden maliyet değerlerini al (Boş veya hatalı girilirse 0 kabul et)
+        const unitAreaCost = parseFloat(unitAreaCostInput.value) || 0;
+        const unitPerimeterCost = parseFloat(unitPerimeterCostInput.value) || 0;
+
+        // Toplam maliyet formülü: (Alan * Alan Birim Maliyeti) + (Çevre * çevre Birim Maliyeti)
+        const totalCost = (area * unitAreaCost) + (perimeter * unitPerimeterCost);
+
+        // Arayüzü güncelle (Türkçe yazımla: 1.250,50)
+        areaDisplay.textContent = area;
+        perimeterDisplay.textContent = perimeter;
+        totalCostDisplay.textContent = totalCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // Boyalı bölgenin dış kenarlarını (çevreyi) turuncu kalemle çizer; hesabın yaptığının aynısı
+    function cevreyiCiz() {
+        const dolu = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS && gridData[r][c];
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const d = gridData[r][c], s = gridElement.children[r * COLS + c].style;
+                s.setProperty('--u', d && !dolu(r - 1, c) ? 1 : 0);
+                s.setProperty('--a', d && !dolu(r + 1, c) ? 1 : 0);
+                s.setProperty('--s', d && !dolu(r, c - 1) ? 1 : 0);
+                s.setProperty('--g', d && !dolu(r, c + 1) ? 1 : 0);
+            }
+        }
+    }
+
+    // Başlangıç kurulumu
+    createGrid();
+    calculateMetrics();
+</script>
+</body>
+</html>

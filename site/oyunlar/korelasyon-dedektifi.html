@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Korelasyon Dedektifi – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    .oyun {
+        display: flex;
+        flex-direction: column;
+        padding: var(--kare) 16px calc(var(--kare) * 2);
+    }
+    /* ekranlar dikeyde ortalanır; içerik uzunsa yukarıdan başlar ve kayar */
+    .ekran { width: min(100%, 900px); margin: auto; }
+    /* oyun ekranı yukarıdan başlar: 2. aşama ve dönüt açıldıkça yerinden kaymaz */
+    #gameScreen { width: min(100%, 1240px); margin: 0 auto auto; }
+
+    /* iki aşamanın kalem rengi: 1 grafik (mavi), 2 yorum (mor) */
+    .a-grafik { --kr: var(--mavi); }
+    .a-yorum { --kr: var(--mor); }
+    .harf {
+        width: 28px; height: 28px;
+        flex: none;
+        display: inline-grid; place-items: center;
+        border-radius: 50%;
+        background: var(--kr, var(--kalem));
+        color: var(--yuzey);
+        font-size: 15px;
+        font-weight: 800;
+    }
+
+    /* ---------- başlangıç ---------- */
+    .giris-panel { padding: clamp(20px, 4vw, 40px); text-align: center; }
+    .giris-panel h2 { font-size: clamp(26px, 3.2vw, 36px); font-weight: 800; line-height: 1.2; text-wrap: balance; }
+    .aciklama { max-width: 58ch; margin: 12px auto 0; color: var(--murekkep-2); }
+    .aciklama strong { color: var(--murekkep); }
+    .basamaklar {
+        list-style: none;
+        margin: 28px 0 30px;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        text-align: left;
+    }
+    .basamak { border-left: 4px solid var(--kr); padding: 2px 0 2px 12px; }
+    .basamak h3 { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 800; }
+    .basamak p { margin-top: 6px; font-size: 15px; color: var(--murekkep-2); }
+    .basamak strong { color: var(--murekkep); }
+
+    /* ---------- oyun ---------- */
+    .duzen {
+        display: grid;
+        grid-template-columns: minmax(300px, 5fr) minmax(0, 7fr);
+        gap: 16px;
+        align-items: start;
+    }
+    .sutun { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+    /* serpme grafiği: kareli kâğıda / tahtaya çizilmiş; sağ taraf kayarken yerinde kalır */
+    .grafik-panel { position: sticky; top: 0; }
+    .grafik-ust { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .bolge { font-size: 15px; font-weight: 700; }
+    #regionName { --fk: var(--k-veri); }
+    #scenarioTitle { margin: 2px 0 0; line-height: 1.3; }
+    #trendlineBtn { flex: none; }
+    #trendlineBtn[aria-pressed="true"] { border-color: var(--kalem); color: var(--kalem); }
+    #trendlineBtn .svg { width: 18px; height: 18px; }
+    .grafik {
+        aspect-ratio: 1;
+        width: min(100%, max(300px, 100dvh - 300px));
+        margin: 0 auto;
+    }
+    .grafik canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .lejant { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; font-size: 14px; color: var(--murekkep-2); }
+    .lejant span { display: inline-flex; align-items: center; gap: 6px; }
+    .nokta-ornek { width: 11px; height: 11px; border-radius: 50%; background: var(--k-veri); border: 1.5px solid var(--murekkep); }
+
+    /* aşamalar */
+    .asama-ust { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .asama-ust .panel-baslik { display: flex; align-items: center; gap: 10px; margin: 0; }
+    .asama-ust .rozet { color: var(--kr); }
+    .etiket { display: block; margin: 0 0 6px; font-size: 15px; font-weight: 700; color: var(--murekkep-2); }
+    .secimler { display: grid; gap: 8px; margin-bottom: 14px; }
+    .secimler.uc { grid-template-columns: repeat(3, 1fr); }
+    .secimler.dort { grid-template-columns: repeat(4, 1fr); }
+    .secim {
+        flex-direction: column;
+        gap: 2px;
+        min-height: 60px;
+        padding: 8px 6px;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.2;
+    }
+    .secim small { font-size: 13px; font-weight: 400; color: var(--murekkep-2); font-variant-numeric: tabular-nums; }
+    .secim .svg { width: 24px; height: 24px; color: var(--ic); }
+    .tam { width: 100%; white-space: normal; text-align: center; line-height: 1.25; padding-block: 8px; }
+    /* tema.css'te 860px altında sayfa düzenindeki .ana kuralı .dugme.ana'nın sol boşluğunu 76px yapıyor; burada geri alınır */
+    .tam, #nextBtn { padding-inline: 18px; }
+
+    .soru { font-weight: 700; margin-bottom: 12px; }
+    .secenekler { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .secenek {
+        justify-content: flex-start;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 12px;
+        white-space: normal;
+        text-align: left;
+        font-weight: 400;
+        line-height: 1.35;
+    }
+    .secenek .harf { --kr: var(--mor); width: 26px; height: 26px; font-size: 14px; }
+
+    /* seçili düğme */
+    .secim.active, .secenek.selected {
+        border-color: var(--kalem);
+        background: color-mix(in srgb, var(--kalem) 12%, var(--yuzey));
+        box-shadow: inset 0 0 0 1px var(--kalem);
+    }
+    /* cevaptan sonra: doğru seçenek yeşil, yanlış seçim kırmızı çerçeveli */
+    .secim:disabled, .secenek:disabled { opacity: .5; cursor: default; }
+    .secim.active:disabled, .secenek.selected:disabled { opacity: .8; }
+    .secim.dogru-cevap:disabled, .secim.yanlis-secim:disabled,
+    .secenek.dogru-cevap:disabled, .secenek.yanlis-secim:disabled { opacity: 1; box-shadow: none; }
+    .dogru-cevap:disabled { border-color: var(--dogru); background: color-mix(in srgb, var(--dogru) 10%, var(--yuzey)); }
+    .yanlis-secim:disabled { border-color: var(--yanlis); background: color-mix(in srgb, var(--yanlis) 10%, var(--yuzey)); }
+
+    /* dönüt */
+    #feedbackBox { display: flex; align-items: flex-start; gap: 12px 14px; flex-wrap: wrap; padding: 14px 16px; }
+    #feedbackBox.bilgi { color: var(--kalem); }
+    #feedbackBox > .svg { width: 28px; height: 28px; }
+    .gb-metin { flex: 1 1 260px; min-width: 0; }
+    #feedbackTitle { display: block; font-size: 18px; }
+    #feedbackExplanation { margin-top: 4px; }
+    .gercekler {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin-top: 12px;
+        border: 1.5px solid var(--kenarlik);
+        border-radius: 10px;
+        background: var(--yuzey);
+        text-align: center;
+    }
+    .gercekler > div { padding: 8px 6px; }
+    .gercekler > div + div { border-left: 1.5px dashed var(--kenarlik); }
+    #feedbackBox .gercekler span { margin: 0; }
+    .gercek-ad { font-size: 13px; font-weight: 700; color: var(--murekkep-2); }
+    .gercek-deger { font-size: 18px; font-weight: 800; color: var(--murekkep); font-variant-numeric: tabular-nums; }
+    .gb-alt { flex-basis: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    #feedbackBox .rozet { display: inline-flex; margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+    #speedBonusBadge { color: var(--turuncu); }
+    #earnedPointsBadge { color: var(--kalem); }
+    #nextBtn { margin-left: auto; }
+
+    /* ---------- sonuç ---------- */
+    .son-panel { padding: clamp(18px, 3vw, 32px); }
+    .son-ust { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; }
+    .son-ust h2 { font-size: clamp(26px, 3vw, 32px); font-weight: 800; line-height: 1.2; }
+    .son-ust p { margin-top: 4px; color: var(--murekkep-2); }
+    .ozet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0 28px; }
+    .ozet > div { padding: 12px 8px; border-radius: 10px; background: var(--yuzey-2); text-align: center; }
+    .ozet-ad { font-size: 14px; font-weight: 700; color: var(--murekkep-2); }
+    .ozet-deger { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    #finalScore { color: var(--kalem); }
+    .inceleme-baslik { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+    #historyContainer { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .inceleme {
+        --dr: var(--dogru);
+        padding: 10px 14px;
+        border-left: 4px solid var(--dr);
+        border-radius: 0 10px 10px 0;
+        background: color-mix(in srgb, var(--dr) 7%, var(--yuzey));
+    }
+    .inceleme.kismi { --dr: var(--turuncu); }
+    .inceleme.yanlis { --dr: var(--yanlis); }
+    .inceleme-ust { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; }
+    .inceleme-baslik-metin { font-weight: 700; }
+    .inceleme-r { font-weight: 700; color: var(--murekkep-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .inceleme-rozetler { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .inceleme-aciklama { margin-top: 6px; font-size: 15px; color: var(--murekkep-2); }
+
+    /* başlıktaki sayaçlar 1280px'e kadar tek satırda; daha darda kendi satırına iner */
+    @media (max-width: 1240px) {
+        /* temanın 1000px altındaki iki satırlı başlık düzeni, bu oyunda 1240px'ten başlar */
+        .bar { flex-wrap: wrap; row-gap: 0; }
+        .kenar-btn { height: var(--bar); align-self: flex-start; }
+        .yer { flex: 1 1 0; height: var(--bar); }
+        .adim, .araclar { height: var(--bar); align-items: center; }
+        .bar-orta:empty { display: none; }
+        .bar-sag { order: 11; flex-basis: 100%; flex-wrap: wrap; gap: 6px 8px; padding: 0 0 10px calc(var(--kenar) + 4px); }
+        .bar-sag ~ .araclar { margin-left: auto; }
+    }
+    @media (max-width: 900px) {
+        .duzen { grid-template-columns: 1fr; }
+        .grafik-panel { position: static; }
+        .grafik { width: min(100%, 520px); }
+    }
+    @media (max-width: 760px) {
+        .basamaklar { grid-template-columns: 1fr; gap: 16px; margin: 22px 0 24px; }
+        .ozet { grid-template-columns: 1fr 1fr; }
+    }
+    /* telefonda başlıktaki sayaçlar iki satıra sığar */
+    @media (max-width: 560px) {
+        .bar-sag { gap: 6px; }
+        .bar-sag .durum { height: 36px; line-height: 34px; padding: 0 8px; gap: 5px; }
+        .bar-sag .durum-ad { font-size: 13px; }
+        .bar-sag .durum-deger { font-size: 17px; }
+        .bar-sag .ikon-btn { width: 38px; height: 38px; }
+        .oyun { padding-top: 16px; }
+        .giris-panel .dugme { width: 100%; }
+        .secimler.dort { grid-template-columns: repeat(2, 1fr); }
+        .secim { min-height: 54px; font-size: 15px; }
+        .gercek-deger { font-size: 16px; }
+        #nextBtn { width: 100%; }
+    }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-sag">
+        <span class="durum oyun-sayac" hidden><span class="durum-ad">Görev</span><b class="durum-deger"><span id="questionCounter">1</span>/8</b></span>
+        <span class="durum oyun-sayac" hidden><span class="durum-ad">Süre</span><b class="durum-deger" id="stopwatchDisplay">00:00</b></span>
+        <span class="durum oyun-sayac" hidden><span class="durum-ad">Çarpan</span><b class="durum-deger" id="comboText">1×</b></span>
+        <span class="durum oyun-sayac" hidden><span class="durum-ad">Skor</span><b class="durum-deger" id="scoreText">0</b></span>
+        <span class="durum"><span class="durum-ad">Rekor</span><b class="durum-deger" id="highScoreText">0</b></span>
+        <button class="ikon-btn" id="soundToggleBtn" onclick="toggleSound()" aria-pressed="true" aria-label="Ses" title="Ses"></button>
+    </div>
+</header>
+<script>Kabuk.bar('korelasyon-dedektifi');</script>
+
+<main class="oyun">
+
+    <!-- 1. BAŞLANGIÇ EKRANI -->
+    <section id="startScreen" class="ekran panel giris-panel">
+        <h2>Serpme grafiğini incele, gerçek hayat ilişkisini yorumla!</h2>
+        <p class="aciklama">Bu oyunda <strong>süre sınırı (stres) yoktur</strong>! Kronometre hızınızı ölçer ve doğru cevap verdiğinizde ekstra <strong>hız bonusu</strong> kazandırır.</p>
+
+        <ol class="basamaklar">
+            <li class="basamak a-grafik">
+                <h3><span class="harf">1</span>Grafik analizi (yön ve güç)</h3>
+                <p>Serpme grafiğindeki noktaların dağılımına bakarak ilişkinin <strong>pozitif/negatif</strong> yönünü ve <strong>güçlü/orta/zayıf</strong> şiddetini belirleyin.</p>
+            </li>
+            <li class="basamak a-yorum">
+                <h3><span class="harf">2</span>Gerçek hayat yorum sorusu</h3>
+                <p>Grafiğin ardından açılan 3 şıklı soruyla değişkenler arasındaki nedensellik ve coğrafi yorumu analiz edin.</p>
+            </li>
+        </ol>
+
+        <button class="dugme ana buyuk" onclick="startGame()">Göreve başla</button>
+    </section>
+
+    <!-- 2. OYUN EKRANI -->
+    <section id="gameScreen" class="ekran" hidden>
+        <div class="duzen">
+
+            <!-- Sol: serpme grafiği -->
+            <section class="panel grafik-panel">
+                <div class="grafik-ust">
+                    <div>
+                        <div class="bolge" id="regionBadge"><span class="fosfor" id="regionName">Marmara Bölgesi</span></div>
+                        <h2 class="panel-baslik" id="scenarioTitle"></h2>
+                    </div>
+                    <button class="dugme kucuk" id="trendlineBtn" onclick="toggleTrendline()" aria-pressed="false">
+                        <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M6 17L19 6" stroke-dasharray="3 3"/></svg>
+                        Eğilim doğrusu
+                    </button>
+                </div>
+                <div class="sahne grafik">
+                    <canvas id="scatterCanvas" role="img" aria-label="Serpme grafiği"></canvas>
+                </div>
+                <div class="lejant">
+                    <span><i class="nokta-ornek"></i>Veri noktaları</span>
+                    <span id="sampleSizeText">n = 30 il/ilçe verisi</span>
+                </div>
+            </section>
+
+            <!-- Sağ: aşamalı sorular -->
+            <div class="sutun">
+
+                <!-- AŞAMA 1: GRAFİĞİN YÖNÜ VE GÜCÜ -->
+                <section id="stage1Box" class="panel a-grafik">
+                    <div class="asama-ust">
+                        <h2 class="panel-baslik"><span class="harf">1</span>Grafik yapısını belirle</h2>
+                        <span class="ipucu">Yön ve güç seçiniz</span>
+                    </div>
+
+                    <span class="etiket" id="yonEtiket">İlişkinin yönü</span>
+                    <div class="secimler uc" role="group" aria-labelledby="yonEtiket">
+                        <button class="dugme secim btn-select btn-dir" id="btnDirPositive" onclick="selectDirection('positive')" aria-pressed="false" style="--ic: var(--yesil)">
+                            <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+                            Pozitif (+)
+                        </button>
+                        <button class="dugme secim btn-select btn-dir" id="btnDirNegative" onclick="selectDirection('negative')" aria-pressed="false" style="--ic: var(--kirmizi)">
+                            <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l6 6 4-4 8 8"/><path d="M15 17h6v-6"/></svg>
+                            Negatif (−)
+                        </button>
+                        <button class="dugme secim btn-select btn-dir" id="btnDirNone" onclick="selectDirection('none')" aria-pressed="false" style="--ic: var(--turuncu)">
+                            <svg class="svg" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="5" cy="8" r="1.7"/><circle cx="11" cy="15" r="1.7"/><circle cx="17" cy="6" r="1.7"/><circle cx="7" cy="18" r="1.7"/><circle cx="19" cy="16" r="1.7"/><circle cx="13" cy="9" r="1.7"/></svg>
+                            İlişki yok (0)
+                        </button>
+                    </div>
+
+                    <span class="etiket" id="gucEtiket">İlişkinin gücü</span>
+                    <div class="secimler dort" role="group" aria-labelledby="gucEtiket">
+                        <button class="dugme secim btn-select btn-str" id="btnStrStrong" onclick="selectStrength('strong')" aria-pressed="false">Güçlü<small>|r| ≥ 0,7</small></button>
+                        <button class="dugme secim btn-select btn-str" id="btnStrModerate" onclick="selectStrength('moderate')" aria-pressed="false">Orta<small>0,3 – 0,7</small></button>
+                        <button class="dugme secim btn-select btn-str" id="btnStrWeak" onclick="selectStrength('weak')" aria-pressed="false">Zayıf<small>0,1 – 0,3</small></button>
+                        <button class="dugme secim btn-select btn-str" id="btnStrNone" onclick="selectStrength('none')" aria-pressed="false">Yok<small>|r| &lt; 0,1</small></button>
+                    </div>
+
+                    <button class="dugme ana tam" id="stage1Btn" onclick="confirmStage1()">Grafik seçimini onayla ve 2. aşamaya geç</button>
+                </section>
+
+                <!-- AŞAMA 2: ÇOKTAN SEÇMELİ YORUM SORUSU (başlangıçta kapalı) -->
+                <section id="stage2Box" class="panel a-yorum" hidden>
+                    <div class="asama-ust">
+                        <h2 class="panel-baslik"><span class="harf">2</span>Gerçek hayat yorum sorusu</h2>
+                        <span class="rozet">Çoktan seçmeli</span>
+                    </div>
+                    <p id="mcqQuestionText" class="soru"></p>
+                    <div id="mcqOptionsContainer" class="secenekler"></div>
+                    <button class="dugme ana tam" id="finalSubmitBtn" onclick="submitFinalAnswers()">Analizi tamamla ve gönder</button>
+                </section>
+
+                <!-- Anlık açıklamalı dönüt -->
+                <div id="feedbackBox" class="geri-bildirim" role="status" hidden>
+                    <svg id="feedbackIcon" class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+                    <div class="gb-metin">
+                        <b id="feedbackTitle">Analiz değerlendirmesi</b>
+                        <span id="feedbackExplanation"></span>
+                        <div class="gercekler">
+                            <div><div class="gercek-ad">Gerçek yön</div><div class="gercek-deger" id="trueDirText">-</div></div>
+                            <div><div class="gercek-ad">Gerçek güç</div><div class="gercek-deger" id="trueStrText">-</div></div>
+                            <div><div class="gercek-ad">Hesaplanan r</div><div class="gercek-deger" id="trueRText">-</div></div>
+                        </div>
+                    </div>
+                    <div class="gb-alt">
+                        <b class="rozet" id="speedBonusBadge">+0 hız bonusu</b>
+                        <b class="rozet" id="earnedPointsBadge">+0 puan</b>
+                        <button class="dugme ana" id="nextBtn" onclick="nextScenario()">Sonraki senaryo</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. BİTİŞ VE RAPOR EKRANI -->
+    <section id="endScreen" class="ekran panel son-panel" hidden>
+        <div class="son-ust">
+            <div>
+                <h2>Bölgesel analiz raporu</h2>
+                <p>Tüm senaryolar tamamlandı.</p>
+            </div>
+            <button class="dugme ana buyuk" onclick="startGame()">Yeniden göreve başla</button>
+        </div>
+
+        <!-- İstatistik özeti -->
+        <div class="ozet">
+            <div><div class="ozet-ad">Toplam puan</div><div id="finalScore" class="ozet-deger">0</div></div>
+            <div><div class="ozet-ad">Grafik doğruluğu</div><div id="finalGraphAcc" class="ozet-deger">%0</div></div>
+            <div><div class="ozet-ad">Yorum başarısı</div><div id="finalMcqAcc" class="ozet-deger">%0</div></div>
+            <div><div class="ozet-ad">Ort. yanıt süresi</div><div id="finalAvgTime" class="ozet-deger">0 sn</div></div>
+        </div>
+
+        <!-- Çözüm listesi -->
+        <h3 class="inceleme-baslik">Senaryo analiz geçmişi</h3>
+        <ol id="historyContainer"></ol>
+    </section>
+
+</main>
+
+<script>
+    /* ----------------------------------------------------
+       1. SENARYO VE YORUM SORULARI VERİ BANKASI
+       (başlık, soru ve açıklamalar sayfaya HTML olarak yazılır: <i>x</i> gibi)
+    ---------------------------------------------------- */
+    const REGIONAL_SCENARIOS = [
+        {
+            region: "Marmara Bölgesi",
+            title: "Sanayi yatırımları (<i>x</i>) ve hava kirliliği (<i>y</i>)",
+            labelX: "Sanayi yatırımı (milyon TL)",
+            labelY: "PM10 hava kirliliği indeksi",
+            targetR: 0.88,
+            mcq: {
+                question: "Grafikteki pozitif yönlü güçlü ilişki göz önüne alındığında, Marmara Bölgesi'ndeki çevre politikaları için aşağıdaki yorumlardan hangisi en doğrudur?",
+                options: [
+                    { letter: "A", text: "Sanayi yatırımları arttıkça hava kirliliği azalmaktadır, müdahaleye gerek yoktur.", correct: false },
+                    { letter: "B", text: "Sanayileşme ile hava kirliliği paralel yükselmektedir; bacalara filtre ve yeşil enerji yatırımları zorunlu hale getirilmelidir.", correct: true },
+                    { letter: "C", text: "İki değişken arasında hiçbir nedensellik ilişkisi yoktur.", correct: false }
+                ]
+            },
+            explanation: "Sanayi tesisleri arttıkça emisyon yükselmekte ve kirlilik indeksi artmaktadır. Güçlü pozitif korelasyon yeşil sanayi dönüşümünün önemini vurgular."
+        },
+        {
+            region: "Ege Bölgesi",
+            title: "Zeytin rekoltesi (<i>x</i>) ve yağ litre fiyatı (<i>y</i>)",
+            labelX: "Zeytin üretimi (bin ton)",
+            labelY: "Sızma yağ fiyatı (TL)",
+            targetR: -0.82,
+            mcq: {
+                question: "Grafikteki güçlü negatif ilişkiye dayanarak, tarımsal rekolte artışının piyasa fiyatlarına etkisi nasıl yorumlanır?",
+                options: [
+                    { letter: "A", text: "Piyasada ürün bollaştıkça (arz arttıkça) zeytinyağının birim fiyatı düşme eğilimi gösterir.", correct: true },
+                    { letter: "B", text: "Zeytin üretimi arttıkça yağ fiyatı da sürekli artmaktadır.", correct: false },
+                    { letter: "C", text: "Üretim miktarının zeytinyağı fiyatı üzerinde hiçbir ekonomik etkisi bulunmamaktadır.", correct: false }
+                ]
+            },
+            explanation: "Arz-talep dengesine göre rekolte arttıkça fiyatlar düşer. Grafik belirgin bir güçlü negatif eğilim sergiler."
+        },
+        {
+            region: "İç Anadolu Bölgesi",
+            title: "Yıllık yağış miktarı (<i>x</i>) ve buğday verimi (<i>y</i>)",
+            labelX: "Yıllık yağış (mm)",
+            labelY: "Buğday verimi (kg/dönüm)",
+            targetR: 0.75,
+            mcq: {
+                question: "Kurak iklimli İç Anadolu'da bu serpme grafiği tarımsal strateji açısından ne söyler?",
+                options: [
+                    { letter: "A", text: "Yağış miktarının buğday verimine hiçbir etkisi yoktur.", correct: false },
+                    { letter: "B", text: "Yağış miktarı arttıkça buğday rekoltesi belirgin şekilde artmaktadır; kurak yıllar için modern sulama projeleri kritik önem taşır.", correct: true },
+                    { letter: "C", text: "Yağış arttıkça buğday başakları zarar gördüğü için verim sürekli düşer.", correct: false }
+                ]
+            },
+            explanation: "Yağış ile rekolte arasında pozitif ve güçlü bir ilişki vardır. Bölgedeki kuraklıkla mücadele için sulama altyapısı önemlidir."
+        },
+        {
+            region: "Karadeniz Bölgesi",
+            title: "Fındık bahçesi yüksekliği (<i>x</i>) ve yıllık verim (<i>y</i>)",
+            labelX: "Rakım / yükseklik (m)",
+            labelY: "Dekar başına verim (kg)",
+            targetR: -0.48,
+            mcq: {
+                question: "Rakım arttıkça verimin orta düzeyde azaldığını gösteren bu negatif grafik nasıl açıklanabilir?",
+                options: [
+                    { letter: "A", text: "Yüksek rakımlarda don olayları ve dumanlı/sisli hava koşulları fındık verimini kısmen olumsuz etkilemektedir.", correct: true },
+                    { letter: "B", text: "Yüksek dağlarda toprak kalitesi arttığı için verim sürekli yükselir.", correct: false },
+                    { letter: "C", text: "Rakım ile tarımsal verim tamamen bağımsızdır.", correct: false }
+                ]
+            },
+            explanation: "Yükseklik arttıkça sert kış şartları ve don riskleri verimi orta derecede düşürmektedir (orta negatif)."
+        },
+        {
+            region: "Akdeniz Bölgesi",
+            title: "Turist sayısı (<i>x</i>) ve otel doluluk oranı (<i>y</i>)",
+            labelX: "Gelen turist (bin kişi)",
+            labelY: "Otel doluluk oranı (%)",
+            targetR: 0.91,
+            mcq: {
+                question: "Korelasyon katsayısı <i>r</i> ≈ 0,91 olan bu grafik bölge turizmi için ne ifade eder?",
+                options: [
+                    { letter: "A", text: "Gelen turist sayısı ile otel doluluğu arasında doğrusal ve çok güçlü pozitif bir ilişki vardır.", correct: true },
+                    { letter: "B", text: "Turist sayısı arttıkça oteller boş kalmaktadır.", correct: false },
+                    { letter: "C", text: "Bölgeye turist gelse bile otellerin kapasitesi etkilenmemektedir.", correct: false }
+                ]
+            },
+            explanation: "Turist sayısı doğrudan otel yatak kullanım oranını arttırmaktadır. Çok güçlü pozitif bir korelasyon örneğidir."
+        },
+        {
+            region: "Doğu Anadolu Bölgesi",
+            title: "Aylık ortalama sıcaklık (<i>x</i>) ve doğalgaz tüketimi (<i>y</i>)",
+            labelX: "Ortalama sıcaklık (°C)",
+            labelY: "Aylık gaz tüketimi (m³)",
+            targetR: -0.86,
+            mcq: {
+                question: "Kışın dondurucu geçtiği bölgede sıcaklık ile gaz tüketimi arasındaki negatif ilişki nasıl yorumlanır?",
+                options: [
+                    { letter: "A", text: "Sıcaklık düştükçe (eksi değerlere indikçe) binaları ısıtma ihtiyacı artmakta ve gaz tüketimi yükselmektedir.", correct: true },
+                    { letter: "B", text: "Hava ısındıkça doğalgaz tüketimi artar.", correct: false },
+                    { letter: "C", text: "Sıcaklık değişse de tüketim sabit kalmaktadır.", correct: false }
+                ]
+            },
+            explanation: "Sıcaklık ile ısınma yakıtı tüketimi ters orantılıdır (güçlü negatif)."
+        },
+        {
+            region: "Güneydoğu Anadolu Bölgesi",
+            title: "İlçe nüfusu (<i>x</i>) ve rüzgar türbini sayısı (<i>y</i>)",
+            labelX: "İlçe nüfusu (kişi)",
+            labelY: "Kurulu rüzgar türbini sayısı",
+            targetR: 0.04,
+            mcq: {
+                question: "Dağılımın rastgele göründüğü ve <i>r</i> ≈ 0,04 olduğu bu grafikte iki değişken arasındaki ilişki nedir?",
+                options: [
+                    { letter: "A", text: "Nüfusu kalabalık olan ilçelerde her zaman daha fazla türbin kurulmaktadır.", correct: false },
+                    { letter: "B", text: "Rüzgar türbini kurulumu nüfus kalabalığına değil rüzgar koridorlarına bağlıdır; iki değişken arasında anlamlı bir ilişki yoktur.", correct: true },
+                    { letter: "C", text: "İki değişken arasında mükemmel negatif ilişki vardır.", correct: false }
+                ]
+            },
+            explanation: "Rüzgar santrali konumu coğrafi rüzgar verimliliğine bağlıdır, yerleşim nüfusuyla doğrudan korelasyon göstermez (<i>r</i> ≈ 0)."
+        },
+        {
+            region: "Marmara Bölgesi",
+            title: "Araç sayısı (<i>x</i>) ve ortalama trafik hızı (<i>y</i>)",
+            labelX: "Trafiğe kayıtlı araç (bin)",
+            labelY: "Şehir içi akış hızı (km/sa)",
+            targetR: -0.79,
+            mcq: {
+                question: "Grafikteki negatif eğilim metropollerdeki hangi kentsel sorunu kanıtlar?",
+                options: [
+                    { letter: "A", text: "Araç sayısı arttıkça trafik sıkışmakta ve ortalama ulaşım hızı düşmektedir.", correct: true },
+                    { letter: "B", text: "Trafikteki araç sayısı arttıkça araçlar daha hızlı hareket etmektedir.", correct: false },
+                    { letter: "C", text: "Araç sayısı ile ulaşım hızı bağımsızdır.", correct: false }
+                ]
+            },
+            explanation: "Trafikteki araç yoğunluğu arttıkça ortalama ilerleme hızı azalır (güçlü negatif)."
+        }
+    ];
+
+    /* ----------------------------------------------------
+       2. OYUN DURUM DEĞİŞKENLERİ
+    ---------------------------------------------------- */
+    let scenarios = [];
+    let currentIndex = 0;
+    let score = 0;
+    let combo = 1;
+    let maxCombo = 1;
+
+    // Kronometre
+    let stopwatchTimer = null;
+    let elapsedSeconds = 0;
+
+    let soundEnabled = true;
+    let currentScenario = null;
+    let generatedPoints = [];
+    let calculatedR = 0;
+    let showTrendline = false;
+
+    // Kullanıcı seçimleri
+    let selectedDir = null;
+    let selectedStr = null;
+    let selectedMcqOption = null;
+
+    let historyList = [];
+
+    const HIGHSCORE_KEY = 'tyym_korelasyon_v2_highscore';
+    const $ = id => document.getElementById(id);
+    // ondalıklar Türkçe yazılır: 0,88 ve eksi işareti −
+    const virgullu = (x, d = 2) => x.toFixed(d).replace('.', ',').replace('-', '−');
+    const rYazisi = r => (r >= 0 ? '+' : '') + virgullu(r);
+
+    const DIR_IDS = { positive: 'btnDirPositive', negative: 'btnDirNegative', none: 'btnDirNone' };
+    const STR_IDS = { strong: 'btnStrStrong', moderate: 'btnStrModerate', weak: 'btnStrWeak', none: 'btnStrNone' };
+
+    // Web Audio
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new AudioContext();
+    }
+
+    function playSound(type) {
+        if (!soundEnabled) return;
+        try {
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523, now);
+                osc.frequency.exponentialRampToValueAtTime(783, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        } catch(e){}
+    }
+
+    const SES_ACIK = '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>';
+    const SES_KAPALI = '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/>';
+    function updateSoundButton() {
+        const btn = $('soundToggleBtn');
+        btn.innerHTML = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${soundEnabled ? SES_ACIK : SES_KAPALI}</svg>`;
+        btn.setAttribute('aria-pressed', soundEnabled);
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        updateSoundButton();
+    }
+
+    /* ----------------------------------------------------
+       3. MATEMATİKSEL KORELASYON & CANVAS ÇİZİMİ
+    ---------------------------------------------------- */
+    // r'nin yönü ve gücü (cevap kontrolü ve grafik üretimi aynı eşikleri kullanır)
+    function relationOf(r) {
+        const absR = Math.abs(r);
+        let dir = 'none';
+        if (r >= 0.1) dir = 'positive';
+        else if (r <= -0.1) dir = 'negative';
+        let str = 'none';
+        if (absR >= 0.7) str = 'strong';
+        else if (absR >= 0.3) str = 'moderate';
+        else if (absR >= 0.1) str = 'weak';
+        return { dir, str };
+    }
+
+    function generateScatterPoints(targetR, count = 30) {
+        const points = [];
+        for (let i = 0; i < count; i++) {
+            const u1 = 1 - Math.random(); // (0, 1]: log(0) olmasın
+            const u2 = Math.random();
+            const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+            const z1 = Math.sqrt(-2.0 * Math.log(u1)) * Math.sin(2.0 * Math.PI * u2);
+
+            const xVal = z0;
+            const yVal = targetR * z0 + Math.sqrt(1 - targetR * targetR) * z1;
+            points.push({ x: xVal, y: yVal });
+        }
+
+        let minX = Math.min(...points.map(p => p.x));
+        let maxX = Math.max(...points.map(p => p.x));
+        let minY = Math.min(...points.map(p => p.y));
+        let maxY = Math.max(...points.map(p => p.y));
+
+        const normalized = points.map(p => ({
+            x: 10 + ((p.x - minX) / (maxX - minX || 1)) * 80,
+            y: 10 + ((p.y - minY) / (maxY - minY || 1)) * 80
+        }));
+
+        const actualR = calculatePearsonR(normalized);
+        return { points: normalized, actualR: actualR };
+    }
+
+    function calculatePearsonR(pts) {
+        const n = pts.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+        for (let p of pts) {
+            sumX += p.x;
+            sumY += p.y;
+            sumXY += p.x * p.y;
+            sumX2 += p.x * p.x;
+            sumY2 += p.y * p.y;
+        }
+        const num = (n * sumXY) - (sumX * sumY);
+        const den = Math.sqrt(((n * sumX2) - (sumX * sumX)) * ((n * sumY2) - (sumY * sumY)));
+        return den === 0 ? 0 : num / den;
+    }
+
+    // Çizim renkleri temadan gelir; tema değişince yeniden okunur ve grafik yeniden çizilir
+    const canvas = $('scatterCanvas');
+    const ctx = canvas.getContext('2d');
+    const FONT = '"Atkinson Hyperlegible Next", sans-serif';
+    let R = {};
+    function readColors() {
+        for (const ad of ['murekkep', 'murekkep-2', 'k-veri', 'yesil', 'kirmizi']) R[ad] = Kabuk.renk(ad);
+    }
+    readColors();
+    Kabuk.temaDegisince(() => { readColors(); if (currentScenario) renderScatterPlot(); });
+    new ResizeObserver(() => { if (currentScenario) renderScatterPlot(); }).observe(canvas);
+    document.fonts.ready.then(() => { if (currentScenario) renderScatterPlot(); });
+
+    function renderScatterPlot() {
+        $('trendlineBtn').setAttribute('aria-pressed', showTrendline);
+
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (!w || !h) return;
+        const dpr = window.devicePixelRatio || 1;
+        if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+            canvas.width = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+
+        // kenar boşlukları: solda ve altta eksen adları
+        const fs = Math.max(12, Math.min(15, w / 30));
+        const left = fs * 2.6, bottom = fs * 2.6, top = fs * 1.3, right = fs * 1.3;
+        const x0 = left, y0 = h - bottom, x1 = w - right, y1 = top;
+        const plotW = x1 - x0;
+        const plotH = y0 - y1;
+
+        // Eksenler (okları ile)
+        ctx.strokeStyle = R.murekkep;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x0, y1 - 4);
+        ctx.lineTo(x0, y0);
+        ctx.lineTo(x1 + 4, y0);
+        ctx.stroke();
+        const a = 7;
+        ctx.beginPath();
+        ctx.moveTo(x0 - a * 0.75, y1 - 4 + a); ctx.lineTo(x0, y1 - 4); ctx.lineTo(x0 + a * 0.75, y1 - 4 + a);
+        ctx.moveTo(x1 + 4 - a, y0 - a * 0.75); ctx.lineTo(x1 + 4, y0); ctx.lineTo(x1 + 4 - a, y0 + a * 0.75);
+        ctx.stroke();
+
+        // Eksen adları
+        ctx.fillStyle = R['murekkep-2'];
+        ctx.font = `700 ${fs}px ${FONT}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(currentScenario.labelX, x0 + plotW / 2, h - bottom / 2, plotW);
+        ctx.save();
+        ctx.translate(left / 2, y1 + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText(currentScenario.labelY, 0, 0, plotH);
+        ctx.restore();
+
+        // Noktalar: konu rengiyle (fosfor / tebeşir) doldurulmuş, mürekkeple çevrili
+        const rad = Math.max(4, w / 90);
+        ctx.lineWidth = 1.5;
+        for (let p of generatedPoints) {
+            const cx = x0 + (p.x / 100) * plotW;
+            const cy = y0 - (p.y / 100) * plotH;
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+            ctx.fillStyle = R['k-veri'];
+            ctx.fill();
+            ctx.strokeStyle = R.murekkep;
+            ctx.stroke();
+        }
+
+        // Eğilim doğrusu
+        if (showTrendline) {
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+            const n = generatedPoints.length;
+            for (let p of generatedPoints) {
+                sumX += p.x;
+                sumY += p.y;
+                sumXY += p.x * p.y;
+                sumX2 += p.x * p.x;
+            }
+            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+
+            const xa = 5, xb = 95;
+            const ya = slope * xa + intercept;
+            const yb = slope * xb + intercept;
+
+            ctx.strokeStyle = calculatedR >= 0 ? R.yesil : R.kirmizi;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 6]);
+            ctx.beginPath();
+            ctx.moveTo(x0 + (xa / 100) * plotW, y0 - (ya / 100) * plotH);
+            ctx.lineTo(x0 + (xb / 100) * plotW, y0 - (yb / 100) * plotH);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+    }
+
+    function toggleTrendline() {
+        showTrendline = !showTrendline;
+        renderScatterPlot();
+    }
+
+    /* ----------------------------------------------------
+       4. KRONOMETRE & OYUN AKIŞI
+    ---------------------------------------------------- */
+    function loadHighScore() {
+        const saved = localStorage.getItem(HIGHSCORE_KEY) || 0;
+        $('highScoreText').innerText = saved;
+    }
+
+    // görev, süre, çarpan ve skor yalnızca oyun sırasında başlıkta görünür
+    function showScreen(id) {
+        ['startScreen', 'gameScreen', 'endScreen'].forEach(s => { $(s).hidden = s !== id; });
+        document.querySelectorAll('.oyun-sayac').forEach(el => { el.hidden = id !== 'gameScreen'; });
+        document.querySelector('.oyun').scrollTop = 0;
+    }
+
+    function startGame() {
+        scenarios = [...REGIONAL_SCENARIOS].sort(() => 0.5 - Math.random()).slice(0, 8);
+        currentIndex = 0;
+        score = 0;
+        combo = 1;
+        maxCombo = 1;
+        historyList = [];
+
+        loadHighScore();
+        showScreen('gameScreen');
+
+        loadScenario();
+    }
+
+    function startStopwatch() {
+        clearInterval(stopwatchTimer);
+        elapsedSeconds = 0;
+        updateStopwatchDisplay();
+
+        stopwatchTimer = setInterval(() => {
+            elapsedSeconds++;
+            updateStopwatchDisplay();
+        }, 1000);
+    }
+
+    function updateStopwatchDisplay() {
+        const mins = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+        const secs = (elapsedSeconds % 60).toString().padStart(2, '0');
+        $('stopwatchDisplay').innerText = `${mins}:${secs}`;
+    }
+
+    function loadScenario() {
+        if (currentIndex >= scenarios.length) {
+            endGame();
+            return;
+        }
+
+        currentScenario = scenarios[currentIndex];
+        showTrendline = false;
+        selectedDir = null;
+        selectedStr = null;
+        selectedMcqOption = null;
+
+        // Arayüzü sıfırla
+        $('feedbackBox').hidden = true;
+        $('stage2Box').hidden = true;
+        $('stage1Box').hidden = false;
+        $('stage1Btn').disabled = false;
+        $('finalSubmitBtn').disabled = false;
+
+        $('scenarioTitle').innerHTML = currentScenario.title;
+        $('regionName').innerText = currentScenario.region;
+        $('questionCounter').innerText = currentIndex + 1;
+
+        document.querySelectorAll('.btn-select').forEach(b => {
+            b.classList.remove('active', 'dogru-cevap', 'yanlis-secim');
+            b.setAttribute('aria-pressed', 'false');
+            b.disabled = false;
+        });
+        document.querySelector('.oyun').scrollTop = 0;
+
+        // Noktaları üret. Örneklem rastgele olduğu için hesaplanan r bazen senaryonun anlattığı
+        // türden çıkıyordu (ör. "güçlü" denen grafikte r = 0,64); grafik, senaryonun yön ve gücüyle
+        // aynı türde olana kadar yeniden üretilir.
+        const hedef = relationOf(currentScenario.targetR);
+        let res, deneme = 0;
+        do {
+            res = generateScatterPoints(currentScenario.targetR);
+            const tur = relationOf(res.actualR);
+            if (tur.dir === hedef.dir && tur.str === hedef.str) break;
+        } while (++deneme < 500);
+        generatedPoints = res.points;
+        calculatedR = res.actualR;
+
+        renderScatterPlot();
+        startStopwatch();
+        updateUI();
+    }
+
+    function selectDirection(dir) {
+        selectedDir = dir;
+        document.querySelectorAll('.btn-dir').forEach(b => {
+            b.classList.toggle('active', b.id === DIR_IDS[dir]);
+            b.setAttribute('aria-pressed', b.id === DIR_IDS[dir]);
+        });
+    }
+
+    function selectStrength(str) {
+        selectedStr = str;
+        document.querySelectorAll('.btn-str').forEach(b => {
+            b.classList.toggle('active', b.id === STR_IDS[str]);
+            b.setAttribute('aria-pressed', b.id === STR_IDS[str]);
+        });
+    }
+
+    function confirmStage1() {
+        if (!selectedDir || !selectedStr) {
+            Kabuk.pencere({ baslik: 'Önce seçim yap', html: '<p>Lütfen önce ilişkinin yönünü ve gücünü seçiniz.</p>' });
+            return;
+        }
+
+        // 2. aşamayı aç (yorum sorusu)
+        const box = $('stage2Box');
+        box.hidden = false;
+        $('stage1Btn').disabled = true;
+        $('mcqQuestionText').innerHTML = currentScenario.mcq.question;
+
+        const container = $('mcqOptionsContainer');
+        container.innerHTML = '';
+        selectedMcqOption = null;
+
+        currentScenario.mcq.options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'dugme secenek mcq-option';
+            btn.setAttribute('aria-pressed', 'false');
+            btn.onclick = () => selectMcqOption(i, btn);
+            btn.innerHTML = `<span class="harf">${opt.letter}</span><span>${opt.text}</span>`;
+            container.appendChild(btn);
+        });
+
+        box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    function selectMcqOption(index, btnEl) {
+        selectedMcqOption = index;
+        document.querySelectorAll('.mcq-option').forEach(b => {
+            b.classList.toggle('selected', b === btnEl);
+            b.setAttribute('aria-pressed', b === btnEl);
+        });
+    }
+
+    // cevaptan sonra seçimler kilitlenir; doğrular yeşil, yanlış seçimler kırmızı çerçevelenir
+    function lockAnswers(trueDir, trueStr) {
+        $('stage1Btn').disabled = true;
+        $('finalSubmitBtn').disabled = true;
+        document.querySelectorAll('.btn-select').forEach(b => { b.disabled = true; });
+        $(DIR_IDS[trueDir]).classList.add('dogru-cevap');
+        if (selectedDir !== trueDir) $(DIR_IDS[selectedDir]).classList.add('yanlis-secim');
+        $(STR_IDS[trueStr]).classList.add('dogru-cevap');
+        if (selectedStr !== trueStr) $(STR_IDS[selectedStr]).classList.add('yanlis-secim');
+        document.querySelectorAll('.mcq-option').forEach((b, i) => {
+            b.disabled = true;
+            if (currentScenario.mcq.options[i].correct) b.classList.add('dogru-cevap');
+            else if (i === selectedMcqOption) b.classList.add('yanlis-secim');
+        });
+    }
+
+    function submitFinalAnswers() {
+        if (selectedMcqOption === null) {
+            Kabuk.pencere({ baslik: 'Şık seçilmedi', html: '<p>Lütfen 2. aşamadaki yorum sorusunun şıkkını seçiniz.</p>' });
+            return;
+        }
+
+        clearInterval(stopwatchTimer);
+        showTrendline = true;
+        renderScatterPlot();
+
+        // Gerçek yön ve güç
+        const { dir: trueDir, str: trueStr } = relationOf(calculatedR);
+
+        const isDirCorrect = selectedDir === trueDir;
+        const isStrCorrect = selectedStr === trueStr;
+        const isMcqCorrect = currentScenario.mcq.options[selectedMcqOption].correct;
+
+        // Puanlama
+        let roundPoints = 0;
+        if (isDirCorrect) roundPoints += 40;
+        if (isStrCorrect) roundPoints += 40;
+        if (isMcqCorrect) roundPoints += 70;
+
+        // Hız bonusu (kronometreye göre)
+        let speedBonus = 0;
+        if (elapsedSeconds <= 15) speedBonus = 50;
+        else if (elapsedSeconds <= 25) speedBonus = 30;
+        else if (elapsedSeconds <= 40) speedBonus = 15;
+
+        const perfect = isDirCorrect && isStrCorrect && isMcqCorrect;
+        if (perfect) {
+            playSound('correct');
+            combo++;
+            if (combo > maxCombo) maxCombo = combo;
+            roundPoints += speedBonus;
+        } else {
+            playSound('wrong');
+            combo = 1;
+        }
+
+        roundPoints *= combo;
+        score += roundPoints;
+
+        lockAnswers(trueDir, trueStr);
+        // hız bonusu yalnızca üç cevap da doğruysa eklenir; rozet de yalnızca o zaman görünür
+        showFeedback(isDirCorrect, isStrCorrect, isMcqCorrect, calculatedR, trueDir, trueStr, roundPoints, perfect ? speedBonus : 0);
+
+        historyList.push({
+            title: currentScenario.title,
+            region: currentScenario.region,
+            trueR: calculatedR,
+            isDirCorrect,
+            isStrCorrect,
+            isMcqCorrect,
+            timeSpent: elapsedSeconds,
+            explanation: currentScenario.explanation
+        });
+
+        updateUI();
+    }
+
+    function showFeedback(isDir, isStr, isMcq, actualR, trueDir, trueStr, points, speedBonus) {
+        const box = $('feedbackBox');
+        const icon = $('feedbackIcon');
+        const title = $('feedbackTitle');
+        const exp = $('feedbackExplanation');
+
+        const dirLabels = { positive: 'Pozitif (+)', negative: 'Negatif (−)', none: 'İlişki yok' };
+        const strLabels = { strong: 'Güçlü', moderate: 'Orta', weak: 'Zayıf', none: 'Yok' };
+
+        $('trueDirText').innerText = dirLabels[trueDir];
+        $('trueStrText').innerText = strLabels[trueStr];
+        $('trueRText').innerText = rYazisi(actualR);
+        $('earnedPointsBadge').innerText = `+${points} puan`;
+        $('speedBonusBadge').innerText = `+${speedBonus} hız bonusu`;
+        $('speedBonusBadge').hidden = speedBonus === 0;
+
+        if (isDir && isStr && isMcq) {
+            box.className = 'geri-bildirim dogru';
+            icon.innerHTML = '<path d="M5 12.5l4.5 4.5L19 7.5"/>';
+            title.innerText = 'Tebrikler! Mükemmel analiz';
+            exp.innerHTML = `Hem grafiği hem de gerçek hayat yorumunu eksiksiz doğru yaptınız. ${currentScenario.explanation}`;
+        } else {
+            box.className = 'geri-bildirim bilgi';
+            icon.innerHTML = '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/>';
+            title.innerText = 'Analiz özeti ve çözüm';
+            exp.innerHTML = `${currentScenario.explanation}`;
+        }
+
+        const last = currentIndex + 1 >= scenarios.length;
+        const next = $('nextBtn');
+        next.innerText = last ? 'Raporu gör' : 'Sonraki senaryo';
+
+        box.hidden = false;
+        box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        next.focus({ preventScroll: true });
+    }
+
+    function nextScenario() {
+        currentIndex++;
+        loadScenario();
+    }
+
+    function updateUI() {
+        $('scoreText').innerText = score;
+        $('comboText').innerText = `${combo}×`;
+    }
+
+    /* ----------------------------------------------------
+       5. RAPOR EKRANI
+    ---------------------------------------------------- */
+    function endGame() {
+        clearInterval(stopwatchTimer);
+
+        showScreen('endScreen');
+
+        const savedHighScore = parseInt(localStorage.getItem(HIGHSCORE_KEY) || 0);
+        if (score > savedHighScore) {
+            localStorage.setItem(HIGHSCORE_KEY, score);
+            $('highScoreText').innerText = score;
+        }
+
+        const total = historyList.length;
+        const graphAcc = Math.round((historyList.filter(h => h.isDirCorrect && h.isStrCorrect).length / total) * 100) || 0;
+        const mcqAcc = Math.round((historyList.filter(h => h.isMcqCorrect).length / total) * 100) || 0;
+        const avgTime = Math.round(historyList.reduce((acc, h) => acc + h.timeSpent, 0) / total) || 0;
+
+        $('finalScore').innerText = score;
+        $('finalGraphAcc').innerText = `%${graphAcc}`;
+        $('finalMcqAcc').innerText = `%${mcqAcc}`;
+        $('finalAvgTime').innerText = `${avgTime} sn`;
+
+        const container = $('historyContainer');
+        container.innerHTML = '';
+
+        historyList.forEach((h, idx) => {
+            const graphOk = h.isDirCorrect && h.isStrCorrect;
+            const item = document.createElement('li');
+            item.className = 'inceleme ' + (graphOk && h.isMcqCorrect ? 'dogru' : (graphOk || h.isMcqCorrect ? 'kismi' : 'yanlis'));
+            item.innerHTML = `
+                <div class="inceleme-ust">
+                    <span class="inceleme-baslik-metin">${idx + 1}. ${h.region} – ${h.title}</span>
+                    <span class="inceleme-r"><i>r</i> = ${rYazisi(h.trueR)} · ${h.timeSpent} sn</span>
+                </div>
+                <div class="inceleme-rozetler">
+                    <span class="rozet ${graphOk ? 'dogru' : 'yanlis'}">Grafik ${graphOk ? 'doğru' : 'yanlış'}</span>
+                    <span class="rozet ${h.isMcqCorrect ? 'dogru' : 'yanlis'}">Yorum ${h.isMcqCorrect ? 'doğru' : 'yanlış'}</span>
+                </div>
+                <div class="inceleme-aciklama">${h.explanation}</div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    // Sayfa açılınca: ses düğmesi ve rekor (orijinalde rekor ancak oyun başlayınca okunuyordu)
+    updateSoundButton();
+    loadHighScore();
+</script>
+</body>
+</html>

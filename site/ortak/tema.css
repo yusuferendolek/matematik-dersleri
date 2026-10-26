@@ -351,7 +351,6 @@ a.satir:hover { background: color-mix(in srgb, var(--murekkep) 6%, transparent);
 .sinif { font-size: 15px; color: var(--murekkep-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .satir-not { grid-column: 2; font-size: 15px; color: var(--murekkep-2); margin-top: 1px; }
 .satir[aria-current="page"] { background: color-mix(in srgb, var(--kalem) 14%, transparent); }
-.satir.yakinda { opacity: .5; cursor: default; }
 
 /* ================= sayfa iskeleti ================= */
 .ana-sayfa::before {
@@ -364,7 +363,7 @@ a.satir:hover { background: color-mix(in srgb, var(--murekkep) 6%, transparent);
   background: var(--kenar-renk);
   pointer-events: none;
 }
-.ana {
+.ana-govde {
   padding: calc(var(--kare) * 2) 32px calc(var(--kare) * 3) calc(var(--kenar) + 40px);
 }
 .ana-ic { max-width: 1120px; }
@@ -551,7 +550,7 @@ input[type="range"] { accent-color: var(--kalem); width: 100%; cursor: pointer; 
   :root { --kenar: 56px; --bar: 64px; }
   .yer-ad { font-size: 19px; }
   .yer-ad.site { font-size: 28px; }
-  .ana { padding-left: calc(var(--kenar) + 20px); padding-right: 20px; }
+  .ana-govde { padding-left: calc(var(--kenar) + 20px); padding-right: 20px; }
   /* telefonda fotoğraf yazının altına iner */
   .ana-ust { flex-direction: column; align-items: flex-start; gap: calc(var(--kare) * 1.5); }
   .ana-foto { width: min(100%, 440px); margin: 8px 0 0; transform: rotate(-1.5deg); }

@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kesir Boyama – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    /* .oyun bir boyut kabı: tuval, kalan genişliğe ve yüksekliğe göre (cqw / cqh) büyür */
+    .oyun {
+        container-type: size;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+    }
+
+    /* Dikey ekran / telefon: soru, tuval, araçlar, kontrol alt alta */
+    .duzen {
+        margin: auto;
+        width: 100%;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "soru" "tuval" "araclar" "kontrol";
+        justify-items: center;
+        gap: 16px;
+        padding: 20px 16px 24px;
+    }
+    .soru { grid-area: soru; }
+    .arac-kutusu { grid-area: araclar; }
+    .tuval-kutu { grid-area: tuval; }
+    .controls { grid-area: kontrol; }
+    .soru, .arac-kutusu, .controls { width: min(100%, 520px); }
+    .tuval-kutu { width: min(100cqw - 32px, 720px); aspect-ratio: 1; }
+
+    /* Dikey tablet: soru ve araçlar yan yana üstte, tuval altta (kontrol düğmesi ekranda kalsın) */
+    @container (orientation: portrait) and (min-width: 600px) {
+        .duzen {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+            grid-template-areas: "soru araclar" "tuval tuval" "kontrol kontrol";
+            align-items: center;
+        }
+        .soru, .arac-kutusu { width: 100%; }
+        .tuval-kutu { width: min(100cqw - 32px, 720px, max(360px, 100cqh - 470px)); }
+    }
+
+    /* Yatay ekran: solda soru + araçlar + kontrol, sağda kare tuval (yüksekliğe sığar) */
+    @container (orientation: landscape) and (min-width: 700px) {
+        .duzen {
+            width: auto;
+            grid-template-columns: 380px auto;
+            grid-template-rows: auto auto 1fr;
+            grid-template-areas: "soru tuval" "araclar tuval" "kontrol tuval";
+            align-items: start;
+            gap: 14px 32px;
+            padding: 18px 24px 16px;
+        }
+        .soru, .arac-kutusu, .controls { width: 100%; }
+        .tuval-kutu { width: min(100cqw - 380px - 32px - 48px, 100cqh - 40px, 900px); }
+    }
+    /* yeterince yüksek ekranda soru kutusu metnin üstünde, ortada */
+    @container (orientation: landscape) and (min-width: 700px) and (min-height: 760px) {
+        .soru { flex-direction: column; text-align: center; }
+    }
+
+    /* Soru: hedef kesir / yüzde / ondalık */
+    .soru { display: flex; align-items: center; gap: 12px 16px; }
+    .soru .ipucu { flex: 1; }
+    .fraction-box {
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-width: 150px;
+        min-height: 110px;
+        padding: 8px 20px;
+        border: 3px dashed var(--kirmizi);
+        border-radius: var(--kose);
+        background: var(--yuzey);
+        color: var(--kirmizi);
+        font-size: 3.5rem;
+        font-weight: 800;
+        line-height: 1.1;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
+    .numerator { border-bottom: 5px solid var(--kirmizi); padding: 0 10px; width: 100%; }
+    .denominator { padding: 0 10px; width: 100%; }
+
+    /* Araç kutusu */
+    .arac-kutusu { display: flex; flex-direction: column; gap: 12px; }
+    .grup { display: flex; flex-direction: column; gap: 8px; }
+    .grup-ikili { display: flex; flex-wrap: wrap; gap: 14px 18px; }
+    .tool-title { font-size: 15px; font-weight: 700; color: var(--murekkep-2); }
+    .tool-group .sekme { flex: 1 0 auto; justify-content: center; padding: 0 12px; }
+    .tool-group .svg { width: 20px; height: 20px; }
+
+    /* Renk paleti: kalem renkleri */
+    .palette, .brush-sizes { display: flex; gap: 8px; align-items: center; }
+    .color-swatch {
+        width: 38px; height: 38px;
+        border-radius: 50%;
+        border: 3px solid var(--yuzey);
+        background: var(--r);
+        box-shadow: 0 0 0 1.5px var(--kenarlik);
+        cursor: pointer;
+        transition: transform .2s;
+    }
+    .color-swatch.active { transform: scale(1.12); box-shadow: 0 0 0 3px var(--murekkep); }
+
+    /* Fırça boyutları: düğmedeki nokta fırçanın kalınlığını gösterir */
+    .brush-btn {
+        width: 42px; height: 42px;
+        display: grid; place-items: center;
+        border: 1.5px solid var(--kenarlik);
+        border-radius: 10px;
+        background: var(--yuzey);
+        cursor: pointer;
+    }
+    .brush-btn::before { content: ""; width: var(--d); height: var(--d); border-radius: 50%; background: var(--murekkep-2); }
+    .brush-btn:hover { border-color: var(--murekkep); }
+    .brush-btn.active { border-color: var(--kalem); background: color-mix(in srgb, var(--kalem) 14%, var(--yuzey)); }
+    .brush-btn.active::before { background: var(--murekkep); }
+
+    .btn-clear { width: 100%; }
+
+    /* Tuval: kâğıda / tahtaya çizilmiş şekil */
+    .tuval-kutu canvas {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        display: block;
+        cursor: crosshair;
+        touch-action: none;
+    }
+
+    /* Kontrol bölümü ve devam düğmesi */
+    .controls { display: flex; flex-direction: column; gap: 10px; }
+    .controls .dugme { width: 100%; }
+    .btn-continue { display: none; }
+
+    #message-box { display: none; flex-direction: column; gap: 6px; font-size: 17px; }
+    .stat-row { display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 15px; font-weight: 400; color: var(--murekkep); }
+    .stat-row b { font-weight: 800; font-variant-numeric: tabular-nums; }
+    #stat-target { color: var(--mavi); }
+    #stat-painted { color: var(--mor); }
+    #stat-error { color: var(--kirmizi); }
+
+    .pulse { animation: pulseAnim 0.5s; }
+    @keyframes pulseAnim { 50% { transform: scale(1.1); } }
+
+    .toast {
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        padding: 10px 20px; border-radius: 12px;
+        background: var(--yanlis); color: var(--kagit);
+        font-weight: 700; pointer-events: none; opacity: 0; transition: opacity .3s; z-index: 30;
+    }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-sag">
+        <span class="durum"><span class="durum-ad">Seviye</span><b class="durum-deger" id="level-display">1</b></span>
+        <span class="durum"><span class="durum-ad">Toplam puan</span><b class="durum-deger" id="score-display">0</b></span>
+    </div>
+</header>
+<script>Kabuk.bar('kesir-boyama');</script>
+
+<main class="oyun">
+<div class="duzen">
+
+    <!-- Soru -->
+    <section class="soru">
+        <div class="fraction-box" id="question-display" aria-live="polite"></div>
+        <p class="ipucu">Alanı fırçayla bölün, kovayla boyayın! Boyadığınız alan hedeflenen değere tam denk gelsin.</p>
+    </section>
+
+    <!-- Araçlar -->
+    <section class="panel arac-kutusu">
+        <div class="grup">
+            <span class="tool-title">Araç seçimi</span>
+            <div class="sekmeler tool-group" role="tablist" aria-label="Araç">
+                <button class="sekme tool-btn" role="tab" aria-selected="true" data-arac="brush" onclick="setTool('brush', this)">
+                    <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/></svg>
+                    Fırça
+                </button>
+                <button class="sekme tool-btn" role="tab" aria-selected="false" data-arac="bucket" onclick="setTool('bucket', this)">
+                    <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/></svg>
+                    Kova
+                </button>
+                <button class="sekme tool-btn" role="tab" aria-selected="false" data-arac="eraser" onclick="setTool('eraser', this)">
+                    <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+                    Silgi
+                </button>
+            </div>
+        </div>
+
+        <div class="grup-ikili">
+        <div class="grup">
+            <span class="tool-title">Renk seçin</span>
+            <div class="palette">
+                <button class="color-swatch active" style="--r: var(--kirmizi)" aria-label="Kırmızı" onclick="setColor('kirmizi', this)"></button>
+                <button class="color-swatch" style="--r: var(--mavi)" aria-label="Mavi" onclick="setColor('mavi', this)"></button>
+                <button class="color-swatch" style="--r: var(--sari)" aria-label="Sarı" onclick="setColor('sari', this)"></button>
+                <button class="color-swatch" style="--r: var(--mor)" aria-label="Mor" onclick="setColor('mor', this)"></button>
+            </div>
+        </div>
+
+        <div class="grup">
+            <span class="tool-title">Fırça boyutu</span>
+            <div class="brush-sizes">
+                <button class="brush-btn" style="--d: 8px" aria-label="İnce fırça" onclick="setSize(5, this)"></button>
+                <button class="brush-btn active" style="--d: 14px" aria-label="Orta fırça" onclick="setSize(10, this)"></button>
+                <button class="brush-btn" style="--d: 24px" aria-label="Kalın fırça" onclick="setSize(20, this)"></button>
+            </div>
+        </div>
+        </div>
+
+        <button class="dugme tehlike btn-clear" onclick="drawBaseShape()">Tümünü temizleyin</button>
+    </section>
+
+    <!-- Tuval -->
+    <div class="tuval-kutu sahne">
+        <canvas id="paintCanvas" width="400" height="400" aria-label="Boyama alanı"></canvas>
+    </div>
+
+    <!-- Kontrol bölümü ve devam düğmesi -->
+    <section class="controls">
+        <button class="dugme ana buyuk btn-check" onclick="checkAnswer()" id="btn-check">Sonuca bakın</button>
+
+        <div id="message-box" class="geri-bildirim" role="status">
+            <div id="main-msg">Mükemmel!</div>
+            <div class="stat-row">
+                <div>Hedef: <b id="stat-target">1/4 (%25)</b></div>
+                <div>Sizin boyadığınız: <b id="stat-painted">%27</b></div>
+                <div>Fark: <b id="stat-error">%2</b></div>
+            </div>
+        </div>
+
+        <button class="dugme buyuk btn-continue" onclick="generateQuestion()" id="btn-continue">
+            Devam edin
+            <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+    </section>
+
+</div>
+</main>
+
+<div class="toast" id="toast-msg">Biraz daha boyamalısınız!</div>
+
+<script>
+    let score = 0;
+    let level = 1;
+    let targetRatio = 0;
+    let currentLvlData = {};
+
+    const canvas = document.getElementById('paintCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    // Çizim 400×400 birimlik alanda yapılır; tuval büyük ekranda da keskin görünsün diye
+    // piksel olarak 2 kat çözünürlükte tutulur (oranlar değişmez).
+    const OLCEK = 2;
+
+    let isDrawing = false;
+    let currentTool = 'brush';
+    let brushColor = 'kirmizi';   // kalem renginin adı (temadan okunur)
+    let brushSize = 10;
+    let currentShapeType = '';
+    let maskPath = new Path2D();
+
+    // Renkler temadan gelir: şeklin içi saydamdır (altındaki kâğıt görünür = boyanmamış),
+    // sınır mürekkeple, boya kalem renkleriyle çizilir. Tema değişince boyalar yeni renge çevrilir.
+    const BOYALAR = ['kirmizi', 'mavi', 'sari', 'mor'];
+    let H = {}, R = {};   // H: '#rrggbb', R: [r, g, b]
+    function readColors() {
+        H = {}; R = {};
+        for (const ad of ['kagit', 'murekkep', ...BOYALAR]) { H[ad] = Kabuk.renk(ad); R[ad] = hexToRgb(H[ad]); }
+    }
+    readColors();
+
+    function getLevelFraction() {
+        let fractions = [];
+        if (level === 1) fractions = [[1,2], [1,4], [3,4]];
+        else if (level === 2) fractions = [[1,5], [2,5], [3,5], [4,5], [1,10], [3,10], [7,10], [9,10]];
+        else fractions = [[1,8], [3,8], [5,8], [7,8], [1,20], [3,20], [7,20]];
+
+        let f = fractions[Math.floor(Math.random() * fractions.length)];
+        let num = f[0], den = f[1];
+        let ratio = num / den;
+        return {
+            num: num, den: den, ratio: ratio,
+            frac: num + "/" + den,
+            pct: "%" + Math.round(ratio * 100),
+            dec: ratio.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 3 })
+        };
+    }
+
+    function generateQuestion() {
+        document.getElementById('message-box').style.display = 'none';
+        document.getElementById('btn-continue').style.display = 'none';
+        document.getElementById('btn-check').style.display = 'inline-flex';
+
+        currentLvlData = getLevelFraction();
+        targetRatio = currentLvlData.ratio;
+
+        const representations = ['fraction', 'percentage', 'decimal'];
+        let rep = representations[Math.floor(Math.random() * representations.length)];
+
+        const qBox = document.getElementById('question-display');
+
+        if (rep === 'fraction') {
+            qBox.innerHTML = `<span class="numerator">${currentLvlData.num}</span><span class="denominator">${currentLvlData.den}</span>`;
+            qBox.style.fontSize = '3.5rem';
+        } else if (rep === 'percentage') {
+            qBox.innerHTML = `<span>${currentLvlData.pct}</span>`;
+            qBox.style.fontSize = '3rem';
+        } else if (rep === 'decimal') {
+            qBox.innerHTML = `<span>${currentLvlData.dec}</span>`;
+            qBox.style.fontSize = '3rem';
+        }
+
+        const shapes = ['circle', 'rect', 'triangle'];
+        currentShapeType = shapes[Math.floor(Math.random() * shapes.length)];
+
+        drawBaseShape();
+    }
+
+    function traceShapePath() {
+        maskPath = new Path2D();
+        if (currentShapeType === 'circle') {
+            maskPath.arc(200, 200, 170, 0, Math.PI * 2);
+        } else if (currentShapeType === 'rect') {
+            maskPath.rect(30, 50, 340, 300);
+        } else if (currentShapeType === 'triangle') {
+            maskPath.moveTo(200, 30);
+            maskPath.lineTo(370, 350);
+            maskPath.lineTo(30, 350);
+            maskPath.closePath();
+        }
+    }
+
+    function drawBaseShape() {
+        canvas.width = 400 * OLCEK;
+        canvas.height = 400 * OLCEK;
+        ctx.setTransform(OLCEK, 0, 0, OLCEK, 0, 0);
+
+        // Tuval saydam: şeklin içi de dışı da kâğıdın kendisi
+        traceShapePath();
+
+        // Sınırları net çiz
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = H.murekkep;
+        ctx.stroke(maskPath);
+    }
+
+    // Araç imleci: düğmedeki ikon, kâğıt renginde kenarlı mürekkeple
+    function imlec(el, x, y) {
+        const ikon = el.querySelector('svg').innerHTML;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="-1 -1 26 26" fill="none" stroke-linecap="round" stroke-linejoin="round">` +
+            `<g stroke="${H.kagit}" stroke-width="5">${ikon}</g><g stroke="${H.murekkep}" stroke-width="2">${ikon}</g></svg>`;
+        return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${x} ${y}, pointer`;
+    }
+
+    function setTool(tool, el) {
+        currentTool = tool;
+        document.querySelectorAll('.tool-btn').forEach(btn => btn.setAttribute('aria-selected', 'false'));
+        el.setAttribute('aria-selected', 'true');
+
+        if (tool === 'eraser') {
+            canvas.style.cursor = imlec(el, 5, 22);
+        } else if (tool === 'bucket') {
+            canvas.style.cursor = imlec(el, 23, 25);
+        } else {
+            canvas.style.cursor = 'crosshair';
+        }
+    }
+
+    function setColor(color, el) {
+        brushColor = color;
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+        el.classList.add('active');
+        if (currentTool === 'eraser') setTool('brush', document.querySelector('.tool-btn'));
+    }
+
+    function setSize(size, el) {
+        brushSize = size;
+        document.querySelectorAll('.brush-btn').forEach(s => s.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    function hexToRgb(hex) {
+        let bigint = parseInt(hex.substring(1), 16);
+        return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+    }
+
+    // Fare / parmak konumu, 400×400 çizim biriminde
+    function getMousePos(e) {
+        let rect = canvas.getBoundingClientRect();
+        let scaleX = 400 / rect.width;
+        let scaleY = 400 / rect.height;
+
+        let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
+    }
+
+    // TAŞMAYI ÖNLEYEN VE HIZLI ÇALIŞAN BOYA KOVASI
+    // Pikseller kâğıt üstünde göründükleri renkle karşılaştırılır (saydam = kâğıt rengi).
+    function floodFill(startX, startY, fillColor) {
+        startX *= OLCEK;
+        startY *= OLCEK;
+        // Şeklin dışına tıklandıysa iptal
+        if (!ctx.isPointInPath(maskPath, startX, startY)) return;
+
+        const rgb = R[fillColor];
+        const k = R.kagit, m = R.murekkep;
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+        const width = canvas.width;
+        const height = canvas.height;
+        const sx = Math.round(startX);
+        const sy = Math.round(startY);
+
+        const startPos = (sy * width + sx) * 4;
+        const startA = data[startPos+3] / 255;
+        const startR = data[startPos] * startA + k[0] * (1 - startA);
+        const startG = data[startPos+1] * startA + k[1] * (1 - startA);
+        const startB = data[startPos+2] * startA + k[2] * (1 - startA);
+
+        // Çizgiye (mürekkep) veya aynı renge tıklanırsa çık
+        if (Math.abs(startR - m[0]) < 25 && Math.abs(startG - m[1]) < 25 && Math.abs(startB - m[2]) < 25) return;
+        if (Math.abs(startR - rgb[0]) < 10 && Math.abs(startG - rgb[1]) < 10 && Math.abs(startB - rgb[2]) < 10) return;
+
+        const stack = [[sx, sy]];
+        // boyanan pikseller bir daha denenmez (rengi başlangıca çok yakınsa sonsuz döngüye girmesin)
+        const boyandi = new Uint8Array(width * height);
+
+        function matchStartColor(pixelPos) {
+            if (boyandi[pixelPos >> 2]) return false;
+            const a = data[pixelPos+3] / 255;
+            return (Math.abs(data[pixelPos] * a + k[0] * (1 - a) - startR) < 30 &&
+                    Math.abs(data[pixelPos+1] * a + k[1] * (1 - a) - startG) < 30 &&
+                    Math.abs(data[pixelPos+2] * a + k[2] * (1 - a) - startB) < 30);
+        }
+
+        while (stack.length > 0) {
+            const [x, y] = stack.pop();
+            let pixelPos = (y * width + x) * 4;
+            let currentY = y;
+
+            while (currentY >= 0 && matchStartColor(pixelPos)) {
+                currentY--;
+                pixelPos -= width * 4;
+            }
+            pixelPos += width * 4;
+            currentY++;
+
+            let reachLeft = false;
+            let reachRight = false;
+
+            while (currentY < height && matchStartColor(pixelPos)) {
+                data[pixelPos] = rgb[0];
+                data[pixelPos+1] = rgb[1];
+                data[pixelPos+2] = rgb[2];
+                data[pixelPos+3] = 255;
+                boyandi[pixelPos >> 2] = 1;
+
+                if (x > 0) {
+                    if (matchStartColor(pixelPos - 4)) {
+                        if (!reachLeft) { stack.push([x - 1, currentY]); reachLeft = true; }
+                    } else if (reachLeft) { reachLeft = false; }
+                }
+
+                if (x < width - 1) {
+                    if (matchStartColor(pixelPos + 4)) {
+                        if (!reachRight) { stack.push([x + 1, currentY]); reachRight = true; }
+                    } else if (reachRight) { reachRight = false; }
+                }
+
+                currentY++;
+                pixelPos += width * 4;
+            }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+
+        // Boya işlemi bitince dış çerçevenin üstte kalmasını sağla
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = H.murekkep;
+        ctx.stroke(maskPath);
+    }
+
+    function startAction(e) {
+        e.preventDefault();
+        let pos = getMousePos(e);
+
+        if (currentTool === 'bucket') {
+            floodFill(pos.x, pos.y, brushColor);
+        } else {
+            isDrawing = true;
+            ctx.save();
+            ctx.clip(maskPath); // Sadece şeklin içini boyatır
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+    }
+
+    function drawAction(e) {
+        if (!isDrawing || (currentTool !== 'brush' && currentTool !== 'eraser')) return;
+        e.preventDefault();
+        let pos = getMousePos(e);
+
+        ctx.lineWidth = brushSize;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        // Silgi boyayı kaldırır: altındaki kâğıt yeniden görünür
+        ctx.globalCompositeOperation = (currentTool === 'eraser') ? 'destination-out' : 'source-over';
+        ctx.strokeStyle = (currentTool === 'eraser') ? H.murekkep : H[brushColor];
+
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+    }
+
+    function endAction(e) {
+        if (currentTool === 'brush' || currentTool === 'eraser') {
+            isDrawing = false;
+            ctx.restore(); // Kırpmayı kaldır
+            // Sınırların hep belirgin kalması için üstünden geç
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = H.murekkep;
+            ctx.stroke(maskPath);
+        }
+    }
+
+    canvas.addEventListener('mousedown', startAction);
+    window.addEventListener('mousemove', drawAction);
+    window.addEventListener('mouseup', endAction);
+    canvas.addEventListener('mouseleave', endAction);
+
+    canvas.addEventListener('touchstart', startAction, {passive: false});
+    window.addEventListener('touchmove', drawAction, {passive: false});
+    window.addEventListener('touchend', endAction);
+
+    // Tema değişince: boyalı pikseller yeni temadaki aynı kaleme çevrilir (saydamlıkları korunur)
+    Kabuk.temaDegisince(() => {
+        const eski = R;
+        readColors();
+        const adlar = ['murekkep', ...BOYALAR];
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = img.data;
+        for (let p = 0; p < d.length; p += 4) {
+            if (!d[p+3]) continue;
+            let en = 0, enUzak = Infinity;
+            for (let i = 0; i < adlar.length; i++) {
+                const c = eski[adlar[i]];
+                const uzak = (d[p] - c[0]) ** 2 + (d[p+1] - c[1]) ** 2 + (d[p+2] - c[2]) ** 2;
+                if (uzak < enUzak) { enUzak = uzak; en = i; }
+            }
+            const y = R[adlar[en]];
+            d[p] = y[0]; d[p+1] = y[1]; d[p+2] = y[2];
+        }
+        ctx.putImageData(img, 0, 0);
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = H.murekkep;
+        ctx.stroke(maskPath);
+        setTool(currentTool, document.querySelector(`.tool-btn[data-arac="${currentTool}"]`)); // imleç rengi
+    });
+
+    function showToast(msg) {
+        let toast = document.getElementById('toast-msg');
+        toast.innerText = msg;
+        toast.style.opacity = 1;
+        setTimeout(() => { toast.style.opacity = 0; }, 2500);
+    }
+
+    function checkAnswer() {
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+        const k = R.kagit, m = R.murekkep;
+
+        let totalShapePixels = 0;
+        let paintedPixels = 0;
+
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+                if (ctx.isPointInPath(maskPath, x, y)) {
+                    let idx = (y * canvas.width + x) * 4;
+                    // Pikselin kâğıt üstünde görünen rengi (saydam = kâğıt)
+                    let a = data[idx+3] / 255;
+                    let r = data[idx] * a + k[0] * (1 - a), g = data[idx+1] * a + k[1] * (1 - a), b = data[idx+2] * a + k[2] * (1 - a);
+
+                    // Mürekkep çerçeveyi sayıma dahil etme
+                    let isBorder = (Math.abs(r - m[0]) < 25 && Math.abs(g - m[1]) < 25 && Math.abs(b - m[2]) < 25);
+
+                    if (!isBorder) {
+                        totalShapePixels++;
+                        // Kâğıt renginde değilse boyalıdır
+                        if (Math.abs(r - k[0]) > 15 || Math.abs(g - k[1]) > 15 || Math.abs(b - k[2]) > 15) {
+                            paintedPixels++;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (totalShapePixels === 0) return;
+
+        let paintedRatio = paintedPixels / totalShapePixels;
+        let error = Math.abs(targetRatio - paintedRatio);
+
+        let points = 0;
+
+        // Fırça taşmaları için %4 tolerans bırakıyoruz
+        if (error <= 0.04) {
+            points = 1000;
+        } else if (error < 0.25) {
+            let adjustedError = error - 0.04;
+            points = Math.round(1000 - (adjustedError * 4500));
+        }
+
+        if (points < 0) points = 0;
+        if (points > 1000) points = 1000;
+
+        score += points;
+
+        let scoreEl = document.getElementById('score-display');
+        scoreEl.innerText = score;
+        scoreEl.classList.add('pulse');
+        setTimeout(() => scoreEl.classList.remove('pulse'), 500);
+
+        let newLevel = Math.floor(score / 3000) + 1;
+        if (newLevel > level) {
+            level = newLevel;
+            document.getElementById('level-display').innerText = level;
+        }
+
+        // Geri bildirim panelini ve devam düğmesini göster, kontrol düğmesini gizle
+        document.getElementById('btn-check').style.display = 'none';
+        document.getElementById('btn-continue').style.display = 'inline-flex';
+
+        let msgBox = document.getElementById('message-box');
+        msgBox.style.display = 'flex';
+
+        // Öğrencinin gerçek boyaması
+        document.getElementById('stat-target').innerText = currentLvlData.frac + " (" + currentLvlData.pct + ")";
+        document.getElementById('stat-painted').innerText = "%" + Math.round(paintedRatio * 100);
+        document.getElementById('stat-error').innerText = "%" + Math.round(error * 100);
+
+        let mainMsg = document.getElementById('main-msg');
+
+        if (points === 1000) {
+            mainMsg.innerText = "Kusursuz! Tam istenen alan. (+1000 puan)";
+            msgBox.style.color = "var(--dogru)";
+        } else if (points >= 700) {
+            mainMsg.innerText = "Harika! Çok yakın bir boyama. (+" + points + " puan)";
+            msgBox.style.color = "var(--mavi)";
+        } else if (points >= 400) {
+            mainMsg.innerText = "Güzel, ama biraz daha dikkat edebilirsiniz. (+" + points + " puan)";
+            msgBox.style.color = "var(--sari)";
+        } else if (points > 0) {
+            mainMsg.innerText = "Ucu ucuna kabul! Hedef alana dikkat edin. (+" + points + " puan)";
+            msgBox.style.color = "var(--turuncu)";
+        } else {
+            mainMsg.innerText = "Hatalı boyama! Hedef alandan çok uzaksınız. (0 puan)";
+            msgBox.style.color = "var(--yanlis)";
+        }
+    }
+
+    generateQuestion();
+</script>
+</body>
+</html>

@@ -56,9 +56,6 @@
     { id: 'korelasyon-dedektifi', konu: 'veri', ad: 'Korelasyon Dedektifi', not: 'Serpme grafiğindeki ilişkinin yönünü ve gücünü yorumla.', sinif: '11', kaynak: 'korelasyon_ve_serpme_grafikleri_dedektifi-2.html' },
     { id: 'elektrik-devreleri', konu: 'elektrik', ad: 'Elektrik Devreleri', not: 'Seri ve paralel devre kur, akımı gözle.', sinif: '7', kaynak: 'elektrik_devreleri_sim_lasyonu.html' }
   ];
-  // ortak temaya taşınmış oyunlar; hepsi taşınınca bu liste kalkacak
-  const HAZIR = ['yuvarlama-tepesi', 'meteor-avcisi', 'elektrik-devreleri'];
-  const hazirMi = o => HAZIR.includes(o.id);
 
   const konuOf = id => KONULAR.find(k => k.id === id);
   const dersOf = o => konuOf(o.konu).ders;
@@ -95,14 +92,11 @@
         <div class="sutunlar">${KONULAR.filter(k => k.ders === d).map(k => `
           <div class="konu">
             <h3 class="konu-baslik"><span class="fosfor" style="--fk:var(--k-${k.id})">${k.ad}</span></h3>
-            <ul class="liste">${OYUNLAR.filter(o => o.konu === k.id).map(o => {
-              const ic = `${svg(IKON[k.id])}
-                <span class="satir-ust"><span class="satir-ad">${esc(o.ad)}</span><span class="nokta"></span><span class="sinif">${hazirMi(o) ? (o.sinif ? o.sinif + '. sınıf' : '') : 'hazırlanıyor'}</span></span>
-                <span class="satir-not">${esc(o.not)}</span>`;
-              return `<li>${hazirMi(o)
-                ? `<a class="satir" href="${oyunAdresi(o.id)}"${o.id === acikId ? ' aria-current="page"' : ''}>${ic}</a>`
-                : `<span class="satir yakinda">${ic}</span>`}</li>`;
-            }).join('')}
+            <ul class="liste">${OYUNLAR.filter(o => o.konu === k.id).map(o => `
+              <li><a class="satir" href="${oyunAdresi(o.id)}"${o.id === acikId ? ' aria-current="page"' : ''}>${svg(IKON[k.id])}
+                <span class="satir-ust"><span class="satir-ad">${esc(o.ad)}</span><span class="nokta"></span><span class="sinif">${o.sinif ? o.sinif + '. sınıf' : ''}</span></span>
+                <span class="satir-not">${esc(o.not)}</span>
+              </a></li>`).join('')}
             </ul>
           </div>`).join('')}
         </div>
@@ -139,7 +133,7 @@
     const tmp = document.createElement('div');
     let adim = '';
     if (oyun) {
-      const sira = OYUNLAR.filter(hazirMi);
+      const sira = OYUNLAR;
       const i = sira.indexOf(oyun);
       const onceki = sira[(i - 1 + sira.length) % sira.length], sonraki = sira[(i + 1) % sira.length];
       adim = `<div class="adim">

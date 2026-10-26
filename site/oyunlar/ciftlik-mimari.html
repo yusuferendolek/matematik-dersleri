@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Çiftlik Mimarı – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    /* alan–çevre oyunlarının ortak ızgara dili (ciftlik-mimari, cevre-avcisi, maliyet-hesaplayici):
+       birim kare çizgileri, boyalı kare = konunun fosfor rengi, çevre = turuncu kalem */
+    .oyun {
+        --izgara-cizgi: color-mix(in srgb, var(--murekkep-3) 55%, var(--yuzey));
+        --izgara-cerceve: var(--murekkep-2);
+        --boya: color-mix(in srgb, var(--k-alan) var(--boya-alfa, 100%), var(--yuzey));
+        --cevre-cizgi: var(--turuncu);
+    }
+    [data-tema="tahta"] .oyun { --boya-alfa: 42%; }
+    .alan-renk { color: var(--yesil); }
+    .cevre-renk { color: var(--turuncu); }
+
+    /* ---------- yerleşim ---------- */
+    .duzen {
+        --sol: minmax(300px, 420px);
+        display: grid;
+        grid-template-columns: var(--sol) auto;
+        grid-template-rows: auto 1fr;
+        grid-template-areas: "gorev cizim" "kesif cizim";
+        justify-content: center;
+        gap: 20px;
+        padding: 24px 16px;
+    }
+    .gorev { grid-area: gorev; }
+    .kesif { grid-area: kesif; }
+    .cizim {
+        grid-area: cizim;
+        display: flex; flex-direction: column; gap: 12px;
+        /* tuvalin kenarı: ekrana ve sol sütuna göre */
+        --boy: clamp(280px, min(100vw - 500px, 100dvh - var(--bar) - 130px), 760px);
+    }
+    /* masaüstünde tablo, çizim sütunu kadar uzar ve kendi içinde kayar */
+    @media (min-width: 981px) {
+        .kesif { contain: size; min-height: 220px; }
+    }
+    @media (max-width: 980px) {
+        .duzen { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "gorev" "cizim" "kesif"; padding: 16px; }
+        .cizim { align-items: center; --boy: min(100vw - 32px, 600px); }
+        .kesif { max-height: 420px; }
+    }
+
+    /* ---------- görev kartı ---------- */
+    .gorev { --tur: var(--kalem); border-left: 6px solid var(--tur); }
+    .gorev[data-tur="alan"] { --tur: var(--yesil); }
+    .gorev[data-tur="cevre"] { --tur: var(--turuncu); }
+    .gorev[data-tur="serbest"] { --tur: var(--mor); }
+    .gorev .rozet { color: var(--tur); }
+    .gorev-metin { margin: 12px 0 14px; font-size: 21px; font-weight: 800; line-height: 1.35; }
+    .gorev-metin .fosfor { --fk: var(--k-alan); }
+    .ilerleme { height: 14px; border-radius: 999px; background: var(--yuzey-2); border: 1.5px solid var(--kenarlik); overflow: hidden; }
+    .ilerleme-dolu { height: 100%; width: 0; background: var(--dogru); border-radius: 999px; transition: width .3s; }
+    .gorev[data-tur="serbest"] .ilerleme-dolu { background: var(--mor); }
+
+    /* ---------- keşfedilen dikdörtgenler tablosu ---------- */
+    .kesif { display: flex; flex-direction: column; min-width: 0; }
+    .table-header-row, .table-row {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr 1fr;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-variant-numeric: tabular-nums;
+    }
+    .table-header-row { background: var(--yuzey-2); font-size: 14px; font-weight: 700; color: var(--murekkep-2); margin-bottom: 6px; }
+    .table-header-row .col-area { color: var(--yesil); }
+    .table-header-row .col-perim { color: var(--turuncu); }
+    #discovery-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    #discovery-list:empty::before { content: "Çizdiğin dikdörtgenler burada listelenir."; color: var(--murekkep-2); font-size: 15px; padding: 8px 12px; }
+    .table-row { border: 1.5px solid var(--kenarlik); font-size: 18px; font-weight: 800; animation: highlight 1s; }
+    .col-area, .col-perim { text-align: center; }
+    .table-row .col-area { color: var(--yesil); }
+    .table-row .col-perim { color: var(--turuncu); }
+    .col-dim { display: flex; align-items: center; gap: 10px; }
+    .color-dot { width: 16px; height: 16px; border-radius: 4px; border: 2.5px solid; flex: none; }
+    @keyframes highlight { from { background: var(--boya); } }
+
+    /* ---------- çizim alanı ---------- */
+    .tuval {
+        position: relative;
+        width: var(--boy);
+        aspect-ratio: 1;
+        border: 2px solid var(--izgara-cerceve);
+        border-radius: 6px;
+        overflow: hidden;
+        background: var(--yuzey);
+        cursor: crosshair;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    .tuval canvas { display: block; width: 100%; height: 100%; }
+    .cizim-alt { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; width: var(--boy); }
+
+    /* kısa bildirim: tuvalin alt kenarında (çizimler çoğunlukla üstten başlar) */
+    .toast {
+        position: absolute;
+        bottom: 10px; left: 50%;
+        transform: translateX(-50%);
+        max-width: calc(100% - 20px);
+        width: max-content;
+        padding: 6px 14px;
+        border-radius: 10px;
+        border: 2px solid currentColor;
+        background: var(--yuzey);
+        font-weight: 800;
+        font-size: 16px;
+        text-align: center;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .3s;
+        z-index: 5;
+    }
+    .toast.dogru { color: var(--dogru); }
+    .toast.yanlis { color: var(--yanlis); }
+    .toast.gorunur { opacity: 1; }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-orta">
+        <div class="sekmeler" role="tablist" aria-label="Oyun modu">
+            <button class="sekme" id="btn-gorevler" role="tab" aria-selected="true" onclick="modSec(false)">Görevler</button>
+            <button class="sekme" id="btn-toggle-mode" role="tab" aria-selected="false" onclick="modSec(true)">Serbest mod</button>
+        </div>
+    </div>
+    <div class="bar-sag">
+        <span class="durum" id="level-wrapper"><span class="durum-ad">Seviye</span><b class="durum-deger" id="level-display-text">1</b></span>
+        <span class="durum" id="score-wrapper"><span class="durum-ad">Puan</span><b class="durum-deger" id="score-display">0</b></span>
+    </div>
+</header>
+<script>Kabuk.bar('ciftlik-mimari');</script>
+
+<main class="oyun">
+<div class="duzen">
+
+    <!-- Görev -->
+    <section class="panel gorev" id="mission-card-bg" data-tur="alan">
+        <span class="rozet" id="mission-type">Görev</span>
+        <p class="gorev-metin" id="mission-text">Alanı 16 br² olan 3 <strong>farklı</strong> dikdörtgen çiz.</p>
+        <div class="ilerleme" role="progressbar" aria-label="Görev ilerlemesi"><div class="ilerleme-dolu" id="progress-fill"></div></div>
+    </section>
+
+    <!-- Keşfedilen dikdörtgenler -->
+    <section class="panel kesif">
+        <h2 class="panel-baslik">Keşfedilen dikdörtgenler</h2>
+        <div class="table-header-row">
+            <div class="col-dim">Boyutlar</div>
+            <div class="col-area">Alan (br²)</div>
+            <div class="col-perim">Çevre (br)</div>
+        </div>
+        <div id="discovery-list"></div>
+    </section>
+
+    <!-- Izgara -->
+    <section class="cizim">
+        <div class="tuval" id="canvas-container">
+            <canvas id="gridCanvas" aria-label="Dikdörtgen çizme ızgarası"></canvas>
+            <div class="toast" id="toast-msg" role="status"></div>
+        </div>
+        <div class="cizim-alt">
+            <span class="ipucu">Kareler üzerinde sürükleyerek dikdörtgen çiz.</span>
+            <button class="dugme tehlike" onclick="clearCanvas()">Tuvali temizle</button>
+        </div>
+    </section>
+
+</div>
+</main>
+
+<script>
+    const levels = [
+        { type: 'AREA', target: 12, required: 3, text: "Alanı <span class=\"fosfor\">12 br²</span> olan 3 <strong>farklı</strong> dikdörtgen çiz.", insight: "Fark ettin mi? Alanı aynı olan dikdörtgenlerde şekil kareye yaklaştıkça <strong>çevresi küçülür</strong>!" },
+        { type: 'PERIMETER', target: 14, required: 3, text: "Çevresi tam <span class=\"fosfor\">14 br</span> olan 3 <strong>farklı</strong> dikdörtgen çiz.", insight: "Harika! Çevresi aynı olan dikdörtgenlerde ise şekil kareye yaklaştıkça <strong>alanı büyür</strong>!" },
+        { type: 'AREA', target: 16, required: 3, text: "Alanı <span class=\"fosfor\">16 br²</span> olan 3 <strong>farklı</strong> dikdörtgen çiz.", insight: "Süper! 4 × 4'ün bir <strong>kare</strong> olduğunu ve karenin de özel bir dikdörtgen olduğunu kanıtladın." },
+        { type: 'PERIMETER', target: 18, required: 4, text: "Çevresi tam <span class=\"fosfor\">18 br</span> olan 4 <strong>farklı</strong> dikdörtgen çiz.", insight: "Gördüğün gibi aynı çit uzunluğu ile 8'den 20'ye kadar çok farklı alanlar kaplayabiliyoruz." },
+        { type: 'AREA', target: 20, required: 3, text: "Alanı <span class=\"fosfor\">20 br²</span> olan 3 <strong>farklı</strong> dikdörtgen çiz.", insight: "Çok iyi! Alan sabitken çevre 18'den 42'ye kadar uzayabiliyor." },
+        { type: 'PERIMETER', target: 20, required: 5, text: "Çevresi <span class=\"fosfor\">20 br</span> olan 5 <strong>farklı</strong> dikdörtgen çiz.", insight: "Mükemmel mimar! Çit uzunluğun sabitken alanı 9 ile 25 arasında değiştirebildiğini gördün." },
+        { type: 'AREA', target: 24, required: 4, text: "Zor görev: Alanı <span class=\"fosfor\">24 br²</span> olan 4 <strong>farklı</strong> dikdörtgen çiz.", insight: "Devasa şekilleri sığdırmayı başardın! Aynı alana sahip 4 farklı çevre uzunluğu keşfettin." },
+        { type: 'PERIMETER', target: 26, required: 6, text: "Efsane görev: Çevresi <span class=\"fosfor\">26 br</span> olan 6 <strong>farklı</strong> dikdörtgen sığdır.", insight: "Efsanevi mimar! Tüm olasılıkları buldun. Artık bir geometri ustasısın!" }
+    ];
+
+    // Dikdörtgen renkleri: temanın kalem renkleri (tema değişince çizim de tablo da güncellenir)
+    const colorPalette = ['mavi', 'mor', 'sari', 'kirmizi', 'yesil', 'turuncu'];
+
+    let currentLevel = 0;
+    let baseScore = 0;
+    let score = 0;
+
+    let foundRectKeys = [];
+    let permanentRects = [];
+    let isFreeMode = false;
+
+    const canvas = document.getElementById('gridCanvas');
+    const ctx = canvas.getContext('2d');
+    const kutu = document.getElementById('canvas-container');
+    const gridSize = 25;
+    let boyut = 400;                 // tuvalin ekrandaki kenar uzunluğu (px)
+    let cellSize = boyut / gridSize;
+    const FONT = '"Atkinson Hyperlegible Next", sans-serif';
+
+    let isDrawing = false;
+    let startCol = 0, startRow = 0;
+    let currentCol = 0, currentRow = 0;
+
+    // Çizim renkleri temadan gelir; tema değişince yeniden okunur
+    let R = {};
+    function readColors() {
+        for (const ad of ['yuzey', 'murekkep', 'murekkep-3', 'k-alan', ...colorPalette]) R[ad] = Kabuk.renk(ad);
+        const alfa = getComputedStyle(document.querySelector('.oyun')).getPropertyValue('--boya-alfa').trim();
+        R.boyaAlfa = alfa ? parseFloat(alfa) / 100 : 1;
+        R.tahta = document.documentElement.dataset.tema === 'tahta';
+    }
+
+    // Tuval kutunun boyuna göre (keskin çizim için cihaz piksel oranıyla) yeniden boyutlanır
+    function boyutla() {
+        const yeni = kutu.clientWidth;
+        if (!yeni) return;
+        const dpr = window.devicePixelRatio || 1;
+        boyut = yeni;
+        cellSize = boyut / gridSize;
+        canvas.width = Math.round(boyut * dpr);
+        canvas.height = Math.round(boyut * dpr);
+        ctx.setTransform(canvas.width / boyut, 0, 0, canvas.height / boyut, 0, 0);
+        drawGrid();
+    }
+
+    function drawGrid() {
+        ctx.clearRect(0, 0, boyut, boyut);
+        ctx.fillStyle = R.yuzey;
+        ctx.fillRect(0, 0, boyut, boyut);
+
+        // birim kareler: defter karesi gibi ince çizgiler
+        ctx.save();
+        ctx.globalAlpha = .55;
+        ctx.strokeStyle = R['murekkep-3'];
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 1; i < gridSize; i++) {
+            const p = Math.round(i * cellSize) + .5;
+            ctx.moveTo(p, 0); ctx.lineTo(p, boyut);
+            ctx.moveTo(0, p); ctx.lineTo(boyut, p);
+        }
+        ctx.stroke();
+        ctx.restore();
+
+        const yaziBoy = Math.round(Math.max(11, Math.min(15, cellSize * .5)));
+
+        for (let rect of permanentRects) {
+            let x = rect.c * cellSize; let y = rect.r * cellSize;
+            let w = rect.w * cellSize; let h = rect.h * cellSize;
+            const renk = R[rect.style];
+
+            ctx.globalAlpha = R.tahta ? .34 : .28; ctx.fillStyle = renk; ctx.fillRect(x, y, w, h); ctx.globalAlpha = 1;
+            // kenar çizgisi şeklin içine çizilir: tuvalin kenarında kesilmez, komşu şekle taşmaz
+            ctx.strokeStyle = renk; ctx.lineWidth = 3; ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
+
+            ctx.fillStyle = R.murekkep; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = `bold ${yaziBoy}px ${FONT}`;
+            if (rect.w >= 2 && rect.h >= 2) {
+                ctx.fillText(`A:${rect.area}`, x + w/2, y + h/2 - yaziBoy * .6);
+                ctx.fillText(`Ç:${rect.perimeter}`, x + w/2, y + h/2 + yaziBoy * .6);
+            } else if (rect.w >= 3 || rect.h >= 3) {
+                ctx.fillText(`A:${rect.area} Ç:${rect.perimeter}`, x + w/2, y + h/2);
+            }
+        }
+
+        if (isDrawing) {
+            let minC = Math.min(startCol, currentCol); let maxC = Math.max(startCol, currentCol);
+            let minR = Math.min(startRow, currentRow); let maxR = Math.max(startRow, currentRow);
+            let widthUnits = maxC - minC + 1; let heightUnits = maxR - minR + 1;
+
+            let area = widthUnits * heightUnits;
+            let perimeter = 2 * (widthUnits + heightUnits);
+
+            let x = minC * cellSize; let y = minR * cellSize;
+            let w = widthUnits * cellSize; let h = heightUnits * cellSize;
+
+            // seçilen kareler fosforla boyanır, çevresi turuncu kalemle çizilir
+            ctx.globalAlpha = R.boyaAlfa; ctx.fillStyle = R['k-alan']; ctx.fillRect(x, y, w, h); ctx.globalAlpha = 1;
+            ctx.strokeStyle = R.turuncu;
+            ctx.lineWidth = 3; ctx.setLineDash([6, 5]); ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3); ctx.setLineDash([]);
+
+            // canlı ölçü: alan yeşil, çevre turuncu
+            const boy = yaziBoy + 3;
+            ctx.font = `bold ${boy}px ${FONT}`; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+            const a = `A:${area}`, c = `  Ç:${perimeter}`;
+            const genislik = ctx.measureText(a + c).width;
+            const tx = Math.max(2, Math.min(x, boyut - genislik - 4));
+            const ty = y > boy + 8 ? y - 7 : y + h + boy + 4;
+            ctx.lineWidth = 4; ctx.strokeStyle = R.yuzey; ctx.lineJoin = 'round';
+            ctx.strokeText(a + c, tx, ty);
+            ctx.fillStyle = R.yesil; ctx.fillText(a, tx, ty);
+            ctx.fillStyle = R.turuncu; ctx.fillText(c, tx + ctx.measureText(a).width, ty);
+        }
+    }
+
+    function getGridPos(e) {
+        let rect = canvas.getBoundingClientRect();
+        let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        const kare = rect.width / gridSize;
+
+        let c = Math.floor((clientX - rect.left) / kare);
+        let r = Math.floor((clientY - rect.top) / kare);
+        c = Math.max(0, Math.min(c, gridSize - 1));
+        r = Math.max(0, Math.min(r, gridSize - 1));
+        return { c, r };
+    }
+
+    function startDrag(e) {
+        if (e.cancelable) e.preventDefault();
+        isDrawing = true;
+        let pos = getGridPos(e);
+        startCol = pos.c; startRow = pos.r;
+        currentCol = pos.c; currentRow = pos.r;
+        drawGrid();
+    }
+
+    function onDrag(e) {
+        if (!isDrawing) return;
+        if (e.cancelable) e.preventDefault();
+        let pos = getGridPos(e);
+        currentCol = pos.c; currentRow = pos.r;
+        drawGrid();
+    }
+
+    function endDrag(e) {
+        if (!isDrawing) return;
+        isDrawing = false;
+        checkDrawing();
+        drawGrid();
+    }
+
+    canvas.addEventListener('mousedown', startDrag); window.addEventListener('mousemove', onDrag); window.addEventListener('mouseup', endDrag);
+    canvas.addEventListener('touchstart', startDrag, {passive: false}); window.addEventListener('touchmove', onDrag, {passive: false}); window.addEventListener('touchend', endDrag);
+
+    // başlıktaki sekmeler: zaten seçili olana basınca bir şey olmaz
+    function modSec(serbest) {
+        if (serbest !== isFreeMode) toggleFreeMode();
+    }
+
+    function toggleFreeMode() {
+        isFreeMode = !isFreeMode;
+        document.getElementById('btn-toggle-mode').setAttribute('aria-selected', isFreeMode);
+        document.getElementById('btn-gorevler').setAttribute('aria-selected', !isFreeMode);
+        if (isFreeMode) {
+            loadFreeMode();
+        } else {
+            loadLevel();
+        }
+    }
+
+    function loadFreeMode() {
+        foundRectKeys = [];
+        permanentRects = [];
+        document.getElementById('level-wrapper').hidden = true;
+        document.getElementById('mission-card-bg').dataset.tur = 'serbest';
+        document.getElementById('mission-type').innerText = "Sınır yok";
+        document.getElementById('mission-text').innerText = "İstediğin boyutta şekiller çizerek alan ve çevresini anında keşfet!";
+
+        document.getElementById('progress-fill').style.width = "100%";
+
+        document.getElementById('score-wrapper').hidden = true;
+
+        document.getElementById('discovery-list').innerHTML = "";
+        drawGrid();
+        showToast("Serbest moda geçildi!", true);
+    }
+
+    function loadLevel() {
+        if (currentLevel >= levels.length) currentLevel = 0;
+        let lvl = levels[currentLevel];
+        foundRectKeys = [];
+        permanentRects = [];
+
+        score = baseScore;
+        document.getElementById('score-wrapper').hidden = false;
+        document.getElementById('score-display').innerText = score;
+
+        document.getElementById('level-wrapper').hidden = false;
+        document.getElementById('level-display-text').innerText = currentLevel + 1;
+        document.getElementById('mission-text').innerHTML = lvl.text;
+        document.getElementById('mission-type').innerText = lvl.type === 'AREA' ? "Hedef: alan" : "Hedef: çevre";
+        document.getElementById('mission-card-bg').dataset.tur = lvl.type === 'AREA' ? 'alan' : 'cevre';
+
+        // HATA ÇÖZÜMÜ: Göreve dönüldüğünde tablo tamamen temizleniyor
+        document.getElementById('discovery-list').innerHTML = "";
+
+        updateBoard();
+        drawGrid();
+    }
+
+    function clearCanvas() {
+        foundRectKeys = [];
+        permanentRects = [];
+
+        if (!isFreeMode) {
+            score = baseScore;
+            document.getElementById('score-display').innerText = score;
+        }
+
+        document.getElementById('discovery-list').innerHTML = "";
+        if(!isFreeMode) document.getElementById('progress-fill').style.width = "0%";
+
+        drawGrid();
+        showToast("Tuval tertemiz oldu!", true);
+    }
+
+    let toastZamani = null;
+    function showToast(msg, isSuccess = false) {
+        let toast = document.getElementById('toast-msg');
+        toast.innerText = msg;
+        toast.className = 'toast gorunur ' + (isSuccess ? 'dogru' : 'yanlis');
+        clearTimeout(toastZamani);
+        toastZamani = setTimeout(() => { toast.classList.remove('gorunur'); }, 2000);
+    }
+
+    function checkDrawing() {
+        let minC = Math.min(startCol, currentCol); let maxC = Math.max(startCol, currentCol);
+        let minR = Math.min(startRow, currentRow); let maxR = Math.max(startRow, currentRow);
+        let w = maxC - minC + 1; let h = maxR - minR + 1;
+
+        let area = w * h; let perimeter = 2 * (w + h);
+        let shortSide = Math.min(w, h); let longSide = Math.max(w, h);
+        let shapeKey = `${shortSide}x${longSide}`;
+
+        for (let rect of permanentRects) {
+            if (minC < rect.c + rect.w && minC + w > rect.c && minR < rect.r + rect.h && minR + h > rect.r) {
+                showToast("Şekiller üst üste gelemez! Boş bir alana çiz.");
+                return;
+            }
+        }
+
+        if (!isFreeMode) {
+            let lvl = levels[currentLevel];
+            let isValid = false;
+            if (lvl.type === 'AREA' && area === lvl.target) isValid = true;
+            if (lvl.type === 'PERIMETER' && perimeter === lvl.target) isValid = true;
+
+            if (!isValid) {
+                showToast(`Yanlış! Çizdiğin: Alan = ${area}, Çevre = ${perimeter}`);
+                return;
+            }
+
+            if (foundRectKeys.includes(shapeKey)) {
+                showToast(`Bu boyutları (${shortSide} × ${longSide}) zaten buldun! Başka şekil dene.`);
+                return;
+            }
+        }
+
+        let shapeColor = colorPalette[permanentRects.length % colorPalette.length];
+        if(!isFreeMode) foundRectKeys.push(shapeKey);
+
+        permanentRects.push({
+            key: shapeKey, c: minC, r: minR, w: w, h: h,
+            area: area, perimeter: perimeter, style: shapeColor
+        });
+
+        if (!isFreeMode) {
+            score = baseScore + (foundRectKeys.length * 100);
+            document.getElementById('score-display').innerText = score;
+        }
+
+        showToast("Harika çizim!", true);
+        updateBoard(shortSide, longSide, area, perimeter, `var(--${shapeColor})`);
+
+        if (!isFreeMode && foundRectKeys.length >= levels[currentLevel].required) {
+            baseScore = score;
+            setTimeout(levelComplete, 600);
+        }
+    }
+
+    function updateBoard(w = 0, h = 0, a = 0, p = 0, colorHex = "") {
+        let list = document.getElementById('discovery-list');
+
+        if (w > 0) {
+            let rowHTML = `
+            <div class="table-row">
+                <div class="col-dim">
+                    <span class="color-dot" style="background-color: color-mix(in srgb, ${colorHex} 28%, var(--yuzey)); border-color: ${colorHex}"></span>
+                    ${w} × ${h}
+                </div>
+                <div class="col-area">${a}</div>
+                <div class="col-perim">${p}</div>
+            </div>`;
+            list.insertAdjacentHTML('afterbegin', rowHTML);
+        }
+
+        if (!isFreeMode) {
+            let progress = (foundRectKeys.length / levels[currentLevel].required) * 100;
+            document.getElementById('progress-fill').style.width = progress + "%";
+        }
+    }
+
+    // Bölüm sonu penceresi; aynı anda iki kez açılmasın diye bayrakla korunur
+    let bolumPenceresi = false;
+    function levelComplete() {
+        if (bolumPenceresi) return;
+        bolumPenceresi = true;
+        Kabuk.pencere({
+            baslik: 'Bölüm tamamlandı!',
+            html: `<p>${levels[currentLevel].insight}</p>`,
+            dugme: 'Sıradaki görev'
+        }).then(() => { bolumPenceresi = false; nextLevel(); });
+    }
+
+    function nextLevel() {
+        currentLevel++;
+
+        if (currentLevel >= levels.length) {
+            currentLevel = 0;
+            baseScore = 0;
+            Kabuk.pencere({
+                baslik: 'Mükemmel!',
+                html: '<p>Tüm görevleri bitirdin. Şimdi serbest moda geçiyorsun!</p>',
+                dugme: 'Serbest moda geç'
+            }).then(toggleFreeMode);
+            return;
+        }
+        loadLevel();
+    }
+
+    readColors();
+    Kabuk.temaDegisince(() => { readColors(); drawGrid(); });
+    new ResizeObserver(boyutla).observe(kutu);
+    boyutla();
+    loadLevel();
+    // yazı tipi yüklenince etiketler doğru yazı tipiyle yeniden çizilsin
+    if (document.fonts) document.fonts.ready.then(drawGrid);
+</script>
+</body>
+</html>

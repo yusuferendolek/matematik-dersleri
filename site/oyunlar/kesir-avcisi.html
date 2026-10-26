@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kesir Avcısı – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    .oyun {
+        container-type: inline-size;
+        display: flex;
+        flex-direction: column;
+    }
+    .duzen {
+        margin: auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: clamp(18px, 3vh, 32px);
+        padding: 24px 16px 32px;
+        text-align: center;
+    }
+
+    .instruction { max-width: 62ch; font-size: clamp(15px, 1.3vw, 18px); text-wrap: balance; }
+
+    /* Soru kutusu */
+    .question-box {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 32px;
+        border: 3px dashed var(--mavi);
+        border-radius: var(--kose);
+        background: var(--yuzey);
+    }
+    .question-text { font-size: clamp(20px, 2.4vw, 26px); font-weight: 700; }
+
+    /* Kesir görünümü */
+    .fraction-container {
+        display: flex;
+        align-items: center;
+        font-size: clamp(34px, 4vw, 44px);
+        font-weight: 800;
+        color: var(--kirmizi);
+        font-variant-numeric: tabular-nums;
+    }
+    .whole-number { margin-right: 8px; }
+    .fraction { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+    .numerator { border-bottom: 4px solid var(--kirmizi); padding: 0 5px; }
+    .denominator { padding: 0 5px; }
+
+    /* Sayı doğrusu: deftere mürekkeple çizilmiş. Bütün ölçüler --u biriminde;
+       --u, doğrunun genişliğiyle büyür (900px genişlikte 1px). */
+    .number-line-container {
+        --u: clamp(.75px, min(100cqw - 32px, 1200px) / 900, 1.34px);
+        width: min(100cqw - 32px, 1200px);
+        height: calc(135 * var(--u));
+        position: relative;
+        margin-top: calc(24 * var(--u));
+        flex: none;
+    }
+
+    /* Tıklanabilir geniş alan (sadece %5 ile %95 arası – sayılar arası) */
+    .click-area {
+        position: absolute;
+        top: calc(20 * var(--u));
+        left: 5%;
+        right: 5%;
+        height: calc(80 * var(--u));
+        z-index: 10;
+        cursor: crosshair;
+    }
+
+    /* Ana çizgi ve oklar (sayılardan biraz daha geniş) */
+    .main-line {
+        position: absolute;
+        top: calc(61 * var(--u));
+        left: .5%;
+        right: .5%;
+        height: max(2px, calc(4 * var(--u)));
+        background: var(--murekkep);
+        border-radius: 2px;
+    }
+    /* Sayı doğrusunun sonsuza uzadığını belirten oklar */
+    .main-line::before, .main-line::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: calc(14 * var(--u));
+        height: calc(14 * var(--u));
+        border: solid var(--murekkep);
+        border-width: max(2px, calc(4 * var(--u))) max(2px, calc(4 * var(--u))) 0 0;
+        border-radius: 2px;
+    }
+    .main-line::before { left: 0; transform: translateY(-50%) rotate(-135deg); transform-origin: center; margin-left: calc(-2 * var(--u)); }
+    .main-line::after { right: 0; transform: translateY(-50%) rotate(45deg); margin-right: calc(-2 * var(--u)); }
+
+    /* Çentikler ve rakamlar */
+    .tick {
+        position: absolute;
+        top: calc(47 * var(--u));
+        width: max(2px, calc(4 * var(--u)));
+        height: calc(32 * var(--u));
+        background: var(--murekkep);
+        border-radius: 2px;
+        transform: translateX(-50%);
+        transition: all 0.5s ease;
+    }
+    .tick-label {
+        position: absolute;
+        top: calc(86 * var(--u));
+        transform: translateX(-50%);
+        font-size: calc(32 * var(--u));
+        font-weight: 800;
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+        transition: all 0.5s ease;
+    }
+
+    /* İğne (öğrencinin tahmini): kalemle işaretlenmiş */
+    .pin {
+        position: absolute;
+        top: calc(63 * var(--u));
+        width: calc(34 * var(--u));
+        height: calc(46 * var(--u));
+        transform: translate(-50%, -100%);
+        pointer-events: none;
+        transition: left 0.1s ease-out;
+        z-index: 20;
+        display: none;
+        color: var(--kalem);
+    }
+    .pin svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+    /* Kesin sonuç çizgisi (sayı doğrusunu kesen küçük doğru parçası) */
+    .exact-mark {
+        position: absolute;
+        top: calc(38 * var(--u));
+        width: max(4px, calc(6 * var(--u)));
+        height: calc(50 * var(--u));
+        background: var(--dogru);
+        border-radius: 3px;
+        box-shadow: 0 0 0 calc(4 * var(--u)) color-mix(in srgb, var(--dogru) 22%, transparent);
+        transform: translateX(-50%);
+        display: none;
+        z-index: 15;
+    }
+
+    #message {
+        min-height: 2.6em;
+        max-width: 50ch;
+        font-size: clamp(18px, 2vw, 22px);
+        font-weight: 800;
+    }
+
+    /* Puan artınca */
+    #score-display { transition: transform .2s, color .2s; }
+
+    /* Aralık büyüyünce */
+    .level-up-anim { animation: flashLevel 1s; }
+    @keyframes flashLevel {
+        50% { transform: scale(1.15); background: color-mix(in srgb, var(--sari) 35%, var(--yuzey)); border-color: var(--sari); }
+    }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-sag">
+        <span class="durum" id="level-container"><span class="durum-ad">Aralık</span><b class="durum-deger" id="range-display">0–1</b></span>
+        <span class="durum"><span class="durum-ad">Toplam puan</span><b class="durum-deger" id="score-display">0</b></span>
+    </div>
+</header>
+<script>Kabuk.bar('kesir-avcisi');</script>
+
+<main class="oyun">
+<div class="duzen">
+    <p class="ipucu instruction">Tıklayarak iğneyi kesrin olduğu yere tam olarak yerleştirmeye çalışın! (En fazla 1000 puan)</p>
+
+    <div class="question-box" id="q-box">
+        <div class="question-text">Sayı doğrusunda bulun:</div>
+        <div id="fraction-display" class="fraction-container" aria-live="polite"></div>
+    </div>
+
+    <div class="number-line-container">
+        <!-- Tıklama alanı (sayı doğrusunun görünür uzunluğu kadar) -->
+        <div class="click-area" id="click-area"></div>
+
+        <!-- Çizgi ve oklar (sayılardan daha geniş) -->
+        <div class="main-line"></div>
+
+        <!-- Çentikler JS ile eklenecek -->
+        <div id="ticks-container"></div>
+
+        <!-- Öğrencinin iğnesi -->
+        <div class="pin" id="user-pin">
+            <svg viewBox="0 0 24 32" aria-hidden="true"><path d="M12 31.5S2 20.6 2 12.5a10 10 0 0 1 20 0c0 8.1-10 19-10 19z" fill="currentColor" stroke="var(--murekkep)" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="4" fill="var(--kagit)"/></svg>
+        </div>
+        <!-- Tam sonucu gösteren doğru parçası -->
+        <div class="exact-mark" id="exact-mark"></div>
+    </div>
+
+    <button class="dugme ana buyuk btn-check" id="btn-check" onclick="checkAnswer()" disabled>Tahmin edin</button>
+    <div id="message" role="status"></div>
+</div>
+</main>
+
+<script>
+    let score = 0;
+    let maxVal = 1; // Sayı doğrusunun sağ ucu (başlangıçta 0–1)
+    let isChecking = false;
+
+    let targetValue = 0;
+    let userGuessValue = null;
+
+    const clickArea = document.getElementById('click-area');
+    const userPin = document.getElementById('user-pin');
+    const exactMark = document.getElementById('exact-mark');
+    const btnCheck = document.getElementById('btn-check');
+    const messageDisplay = document.getElementById('message');
+    const ticksContainer = document.getElementById('ticks-container');
+
+    // Sayı doğrusunun çentiklerini dinamik oluşturma
+    function drawNumberLine() {
+        ticksContainer.innerHTML = '';
+        for (let i = 0; i <= maxVal; i++) {
+            // Sayıların %5 ile %95 arasında dizilimi devam ediyor
+            let pct = 5 + (i / maxVal) * 90;
+            ticksContainer.innerHTML += `
+                <div class="tick" style="left: ${pct}%;"></div>
+                <div class="tick-label" style="left: ${pct}%;">${i}</div>
+            `;
+        }
+        document.getElementById('range-display').innerText = `0–${maxVal}`;
+    }
+
+    // Farenin tıklandığı yeri hesaplama
+    clickArea.addEventListener('mousedown', function(e) {
+        if (isChecking) return;
+
+        const rect = clickArea.getBoundingClientRect();
+        let clickX = e.clientX - rect.left;
+
+        if (clickX < 0) clickX = 0;
+        if (clickX > rect.width) clickX = rect.width;
+
+        // X pozisyonunu oran olarak hesapla (tıklama alanı 0'dan 1'e)
+        let percentage = (clickX / rect.width);
+
+        // İğneyi yerleştir (%5 – %95 aralığına oturtarak)
+        let visualLeft = 5 + (percentage * 90);
+        userPin.style.left = visualLeft + '%';
+        userPin.style.display = 'block';
+
+        // Tahmin edilen gerçek matematiksel değer
+        userGuessValue = percentage * maxVal;
+
+        btnCheck.disabled = false;
+    });
+
+    function generateQuestion() {
+        isChecking = false;
+        userGuessValue = null;
+        userPin.style.display = 'none';
+        exactMark.style.display = 'none';
+        btnCheck.disabled = true;
+        messageDisplay.innerText = "";
+
+        // --- ZORLUK (ARALIK) KONTROLÜ ---
+        // Her 5000 puanda sayı doğrusu 1 birim uzar. (En fazla 5'e kadar)
+        let newMaxVal = Math.floor(score / 5000) + 1;
+        if (newMaxVal > 5) {
+            // 25.000 puan veya üstü ise kazanma penceresi
+            Kabuk.pencere({
+                baslik: 'Kazandınız!',
+                html: `<p>Tüm sayı doğrusu aralıklarını başarıyla tamamladınız!</p>
+                       <p>Muhteşem puanınız: <b id="final-score">${score}</b></p>`,
+                dugme: 'Yeniden başlayın'
+            }).then(() => location.reload());
+            return;
+        }
+
+        // Sayı doğrusu genişliyorsa arayüzü güncelle
+        if (newMaxVal !== maxVal) {
+            maxVal = newMaxVal;
+            drawNumberLine();
+            let lvl = document.getElementById('level-container');
+            lvl.classList.remove('level-up-anim');
+            void lvl.offsetWidth; // Reflow
+            lvl.classList.add('level-up-anim');
+        }
+
+        // --- KESİR ÜRETİMİ ---
+        let denominators = [2, 3, 4, 5, 6, 8, 10];
+        let den = denominators[Math.floor(Math.random() * denominators.length)];
+        let num;
+
+        do {
+            // maxVal = 1 ise sadece basit kesir üretir (num < den).
+            // maxVal > 1 ise bileşik kesirler de üretebilir.
+            num = Math.floor(Math.random() * (maxVal * den - 1)) + 1;
+        } while (num % den === 0); // Tam sayılara denk gelmesin
+
+        targetValue = num / den;
+
+        // Kesri ekrana yazdırma (bileşik ya da tam sayılı olarak rastgele)
+        let showAsMixed = (maxVal > 1 && num > den && Math.random() > 0.4);
+        let fractionHTML = "";
+
+        if (showAsMixed) {
+            let whole = Math.floor(num / den);
+            let remainder = num % den;
+            fractionHTML = `
+                <div class="whole-number">${whole}</div>
+                <div class="fraction">
+                    <span class="numerator">${remainder}</span>
+                    <span class="denominator">${den}</span>
+                </div>
+            `;
+        } else {
+            fractionHTML = `
+                <div class="fraction">
+                    <span class="numerator">${num}</span>
+                    <span class="denominator">${den}</span>
+                </div>
+            `;
+        }
+
+        document.getElementById('fraction-display').innerHTML = fractionHTML;
+    }
+
+    function checkAnswer() {
+        isChecking = true;
+        btnCheck.disabled = true;
+
+        // 1. Tam sonucu (yeşil doğru parçasını) göster
+        let correctVisualLeft = 5 + ((targetValue / maxVal) * 90);
+        exactMark.style.left = correctVisualLeft + '%';
+        exactMark.style.display = 'block';
+
+        // 2. Hata payı ve puan hesaplama (en fazla 1000 puan)
+        let error = Math.abs(userGuessValue - targetValue);
+
+        // Tolerans: sayı doğrusunun %25'inden fazla saparsa 0 puan alır.
+        let maxErrorAllowed = maxVal * 0.25;
+        let points = 0;
+
+        if (error <= maxVal * 0.01) {
+            // %1'lik hata payı içinde ise "Kusursuz!" sayılır
+            points = 1000;
+        } else if (error < maxErrorAllowed) {
+            // Hata ne kadar küçükse puan o kadar 1000'e yakın olur
+            let errorRatio = error / maxErrorAllowed;
+            points = Math.round(1000 * (1 - errorRatio));
+        }
+
+        // Puanı ekle
+        score += points;
+
+        // Skoru animasyonla artır
+        let scoreEl = document.getElementById('score-display');
+        scoreEl.innerText = score;
+        scoreEl.style.transform = "scale(1.3)";
+        scoreEl.style.color = "var(--turuncu)";
+        setTimeout(() => {
+            scoreEl.style.transform = "scale(1)";
+            scoreEl.style.color = "";
+        }, 300);
+
+        // Geri bildirim mesajı
+        if (points === 1000) {
+            messageDisplay.style.color = 'var(--dogru)';
+            messageDisplay.innerText = "Kusursuz! Tam üstüne bastınız! (+1000 puan)";
+        } else if (points >= 700) {
+            messageDisplay.style.color = 'var(--mavi)';
+            messageDisplay.innerText = `Harika tahmin! Çok yaklaştınız. (+${points} puan)`;
+        } else if (points >= 300) {
+            messageDisplay.style.color = 'var(--sari)';
+            messageDisplay.innerText = `Fena değil, ama biraz daha dikkatli olmalısınız. (+${points} puan)`;
+        } else if (points > 0) {
+            messageDisplay.style.color = 'var(--turuncu)';
+            messageDisplay.innerText = `Ucu ucuna puan kaptınız. Kesirlerin yerini iyi düşünün! (+${points} puan)`;
+        } else {
+            messageDisplay.style.color = 'var(--yanlis)';
+            messageDisplay.innerText = `Maalesef çok uzak kaldınız... Yeşil çizgiye bakın! (0 puan)`;
+        }
+
+        // 3 saniye sonra yeni soruya geç
+        setTimeout(generateQuestion, 3000);
+    }
+
+    // Oyunu başlat
+    drawNumberLine();
+    generateQuestion();
+</script>
+</body>
+</html>

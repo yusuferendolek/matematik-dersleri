@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Şans Çarkı – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    .duzen {
+        max-width: 1200px;
+        min-height: 100%;
+        margin: 0 auto;
+        padding: 24px 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 32px;
+        align-items: center;
+    }
+    @media (max-width: 860px) {
+        .duzen { grid-template-columns: 1fr; align-items: start; gap: 24px; }
+    }
+
+    /* Çark: deftere / tahtaya çizilmiş, ayrı kutu yok */
+    .cark-alani { display: flex; flex-direction: column; align-items: center; gap: 18px; min-width: 0; }
+    #wheel {
+        display: block;
+        width: clamp(240px, min(100%, 100dvh - 300px), 540px);
+        aspect-ratio: 1;
+    }
+    .dugmeler { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center; }
+    .sonuc { min-height: 34px; font-size: 24px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+    .sonuc .renk { width: 20px; height: 20px; border-radius: 50%; background: var(--r); border: 2px solid var(--murekkep); }
+
+    /* Sonuç grafiği */
+    .grafik { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px 32px; }
+    #chart { width: clamp(180px, 100%, 250px); aspect-ratio: 1; flex: none; overflow: visible; }
+    #chart .dilim { stroke: var(--yuzey); stroke-width: 2; stroke-linejoin: round; }
+    #chart .dilim-yazi {
+        font: 700 13px var(--yazi);
+        fill: var(--murekkep);
+        paint-order: stroke;
+        stroke: var(--yuzey);
+        stroke-width: 4px;
+        stroke-linejoin: round;
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+    #chart .bos { fill: none; stroke: var(--kenarlik); stroke-width: 2; stroke-dasharray: 6 6; }
+    #chart .bos-yazi { font: 700 14px var(--yazi); fill: var(--murekkep-2); text-anchor: middle; dominant-baseline: central; }
+
+    .lejant { border-collapse: collapse; font-size: 17px; font-variant-numeric: tabular-nums; flex: none; }
+    .lejant th, .lejant td { padding: 7px 10px; text-align: right; white-space: nowrap; }
+    .lejant th:first-child, .lejant td:first-child { text-align: left; padding-left: 0; }
+    .lejant thead th { font-size: 14px; font-weight: 700; color: var(--murekkep-2); border-bottom: 1.5px solid var(--kenarlik); }
+    .lejant tbody td { border-bottom: 1.5px dashed var(--kenarlik); }
+    .lejant tfoot td { font-weight: 800; }
+    .lejant .ad { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; }
+    .lejant .ad i { width: 16px; height: 16px; border-radius: 4px; background: var(--r); flex: none; }
+    .lejant .sayi { font-weight: 800; }
+    .lejant .yuzde { color: var(--murekkep-2); font-weight: 700; }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar"></header>
+<script>Kabuk.bar('sans-carki');</script>
+
+<main class="oyun">
+<div class="duzen">
+    <section class="cark-alani">
+        <canvas id="wheel" width="300" height="300" role="img" aria-label="Kırmızı, mavi, yeşil ve sarı dilimli çark"></canvas>
+        <div class="dugmeler">
+            <button class="dugme ana buyuk" onclick="spin()">Çevir</button>
+            <button class="dugme" onclick="add100()">100 veri ekle</button>
+        </div>
+        <h2 class="sonuc" id="result" role="status">Sonuç:</h2>
+    </section>
+
+    <section class="panel">
+        <h2 class="panel-baslik">Sonuç grafiği</h2>
+        <div class="grafik">
+            <svg id="chart" viewBox="-110 -110 220 220" role="img" aria-label="Sonuç grafiği: henüz veri yok"></svg>
+            <table class="lejant">
+                <thead><tr><th>Renk</th><th>Sayı</th><th>Yüzde</th></tr></thead>
+                <tbody id="lejant-satirlar"></tbody>
+                <tfoot><tr><td>Toplam</td><td id="toplam">0</td><td></td></tr></tfoot>
+            </table>
+        </div>
+    </section>
+</div>
+</main>
+
+<script>
+// Renkler temadan gelir (içeriğin parçası): Kabuk.renk('kirmizi') …
+const colors = ["kirmizi", "mavi", "yesil", "sari"];
+const labels = ["Kırmızı", "Mavi", "Yeşil", "Sarı"];
+
+let results = [];
+
+// Weighted seçim
+function pickColor() {
+  let rand = Math.random() * 100;
+
+  if (rand < 40) return 0;
+  else if (rand < 60) return 1;
+  else if (rand < 80) return 2;
+  else return 3;
+}
+
+// Çark çizimi (çizim 300×300 birimlik bir alanda yapılır, tuval ekrana göre ölçeklenir)
+const wheel = document.getElementById("wheel");
+const ctx = wheel.getContext("2d");
+const CX = 150, CY = 158, R = 134;   // çark merkezi ve yarıçapı
+const OK_UC = 50;                    // okun ucu (çarkın üst kenarı CY - R = 24)
+
+let RENK = {};
+function readColors() {
+  for (const ad of [...colors, 'murekkep', 'yuzey', 'kagit']) RENK[ad] = Kabuk.renk(ad);
+}
+readColors();
+
+let sonAci = 0;   // son çizilen dönüş (tema değişince ve yeniden boyutlanınca aynı yerden çizilir)
+
+function drawWheel(rot) {
+  sonAci = rot;
+  ctx.clearRect(0, 0, 300, 300);
+
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(CX, CY);
+    ctx.arc(
+      CX, CY, R,
+      (i*90 + rot) * Math.PI/180,
+      ((i+1)*90 + rot) * Math.PI/180
+    );
+    ctx.closePath();
+    ctx.fillStyle = RENK[colors[i]];
+    ctx.fill();
+    ctx.strokeStyle = RENK.murekkep;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.stroke();
+  }
+
+  // dilim adları (renk ayırt etmeyi kolaylaştırır), dik durur
+  ctx.font = '700 15px "Atkinson Hyperlegible Next", sans-serif';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineWidth = 4;
+  for (let i = 0; i < 4; i++) {
+    const orta = (i*90 + 45 + rot) * Math.PI/180;
+    const x = CX + R * 0.62 * Math.cos(orta), y = CY + R * 0.62 * Math.sin(orta);
+    ctx.strokeStyle = RENK.yuzey;
+    ctx.strokeText(labels[i], x, y);
+    ctx.fillStyle = RENK.murekkep;
+    ctx.fillText(labels[i], x, y);
+  }
+
+  // çark dış çizgisi ve göbek
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, 0, Math.PI * 2);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = RENK.murekkep;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(CX, CY, 12, 0, Math.PI * 2);
+  ctx.fillStyle = RENK.yuzey;
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // ÜSTTE OK: çarkın tepesini (270°) gösterir, ucu dilimin içine girer
+  ctx.beginPath();
+  ctx.moveTo(CX, OK_UC);
+  ctx.lineTo(CX - 15, 4);
+  ctx.lineTo(CX + 15, 4);
+  ctx.closePath();
+  ctx.fillStyle = RENK.murekkep;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = RENK.kagit;
+  ctx.stroke();
+}
+
+// tuvali ekrandaki boyutuna göre keskin çiz
+function boyutla() {
+  const olcu = Math.round(wheel.clientWidth * (window.devicePixelRatio || 1));
+  if (!olcu) return;
+  if (wheel.width !== olcu) { wheel.width = olcu; wheel.height = olcu; }
+  ctx.setTransform(olcu / 300, 0, 0, olcu / 300, 0, 0);
+  drawWheel(sonAci);
+}
+new ResizeObserver(boyutla).observe(wheel);
+Kabuk.temaDegisince(() => { readColors(); drawWheel(sonAci); cizGrafik(sayilar()); });
+if (document.fonts) document.fonts.ready.then(() => drawWheel(sonAci));
+
+// Grafik: pasta grafik (SVG) ve yanında sayı / yüzde tablosu
+const chart = document.getElementById("chart");
+const lejant = document.getElementById("lejant-satirlar");
+lejant.innerHTML = labels.map((ad, i) => `<tr>
+    <td><span class="ad" style="--r: var(--${colors[i]})"><i></i>${ad}</span></td>
+    <td class="sayi" id="sayi-${i}">0</td>
+    <td class="yuzde" id="yuzde-${i}">–</td>
+  </tr>`).join('');
+
+const sayiYaz = n => n.toLocaleString('tr-TR');
+const yuzdeYaz = (c, toplam) => '%' + (c / toplam * 100).toLocaleString('tr-TR', { maximumFractionDigits: 1 });
+const nokta = (aci, r) => [r * Math.cos(aci * Math.PI / 180), r * Math.sin(aci * Math.PI / 180)].map(v => +v.toFixed(2));
+
+function sayilar() {
+  let counts = [0,0,0,0];
+  results.forEach(r => counts[r]++);
+  return counts;
+}
+
+function cizGrafik(counts) {
+  const toplam = counts.reduce((a, b) => a + b, 0);
+  let dilimler = '', yazilar = '';
+  if (!toplam) {
+    dilimler = '<circle class="bos" r="100"/><text class="bos-yazi">Henüz veri yok</text>';
+  } else {
+    let bas = -90;   // en üstten başlar, saat yönünde
+    counts.forEach((c, i) => {
+      if (!c) return;
+      const aci = c / toplam * 360;
+      const baslik = `<title>${labels[i]}: ${sayiYaz(c)} (${yuzdeYaz(c, toplam)})</title>`;
+      const stil = `style="fill: var(--${colors[i]})"`;
+      if (c === toplam) {
+        dilimler += `<circle class="dilim" r="100" ${stil}>${baslik}</circle>`;
+      } else {
+        const [x1, y1] = nokta(bas, 100), [x2, y2] = nokta(bas + aci, 100);
+        dilimler += `<path class="dilim" ${stil} d="M0 0L${x1} ${y1}A100 100 0 ${aci > 180 ? 1 : 0} 1 ${x2} ${y2}Z">${baslik}</path>`;
+      }
+      if (aci >= 30) {
+        const [x, y] = c === toplam ? [0, 0] : nokta(bas + aci / 2, 62);
+        yazilar += `<text class="dilim-yazi" x="${x}" y="${y}">${labels[i]}</text>`;
+      }
+      bas += aci;
+    });
+  }
+  chart.innerHTML = dilimler + yazilar;
+  chart.setAttribute('aria-label', 'Sonuç grafiği: ' + (toplam
+    ? labels.map((ad, i) => `${ad} ${sayiYaz(counts[i])}`).join(', ')
+    : 'henüz veri yok'));
+
+  counts.forEach((c, i) => {
+    document.getElementById('sayi-' + i).textContent = sayiYaz(c);
+    document.getElementById('yuzde-' + i).textContent = toplam ? yuzdeYaz(c, toplam) : '–';
+  });
+  document.getElementById('toplam').textContent = sayiYaz(toplam);
+}
+
+function updateChart() {
+  cizGrafik(sayilar());
+}
+
+function sonucYaz(i) {
+  document.getElementById("result").innerHTML =
+    `Sonuç: <span class="renk" style="--r: var(--${colors[i]})"></span>${labels[i]}`;
+}
+
+// Hızlı animasyon
+let donuyor = false; // dönerken tekrar basılırsa iki dönüş üst üste binmesin
+function spin() {
+  if (donuyor) return;
+  donuyor = true;
+  let selected = pickColor();
+  results.push(selected);
+
+  // ÜSTTEKİ OKA GÖRE: ok 270°'de; seçilen dilimin ortası oraya gelir
+  let targetAngle = 270 - (selected * 90 + 45);
+  targetAngle += Math.floor(Math.random() * 3 + 3) * 360;
+
+  let current = 0;
+
+  let anim = setInterval(() => {
+    current += 25;
+    drawWheel(current % 360);
+
+    if (current >= targetAngle) {
+      clearInterval(anim);
+      donuyor = false;
+
+      sonucYaz(selected);
+
+      updateChart();
+    }
+  }, 10);
+}
+
+// 100 veri ekleme
+function add100() {
+  for (let i = 0; i < 100; i++) {
+    results.push(pickColor());
+  }
+
+  updateChart();
+
+  document.getElementById("result").innerText =
+    "100 veri eklendi!";
+}
+
+// başlangıç
+boyutla();
+updateChart();
+</script>
+</body>
+</html>

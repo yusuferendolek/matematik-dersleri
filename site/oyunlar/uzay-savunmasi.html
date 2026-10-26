@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uzay Savunması: Milyonlar – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    .oyun {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 16px;
+    }
+
+    /* Uzay: deftere kalemle çizilmiş sahne (meteor avcısıyla aynı aile) */
+    #game-container {
+        flex: 1;
+        min-height: 360px;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* Yıldızlar: kalemle konmuş noktalar, yavaşça aşağı kayar (iki eş yarı, kesintisiz döngü) */
+    .stars {
+        position: absolute;
+        left: 0;
+        top: -100%;
+        width: 100%;
+        height: 200%;
+        pointer-events: none;
+        animation: moveStars 50s linear infinite;
+        z-index: 1;
+    }
+    .stars circle { fill: var(--murekkep-3); }
+    @keyframes moveStars { to { transform: translateY(50%); } }
+
+    /* Göktaşı: okunuşun yazdığı kart, üstünde kalemle çizilmiş göktaşı */
+    .asteroid {
+        position: absolute;
+        top: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(80%, 640px);
+        padding: 6px 18px 14px;
+        border: 2px dashed var(--kirmizi);
+        border-radius: var(--kose);
+        background: var(--yuzey);
+        text-align: center;
+        font-size: clamp(19px, 2.1vw, 28px);
+        font-weight: 700;
+        line-height: 1.3;
+        z-index: 4;
+    }
+    .asteroid svg { display: block; width: 44px; height: 52px; margin: 0 auto 4px; overflow: visible; }
+    .asteroid .iz { fill: none; stroke: var(--turuncu); stroke-width: 2.5; stroke-linecap: round; opacity: .6; }
+    .asteroid .kaya { fill: var(--turuncu); stroke: var(--murekkep); stroke-width: 2; }
+    .asteroid .krater { fill: color-mix(in srgb, var(--murekkep) 25%, transparent); }
+
+    /* Gemi: meteor avcısındaki mekiğin yukarı bakanı */
+    #ship {
+        position: absolute;
+        bottom: 18px;
+        left: 50%;
+        width: 56px;
+        transform: translateX(-50%);
+        transition: transform 0.1s;
+        z-index: 5;
+    }
+    #ship svg { display: block; width: 100%; height: auto; overflow: visible; }
+    #ship .govde { fill: var(--yuzey); stroke: var(--mavi); stroke-width: 2.5; stroke-linejoin: round; }
+    #ship .alev { fill: none; stroke: var(--turuncu); stroke-width: 2.5; stroke-linecap: round; }
+
+    /* Lazer: gemiden göktaşına uzanan kırmızı kalem çizgisi */
+    .laser {
+        position: absolute;
+        left: 50%;
+        width: 6px;
+        margin-left: -3px;
+        border-radius: 3px;
+        background: var(--kirmizi);
+        z-index: 3;
+        display: none;
+    }
+    .patlama {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        margin: -40px 0 0 -40px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--kirmizi) 55%, transparent);
+        pointer-events: none;
+        z-index: 6;
+        animation: patla .5s ease-out forwards;
+    }
+    @keyframes patla { from { transform: scale(.4); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
+
+    /* Başlangıç paneli */
+    .baslangic {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(440px, calc(100% - 32px));
+        padding: 22px 24px 24px;
+        text-align: center;
+        z-index: 20;
+    }
+    .baslangic p { font-size: 18px; margin-bottom: 18px; }
+
+    /* Cevap girişi */
+    #controls {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex: none;
+    }
+    #answer-input {
+        flex: 0 1 420px;
+        min-width: 0;
+        height: 54px;
+        text-align: center;
+        font-size: 26px;
+    }
+    #answer-input.salla { border-color: var(--yanlis); animation: salla .12s linear; }
+    @keyframes salla { 0% { transform: translateX(10px); } 50% { transform: translateX(-10px); } 100% { transform: translateX(0); } }
+
+    /* Başlıktaki rekor ve seviye vurguları */
+    #hud-high-score.kirildi { color: var(--dogru); }
+    .durum.parla { border-color: var(--kalem); }
+    .durum.parla .durum-deger { color: var(--kalem); }
+
+    /* "Gemi parçalandı" penceresi */
+    .yeni-rekor { font-size: 22px; font-weight: 800; color: var(--dogru); margin-bottom: 8px; }
+    .kacan {
+        margin: 2px 0 14px;
+        padding: 10px 14px 12px;
+        border: 2px solid var(--turuncu);
+        border-radius: var(--kose);
+        background: color-mix(in srgb, var(--turuncu) 10%, var(--yuzey));
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--turuncu);
+    }
+    .kacan b { display: block; margin-top: 2px; font-size: 32px; font-weight: 800; color: var(--murekkep); }
+    .kacan span { display: block; font-size: 15px; font-weight: 400; color: var(--murekkep-2); }
+
+    @media (max-width: 560px) {
+        .bar-sag { flex-wrap: wrap; row-gap: 6px; }
+        .asteroid { width: calc(100% - 24px); padding: 4px 12px 10px; }
+        #answer-input { font-size: 21px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .stars { animation: none; }
+    }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-sag">
+        <span class="durum"><span class="durum-ad">Skor</span><b class="durum-deger" id="score">0</b></span>
+        <span class="durum"><span class="durum-ad">Rekor</span><b class="durum-deger" id="hud-high-score">0</b></span>
+        <span class="durum" id="level-durum"><span class="durum-ad">Seviye</span><b class="durum-deger" id="level">1</b></span>
+    </div>
+</header>
+<script>Kabuk.bar('uzay-savunmasi');</script>
+
+<main class="oyun">
+    <div id="game-container" class="sahne">
+        <svg class="stars" id="stars" aria-hidden="true"></svg>
+
+        <div id="asteroid" class="asteroid" style="display: none">
+            <svg viewBox="0 0 44 52" aria-hidden="true">
+                <path class="iz" d="M13 3l5 19M22 0v20M31 3l-5 19"/>
+                <circle class="kaya" cx="22" cy="36" r="14"/>
+                <circle class="krater" cx="17" cy="33" r="3.5"/>
+                <circle class="krater" cx="27" cy="41" r="4.5"/>
+            </svg>
+            <span id="asteroid-text">Sayının okunuşu</span>
+        </div>
+        <div id="laser" class="laser"></div>
+        <div id="ship">
+            <svg viewBox="-24 -34 48 64" aria-hidden="true">
+                <path class="alev" d="M-5 13 Q0 28 5 13"/>
+                <path class="govde" d="M0 -30L20 20L0 10L-20 20Z"/>
+            </svg>
+        </div>
+
+        <!-- Başlangıç -->
+        <div id="start-screen" class="panel baslangic">
+            <p>Göktaşlarında yazan sayıyı radara (kutuya) rakamlarla gir, Enter'a bas ve gemini koru!</p>
+            <button class="dugme ana buyuk" id="basla-btn" onclick="startGame()">Başla</button>
+        </div>
+    </div>
+
+    <div id="controls">
+        <input class="giris" type="number" inputmode="numeric" id="answer-input" placeholder="Sayıyı rakamlarla gir" autocomplete="off" aria-label="Sayı">
+        <button class="dugme ana buyuk" id="fire-btn" type="button">Ateşle</button>
+    </div>
+</main>
+
+<script>
+    const birler = ["", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"];
+    const onlar = ["", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"];
+
+    function uclukOku(n) {
+        let yuzlerBas = Math.floor(n / 100);
+        let onlarBas = Math.floor((n % 100) / 10);
+        let birlerBas = n % 10;
+        let okunus = "";
+
+        if (yuzlerBas === 1) okunus += "yüz ";
+        else if (yuzlerBas > 1) okunus += birler[yuzlerBas] + " yüz ";
+        okunus += onlar[onlarBas] + (onlarBas > 0 ? " " : "");
+        okunus += birler[birlerBas] + (birlerBas > 0 ? " " : "");
+
+        return okunus.trim();
+    }
+
+    function sayiyiOku(sayi) {
+        if (sayi === 0) return "sıfır";
+        let milyonlar = Math.floor(sayi / 1000000);
+        let binler = Math.floor((sayi % 1000000) / 1000);
+        let kalan = sayi % 1000;
+
+        let sonuc = "";
+        if (milyonlar > 0) sonuc += uclukOku(milyonlar) + " milyon ";
+        if (binler === 1) sonuc += "bin ";
+        else if (binler > 1) sonuc += uclukOku(binler) + " bin ";
+        if (kalan > 0) sonuc += uclukOku(kalan);
+
+        return sonuc.trim();
+    }
+
+    // Oyun Değişkenleri
+    let score = 0;
+    let level = 1;
+    let currentNumber = 0;
+
+    // Cihaz hafızasından En Yüksek Skoru al (Yoksa 0 yap)
+    let highScore = localStorage.getItem("uzayMathHighScore") || 0;
+
+    let asteroidY = -100;
+    let baseSpeed = 0.25;
+    let currentSpeed = 0.25;
+
+    let gameLoop;
+    let isPlaying = false;
+    let isHit = false;      // doğru cevaptan yeni göktaşına kadar: göktaşı durur, ikinci kez vurulamaz
+    let lastTime = 0;
+
+    // DOM Elementleri
+    const asteroidEl = document.getElementById("asteroid");
+    const asteroidTextEl = document.getElementById("asteroid-text");
+    const answerInput = document.getElementById("answer-input");
+    const scoreEl = document.getElementById("score");
+    const hudHighScoreEl = document.getElementById("hud-high-score");
+    const levelEl = document.getElementById("level");
+    const levelBox = document.getElementById("level-durum");
+    const laserEl = document.getElementById("laser");
+    const shipEl = document.getElementById("ship");
+    const startScreen = document.getElementById("start-screen");
+    const gameContainer = document.getElementById("game-container");
+
+    // Oyunu açarken arayüzde rekoru göster
+    hudHighScoreEl.innerText = highScore;
+
+    // Yıldızlar: rastgele noktalar; alt yarı üst yarının kopyası, böylece kayarken dikiş görünmez
+    (function drawStars() {
+        let dots = "";
+        for (let i = 0; i < 90; i++) {
+            const x = (Math.random() * 100).toFixed(2), y = (Math.random() * 50).toFixed(2), r = (0.6 + Math.random() * 1.3).toFixed(1);
+            dots += `<circle cx="${x}%" cy="${y}%" r="${r}"/><circle cx="${x}%" cy="${(+y + 50).toFixed(2)}%" r="${r}"/>`;
+        }
+        document.getElementById("stars").innerHTML = dots;
+    })();
+
+    answerInput.addEventListener("keypress", function (event) {
+        if (event.key === "Enter" && isPlaying) {
+            event.preventDefault();
+            fireLaser();
+        }
+    });
+    // Dokunmatik tahta / telefon için Enter'ın düğmesi
+    document.getElementById("fire-btn").addEventListener("click", function () {
+        if (isPlaying) fireLaser();
+        answerInput.focus();
+    });
+
+    function startGame() {
+        startScreen.hidden = true;
+
+        score = 0;
+        level = 1;
+        baseSpeed = 0.25;
+
+        scoreEl.innerText = score;
+        levelEl.innerText = level;
+        hudHighScoreEl.innerText = highScore; // Başlangıçta rekoru yenile
+
+        isPlaying = true;
+        spawnAsteroid();
+        answerInput.value = "";
+        answerInput.focus();
+
+        cancelAnimationFrame(gameLoop);
+        lastTime = performance.now();
+        gameLoop = requestAnimationFrame(updateGame);
+    }
+
+    function spawnAsteroid() {
+        currentNumber = Math.floor(Math.random() * 999000000) + 10000;
+        asteroidTextEl.innerText = sayiyiOku(currentNumber);
+
+        asteroidY = -100;
+        asteroidEl.style.top = asteroidY + "px";
+        asteroidEl.style.display = "block";
+
+        currentSpeed = baseSpeed + (level * 0.05);
+        isHit = false;
+    }
+
+    function updateGame(now) {
+        if (!isPlaying) return;
+
+        // Hız 60 kare/saniyeye göre: 120-144 Hz ekranlarda göktaşı iki kat hızlı düşmesin
+        const frames = Math.max(0, Math.min(now - lastTime, 100)) / (1000 / 60);
+        lastTime = now;
+
+        if (!isHit) {
+            asteroidY += currentSpeed * frames;
+            asteroidEl.style.top = asteroidY + "px";
+
+            // Göktaşının alt kenarı geminin ucuna değdiğinde gemi parçalanır
+            let shipHitZone = shipEl.offsetTop - asteroidEl.offsetHeight;
+
+            if (asteroidY > shipHitZone) {
+                endGame();
+                return;
+            }
+        }
+
+        gameLoop = requestAnimationFrame(updateGame);
+    }
+
+    function explode() {
+        const boom = document.createElement("div");
+        boom.className = "patlama";
+        boom.style.left = "50%";
+        boom.style.top = (asteroidY + 42) + "px"; // göktaşı çiziminin ortası
+        gameContainer.appendChild(boom);
+        setTimeout(() => boom.remove(), 600);
+    }
+
+    function fireLaser() {
+        if (isHit) return;
+        let userAnswer = parseInt(answerInput.value);
+
+        if (userAnswer === currentNumber) {
+            isHit = true;
+            // Lazer gemiden göktaşına kadar uzanır
+            laserEl.style.top = (asteroidY + asteroidEl.offsetHeight) + "px";
+            laserEl.style.bottom = (gameContainer.clientHeight - shipEl.offsetTop) + "px";
+            laserEl.style.display = "block";
+            shipEl.style.transform = "translateX(-50%) scale(1.2)";
+
+            setTimeout(() => {
+                laserEl.style.display = "none";
+                shipEl.style.transform = "translateX(-50%) scale(1)";
+
+                explode();
+                asteroidEl.style.display = "none";
+
+                score += 100;
+                scoreEl.innerText = score;
+
+                // Oynarken rekor kırılırsa anlık olarak başlıkta güncelle
+                if (score > highScore) {
+                    hudHighScoreEl.innerText = score;
+                    hudHighScoreEl.classList.add("kirildi"); // Rekor kırıldığında yeşil yap
+                }
+
+                if (score % 300 === 0) {
+                    level++;
+                    levelEl.innerText = level;
+                    levelBox.classList.add("parla");
+                    setTimeout(() => levelBox.classList.remove("parla"), 500);
+                }
+
+                answerInput.value = "";
+
+                setTimeout(spawnAsteroid, 500);
+
+            }, 150);
+        } else {
+            answerInput.classList.remove("salla");
+            void answerInput.offsetWidth; // titremeyi yeniden başlat
+            answerInput.classList.add("salla");
+            setTimeout(() => answerInput.classList.remove("salla"), 300);
+
+            answerInput.value = "";
+        }
+    }
+
+    function endGame() {
+        isPlaying = false;
+        cancelAnimationFrame(gameLoop);
+
+        // Rekor Kontrolü
+        let isNewRecord = false;
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem("uzayMathHighScore", highScore); // Cihaza kaydet
+            isNewRecord = true;
+        }
+        hudHighScoreEl.classList.remove("kirildi"); // Oynarken yeşil olan rengi eski haline çevir
+
+        // Yandığı sorunun cevabı
+        const missed = new Intl.NumberFormat('tr-TR').format(currentNumber);
+
+        Kabuk.pencere({
+            baslik: 'Gemi parçalandı',
+            html: `${isNewRecord ? '<p class="yeni-rekor">Yeni rekor!</p>' : ''}
+                   <div class="kacan">Kaçırdığın sayı<b>${missed}</b><span>${sayiyiOku(currentNumber)}</span></div>
+                   <p>Son skor: <b>${score}</b></p>
+                   <p>En yüksek skor: <b>${highScore}</b></p>`,
+            dugme: 'Yeniden dene'
+        }).then(startGame);
+    }
+</script>
+</body>
+</html>

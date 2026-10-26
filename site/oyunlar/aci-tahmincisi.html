@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Açı Tahmincisi – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    .oyun { user-select: none; }
+
+    /* geniş ekranda: solda çizim alanı, sağda hedef ve sonuç; dar ekranda alt alta */
+    .duzen {
+        height: 100%;
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) clamp(300px, 26vw, 370px);
+        grid-template-rows: auto 1fr;
+        grid-template-areas: "sahne hedef" "sahne kontrol";
+        gap: 16px;
+    }
+
+    /* hedef açı */
+    .hedef { grid-area: hedef; text-align: center; padding: 18px; }
+    .hedef-ad { font-size: 16px; font-weight: 700; color: var(--murekkep-2); }
+    #target-angle {
+        --fk: var(--k-acilar);
+        display: inline-block;
+        margin-top: 2px;
+        font-size: clamp(48px, 5vw, 72px);
+        font-weight: 800;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* çizim alanı: açı deftere kalemle çizilir */
+    .aci-sahne {
+        grid-area: sahne;
+        min-height: 0;
+        container-type: size;
+        display: grid;
+        place-items: center;
+    }
+    #angleCanvas {
+        --cap: max(240px, min(100cqw, 100cqh) - 24px);
+        display: block;
+        width: var(--cap);
+        height: var(--cap);
+        cursor: pointer;
+        touch-action: none;
+    }
+    .lejant {
+        position: absolute;
+        left: 12px; bottom: 12px;
+        display: flex; flex-wrap: wrap; gap: 6px 16px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        background: var(--yuzey);
+        border: 1.5px solid var(--kenarlik);
+        font-size: 15px;
+        font-weight: 700;
+    }
+    .lejant span { display: inline-flex; align-items: center; gap: 6px; }
+    .lejant i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .nokta-hedef { background: var(--mavi); }
+    .nokta-sen { background: var(--kirmizi); }
+
+    /* kontrol düğmesi ve sonuç kartı */
+    .kontrol { grid-area: kontrol; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    #btn-check { width: 100%; white-space: normal; text-align: center; line-height: 1.2; padding-block: 8px; }
+
+    #feedback-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        text-align: center;
+        border-width: 2px;
+        animation: slideUp .3s ease-out;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } }
+    .fb-title { font-size: 24px; font-weight: 800; line-height: 1.25; }
+    .fb-stats {
+        display: grid;
+        grid-template-columns: auto auto;
+        justify-content: center;
+        gap: 4px 12px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        background: var(--yuzey-2);
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--murekkep-2);
+        text-align: left;
+    }
+    .fb-stats b { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+    .color-target { color: var(--mavi); }
+    .color-user { color: var(--kirmizi); }
+    .color-error { color: var(--turuncu); }
+
+    /* puan artınca başlıktaki sayı bir kez büyüyüp küçülür */
+    .pulse { animation: pulseAnim .5s; }
+    @keyframes pulseAnim { 50% { transform: scale(1.25); } }
+
+    @media (max-width: 820px) {
+        .duzen {
+            height: auto;
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: none;
+            grid-template-areas: "hedef" "sahne" "kontrol";
+            gap: 12px;
+        }
+        .hedef { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 18px; text-align: left; }
+        #target-angle { font-size: 44px; margin: 0; }
+        .aci-sahne { width: 100%; max-width: 560px; aspect-ratio: 1; justify-self: center; }
+        .kontrol { width: 100%; max-width: 560px; justify-self: center; }
+        .lejant { left: 8px; bottom: 8px; font-size: 14px; padding: 4px 10px; }
+    }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-orta"><span class="ipucu">Hareketli ışını sürükleyerek hedef açıyı göz kararı oluştur.</span></div>
+    <div class="bar-sag">
+        <span class="durum"><span class="durum-ad">Soru</span><b class="durum-deger" id="level-display">1</b></span>
+        <span class="durum"><span class="durum-ad">Puan</span><b class="durum-deger" id="score-display">0</b></span>
+    </div>
+</header>
+<script>Kabuk.bar('aci-tahmincisi');</script>
+
+<main class="oyun">
+<div class="duzen">
+
+    <div class="panel hedef">
+        <div class="hedef-ad">Oluşturman gereken açı</div>
+        <b class="fosfor" id="target-angle">45°</b>
+    </div>
+
+    <div class="sahne aci-sahne">
+        <canvas id="angleCanvas" width="400" height="400" aria-label="Açı çizim alanı: kırmızı ışını sürükle"></canvas>
+
+        <!-- Renk açıklaması (sadece sonuca bakıldığında görünür) -->
+        <div class="lejant" id="legend" hidden>
+            <span><i class="nokta-hedef"></i> Gerçek hedef</span>
+            <span><i class="nokta-sen" id="legend-user-dot"></i> Senin çizdiğin</span>
+        </div>
+    </div>
+
+    <div class="kontrol">
+        <button class="dugme ana buyuk" onclick="checkAngle()" id="btn-check">Açıyı sabitle ve kontrol et</button>
+
+        <!-- Sonuç kartı: ekranı kapatmaz, düğmenin yerine açılır -->
+        <div class="panel" id="feedback-panel" role="status" hidden>
+            <div class="fb-title" id="fb-title">Harika!</div>
+            <div class="fb-stats">
+                <span>Gerçek hedef:</span> <b class="color-target" id="fb-target">45°</b>
+                <span>Senin çizdiğin:</span> <b class="color-user" id="fb-actual">48°</b>
+                <span>Hata payı:</span> <b class="color-error" id="fb-error">3°</b>
+            </div>
+            <button class="dugme ana buyuk" id="btn-next" onclick="nextQuestion()">
+                Sıradaki soru
+                <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+        </div>
+    </div>
+
+</div>
+</main>
+
+<script>
+    let score = 0;
+    let questionIndex = 1;
+    let targetAngle = 0;
+    let currentAngle = 0;
+
+    const canvas = document.getElementById('angleCanvas');
+    const ctx = canvas.getContext('2d');
+    // Çizim koordinatları orijinaldeki gibi 400×400; tuval ekrana göre ölçeklenir
+    const BOY = 400;
+    const cx = BOY / 2;
+    const cy = BOY / 2;
+    const radius = 150;
+
+    let isDragging = false;
+    let isResultShowing = false;
+
+    // Çizim renkleri temadan gelir; tema değişince yeniden okunup çizilir
+    let R = {};
+    function readColors() {
+        for (const ad of ['murekkep', 'yuzey', 'mavi', 'kirmizi', 'sari', 'dogru']) R[ad] = Kabuk.renk(ad);
+    }
+    readColors();
+    Kabuk.temaDegisince(() => { readColors(); drawScene(); });
+
+    // Tuvalin piksel sayısını ekrandaki boyuna (ve ekranın piksel yoğunluğuna) uydur
+    function boyutla() {
+        const genislik = canvas.getBoundingClientRect().width || BOY;
+        const piksel = Math.round(genislik * (window.devicePixelRatio || 1));
+        if (canvas.width !== piksel) { canvas.width = piksel; canvas.height = piksel; }
+        ctx.setTransform(piksel / BOY, 0, 0, piksel / BOY, 0, 0);
+        drawScene();
+    }
+    new ResizeObserver(boyutla).observe(canvas);
+
+    function generateTargetAngle() {
+        let min = 0, max = 0;
+
+        if (questionIndex <= 3) {
+            // Soru 1-3: Dar ve dik açılar (1° - 90°)
+            min = 1; max = 90;
+        } else if (questionIndex <= 6) {
+            // Soru 4-6: Geniş ve doğru açılar (91° - 180°)
+            min = 91; max = 180;
+        } else if (questionIndex <= 9) {
+            // Soru 7-9: Taşkın (refleks) açılar (181° - 270°)
+            min = 181; max = 270;
+        } else {
+            // Soru 10+: Tam açıya yaklaşanlar (271° - 359°)
+            min = 271; max = 359;
+        }
+
+        let rangeOpts = [];
+        for (let i = min; i <= max; i += 1) {
+            rangeOpts.push(i);
+        }
+
+        targetAngle = rangeOpts[Math.floor(Math.random() * rangeOpts.length)];
+        document.getElementById('target-angle').innerText = targetAngle + "°";
+    }
+
+    function drawScene() {
+        ctx.clearRect(0, 0, BOY, BOY);
+
+        // 1. Kılavuz çember: deftere kurşun kalemle çizilmiş daire
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.globalAlpha = 0.07;
+        ctx.fillStyle = R.mavi;
+        ctx.fill();
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = R.mavi;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+
+        // Merkez noktası
+        ctx.beginPath();
+        ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+        ctx.fillStyle = R.murekkep;
+        ctx.fill();
+
+        // 2. Sabit ışın (0 derece çizgisi)
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + radius, cy);
+        ctx.strokeStyle = R.murekkep;
+        ctx.lineWidth = 6;
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(cx + radius + 10, cy);
+        ctx.lineTo(cx + radius - 10, cy - 10);
+        ctx.lineTo(cx + radius - 10, cy + 10);
+        ctx.fillStyle = R.murekkep;
+        ctx.fill();
+
+        // 3. Gerçek hedefi gösterme (sadece sonuç açıklandığında)
+        if (isResultShowing) {
+            let targetRad = targetAngle * Math.PI / 180;
+            let correctX = cx + radius * Math.cos(targetRad);
+            let correctY = cy - radius * Math.sin(targetRad);
+
+            // Hedef açının mavi yayı
+            ctx.beginPath();
+            ctx.arc(cx, cy, 65, 0, -targetAngle * Math.PI / 180, true);
+            ctx.globalAlpha = 0.5;
+            ctx.strokeStyle = R.mavi;
+            ctx.lineWidth = 15;
+            ctx.lineCap = "butt";
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            // Hedef ışın (kesik çizgili mavi)
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(correctX, correctY);
+            ctx.strokeStyle = R.mavi;
+            ctx.lineWidth = 5;
+            ctx.lineCap = "round";
+            ctx.setLineDash([10, 10]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Gerçek hedefin ucu
+            ctx.beginPath();
+            ctx.arc(correctX, correctY, 6, 0, Math.PI * 2);
+            ctx.fillStyle = R.mavi;
+            ctx.fill();
+        }
+
+        // 4. Kullanıcının oluşturduğu açı (yay): fosforlu kalem gibi yarı saydam
+        if (currentAngle > 0) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, 40, 0, -currentAngle * Math.PI / 180, true);
+            // Sonuç gösteriliyorsa, kullanıcı tam bildiyse yeşil, bilemediyse kendi rengi kalır
+            ctx.strokeStyle = (isResultShowing && currentAngle === targetAngle) ? R.dogru : R.sari;
+            ctx.globalAlpha = 0.5;
+            ctx.lineWidth = 25;
+            ctx.lineCap = "butt";
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+
+        // 5. Kullanıcının hareketli ışını
+        let rad = currentAngle * Math.PI / 180;
+        let targetX = cx + radius * Math.cos(rad);
+        let targetY = cy - radius * Math.sin(rad);
+
+        let userColor = isResultShowing ?
+            (currentAngle === targetAngle ? R.dogru : R.kirmizi) // Tam isabetse yeşil, yoksa kırmızı
+            : R.kirmizi; // Hareket ederken kırmızı
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(targetX, targetY);
+        ctx.strokeStyle = userColor;
+        ctx.lineWidth = 8;
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        // Kullanıcı ışınının tutma kolu
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, 15, 0, Math.PI * 2);
+        ctx.fillStyle = userColor;
+        ctx.fill();
+        ctx.strokeStyle = R.yuzey;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+    }
+
+    function calculateAngle(clientX, clientY) {
+        // Tuval ekranda ölçeklendiği için fare konumu çizim koordinatlarına çevrilir
+        let rect = canvas.getBoundingClientRect();
+        let x = (clientX - rect.left) * BOY / rect.width;
+        let y = (clientY - rect.top) * BOY / rect.height;
+
+        let dx = x - cx;
+        let dy = cy - y;
+
+        let angleRad = Math.atan2(dy, dx);
+        let angleDeg = angleRad * 180 / Math.PI;
+
+        if (angleDeg < 0) angleDeg += 360;
+        return Math.round(angleDeg);
+    }
+
+    // Dokunmatik ekranda parmağın, farede imlecin konumu (x = 0 olsa da doğru okunur)
+    function pointer(e) {
+        return e.touches ? e.touches[0] : e;
+    }
+
+    function startDrag(e) {
+        if (isResultShowing) return;
+        e.preventDefault();
+        isDragging = true;
+        let p = pointer(e);
+        currentAngle = calculateAngle(p.clientX, p.clientY);
+        drawScene();
+    }
+
+    function onDrag(e) {
+        if (!isDragging || isResultShowing) return;
+        e.preventDefault();
+        let p = pointer(e);
+        currentAngle = calculateAngle(p.clientX, p.clientY);
+        drawScene();
+    }
+
+    function endDrag(e) { isDragging = false; }
+
+    canvas.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', onDrag);
+    window.addEventListener('mouseup', endDrag);
+    canvas.addEventListener('mouseleave', endDrag);
+    canvas.addEventListener('touchstart', startDrag, { passive: false });
+    window.addEventListener('touchmove', onDrag, { passive: false });
+    window.addEventListener('touchend', endDrag);
+
+    function checkAngle() {
+        if (isResultShowing) return;
+        isResultShowing = true;
+
+        document.getElementById('btn-check').hidden = true;
+
+        let error = Math.abs(targetAngle - currentAngle);
+        if (error > 180) error = 360 - error;
+
+        let points = 0; let title = ""; let color = "";
+
+        if (error === 0) {
+            points = 1000;
+            title = "Kusursuz! Tıpatıp aynı!";
+            color = "var(--dogru)";
+        } else if (error <= 3) {
+            points = 900;
+            title = "Mükemmel! Çok yaklaştın!";
+            color = "var(--mavi)";
+        } else if (error <= 5) {
+            points = 800;
+            title = "Güzel tahmin!";
+            color = "var(--turuncu)";
+        } else if (error <= 10) {
+            points = 700;
+            title = "Gayet iyi!";
+            color = "var(--turuncu)";
+        } else if (error <= 25) {
+            points = 500;
+            title = "Fena değil!";
+            color = "var(--turuncu)";
+        } else {
+            points = 0;
+            title = "Iskaladın! Biraz daha pratik!";
+            color = "var(--yanlis)";
+        }
+
+        score += points;
+        let scoreEl = document.getElementById('score-display');
+        scoreEl.innerText = score;
+        scoreEl.classList.add('pulse');
+        setTimeout(() => scoreEl.classList.remove('pulse'), 500);
+
+        // Sonuç kartını güncelle
+        let fbPanel = document.getElementById('feedback-panel');
+        document.getElementById('fb-title').innerText = title + " (+" + points + " puan)";
+        document.getElementById('fb-title').style.color = color;
+        fbPanel.style.borderColor = color;
+
+        document.getElementById('fb-target').innerText = targetAngle + "°";
+
+        // Tam isabetse kırmızı yerine yeşil yazsın
+        let userStatColor = (error === 0) ? "var(--dogru)" : "var(--kirmizi)";
+        document.getElementById('fb-actual').innerText = currentAngle + "°";
+        document.getElementById('fb-actual').style.color = userStatColor;
+        document.getElementById('legend-user-dot').style.background = userStatColor;
+
+        document.getElementById('fb-error').innerText = error + "°";
+
+        document.getElementById('legend').hidden = false; // Renk açıklamasını göster
+
+        drawScene(); // Gerçek açıyı çizdirmek için
+        fbPanel.hidden = false;
+        document.getElementById('btn-next').focus();
+    }
+
+    function nextQuestion() {
+        document.getElementById('feedback-panel').hidden = true;
+        document.getElementById('legend').hidden = true;
+        document.getElementById('btn-check').hidden = false;
+
+        questionIndex++;
+        document.getElementById('level-display').innerText = questionIndex;
+
+        isResultShowing = false;
+        currentAngle = 0;
+
+        generateTargetAngle();
+        drawScene();
+    }
+
+    generateTargetAngle();
+    boyutla();
+</script>
+</body>
+</html>

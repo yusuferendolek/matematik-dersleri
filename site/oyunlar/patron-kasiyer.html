@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patron Kasiyer – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    .oyun { display: flex; flex-direction: column; padding: 20px 16px 28px; }
+
+    /* başlıktaki toptancı düğmesi */
+    #btn-toggle-shop .svg { width: 20px; height: 20px; }
+
+    .screen { display: none; width: 100%; max-width: 1180px; margin: auto; }
+    .screen.active-screen { display: block; }
+
+    /* ----- Toptancı ekranı: fiyat listesi ----- */
+    .shop-container .ipucu { margin-top: -4px; }
+    .shop-grid { columns: 2 380px; column-gap: 48px; margin-top: 12px; }
+    .urun {
+        break-inside: avoid;
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 4px;
+        border-bottom: 1.5px dashed var(--kenarlik);
+    }
+    .p-icon { font-size: 36px; line-height: 1; text-align: center; }
+    .urun:not(.unlocked) .p-icon { filter: grayscale(1); opacity: .5; }
+    .p-name { display: block; font-size: 18px; font-weight: 800; }
+    .p-price { display: block; font-size: 15px; color: var(--murekkep-2); font-variant-numeric: tabular-nums; }
+    .unlocked-badge { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; color: var(--dogru); font-weight: 800; }
+    .unlocked-badge .svg { width: 20px; height: 20px; }
+
+    /* ----- Kasa ekranı ----- */
+    .cashier-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) clamp(280px, 28vw, 360px);
+        gap: 20px;
+        align-items: start;
+    }
+    @media (max-width: 760px) { .cashier-layout { grid-template-columns: 1fr; } }
+    .left-panel { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+    /* bant: deftere kalemle çizilmiş */
+    .conveyor-area { padding: 20px; }
+    .scanner-bridge {
+        position: absolute; right: 80px; top: 0; bottom: 0; width: 40px;
+        background: color-mix(in srgb, var(--murekkep) 7%, var(--yuzey));
+        border-left: 2px solid var(--murekkep-2); border-right: 2px solid var(--murekkep-2);
+        z-index: 10;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .laser { width: 2px; height: 100%; background: var(--kirmizi); box-shadow: 0 0 10px var(--kirmizi); }
+
+    .belt {
+        height: clamp(110px, 20vh, 190px);
+        position: relative;
+        border: 2.5px solid var(--murekkep-2);
+        border-radius: 20px;
+        background-color: color-mix(in srgb, var(--murekkep) 5%, transparent);
+        background-image: repeating-linear-gradient(90deg, transparent 0 38px, color-mix(in srgb, var(--murekkep) 22%, transparent) 38px 40px);
+        animation: beltMove 2s linear infinite; animation-play-state: paused;
+    }
+    @keyframes beltMove { from { background-position: 0 0; } to { background-position: 80px 0; } }
+
+    .item-on-belt {
+        font-size: clamp(52px, 7vh, 66px); line-height: 1.1;
+        position: absolute; top: 50%; transform: translateY(-50%);
+        left: -100px; transition: left 1s linear; z-index: 5;
+        display: flex; flex-direction: column; align-items: center;
+    }
+    /* etiket ürünün sol üstünde: ürün okuyucunun altına girerken etiket görünür kalır */
+    .discount-tag {
+        position: absolute; top: -16px; left: -58px;
+        padding: 3px 9px;
+        border-radius: 10px;
+        background: var(--kirmizi); color: var(--kagit);
+        font-size: 15px; font-weight: 800; line-height: 1.3; white-space: nowrap;
+        transform: rotate(-12deg);
+    }
+
+    /* soru paneli */
+    .interaction-panel {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 12px; text-align: center;
+        min-height: clamp(200px, 36vh, 340px);
+    }
+    .bekliyor { font-size: clamp(22px, 2vw, 28px); font-weight: 800; }
+    .question-text { font-size: clamp(21px, 2.1vw, 30px); font-weight: 800; }
+    .alt-yazi { font-size: 17px; color: var(--murekkep-2); }
+    .alt-yazi b { color: var(--murekkep); font-variant-numeric: tabular-nums; }
+    .input-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .input-group .giris { width: 170px; height: 54px; text-align: center; font-size: 26px; }
+    .hata { min-height: 24px; color: var(--yanlis); font-weight: 700; }
+    .kasa-hazir { font-size: 22px; font-weight: 700; color: var(--murekkep-2); }
+    .bip-text { display: none; font-size: 44px; font-weight: 800; color: var(--dogru); }
+    .tesekkur { font-size: 30px; font-weight: 800; color: var(--dogru); }
+
+    /* fiş: kâğıt şerit, tema renkleriyle */
+    .right-panel {
+        padding-bottom: 10px;
+        filter: drop-shadow(0 0 1px var(--murekkep-3)) drop-shadow(0 6px 10px color-mix(in srgb, var(--perde) 55%, transparent));
+    }
+    .receipt {
+        position: relative;
+        min-height: 320px;
+        padding: 20px;
+        background: var(--yuzey);
+        border-top: 10px solid var(--yuzey-2);
+        font-family: var(--tek);
+        font-variant-numeric: tabular-nums;
+    }
+    .receipt::after {
+        content: ''; position: absolute; bottom: -10px; left: 0; right: 0; height: 10px;
+        background: radial-gradient(circle, transparent, transparent 50%, var(--yuzey) 50%, var(--yuzey));
+        background-size: 20px 20px; background-position: -10px 0;
+    }
+    .receipt-title { text-align: center; font-size: 22px; font-weight: 700; border-bottom: 2px dashed var(--kenarlik); padding-bottom: 10px; margin-bottom: 10px; }
+    .receipt-items { display: flex; flex-direction: column; gap: 5px; margin-bottom: 20px; min-height: clamp(150px, 26vh, 260px); }
+    .r-item { display: flex; justify-content: space-between; gap: 10px; font-size: 17px; align-items: center; }
+    .r-item span:first-child { display: flex; align-items: center; gap: 5px; }
+    .r-item .r-price { text-align: right; font-weight: 700; white-space: nowrap; }
+    .r-discount { color: var(--kirmizi); font-size: 14px; margin-top: -3px; }
+    .receipt-total { border-top: 2px dashed var(--kenarlik); padding-top: 10px; display: flex; justify-content: space-between; font-size: 21px; font-weight: 700; }
+    .receipt-payment { display: flex; justify-content: space-between; font-size: 17px; margin-top: 5px; color: var(--murekkep-2); font-weight: 700; }
+
+    /* telefonda başlıktaki düğmeler sığsın */
+    @media (max-width: 560px) {
+        #btn-toggle-shop { padding: 0 12px; font-size: 15px; }
+        #btn-toggle-shop .svg { display: none; }
+        .bar-sag .durum { padding: 0 10px; }
+        .conveyor-area { padding: 14px; }
+        .scanner-bridge { right: 60px; }
+    }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-sag">
+        <span class="durum" aria-label="Kasadaki para"><span class="durum-ad">Kasa</span><b class="durum-deger" id="money-display">0,00</b><span class="durum-ad">TL</span></span>
+        <button class="dugme" id="btn-toggle-shop" onclick="toggleShop()"></button>
+        <button class="ikon-btn" id="btn-sound" onclick="toggleSound()" aria-pressed="true" aria-label="Ses" title="Ses"></button>
+    </div>
+</header>
+<script>Kabuk.bar('patron-kasiyer');</script>
+
+<main class="oyun">
+    <div id="screen-shop" class="screen">
+        <section class="panel shop-container">
+            <h2 class="panel-baslik">Toptancı hali: markete yeni ürün al</h2>
+            <p class="ipucu">Kasadaki paranla yeni ürünler aç, marketini büyüt! Müşteriler daha çok alışveriş yapsın.</p>
+            <div class="shop-grid" id="shop-grid"></div>
+        </section>
+    </div>
+
+    <div id="screen-cashier" class="screen active-screen">
+        <div class="cashier-layout">
+            <div class="left-panel">
+                <div class="conveyor-area sahne">
+                    <div class="scanner-bridge"><div class="laser"></div></div>
+                    <div class="belt" id="belt">
+                        <div class="item-on-belt" id="current-item-view" style="left: 120%;">
+                            <span id="ci-icon">🥖</span>
+                            <div class="discount-tag" id="ci-discount" style="display: none;">%50 indirim</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel interaction-panel" id="interaction-panel" aria-live="polite">
+                    <p class="bekliyor">Müşteri bekliyor!</p>
+                    <button onclick="startNextCustomer()" class="dugme ana buyuk" id="btn-start">Sıradaki müşteriyi al</button>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="receipt">
+                    <div class="receipt-title">Süpermarket fişi</div>
+                    <div class="receipt-items" id="receipt-items"></div>
+                    <div class="receipt-total">
+                        <span>Toplam:</span>
+                        <span id="receipt-total">0,00 TL</span>
+                    </div>
+                    <div class="receipt-payment" id="receipt-payment" style="display: none;">
+                        <span>Ödenen nakit:</span>
+                        <span id="receipt-cash">0,00 TL</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+        // --- İKONLAR ---
+        const svg = ic => `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>`;
+        const IKON_TOPTANCI = svg('<path d="M3 4h2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>');
+        const IKON_KASA = svg('<path d="M15 5l-7 7 7 7"/>');
+        const IKON_TAMAM = svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>');
+        const SES_ACIK = svg('<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>');
+        const SES_KAPALI = svg('<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/>');
+        document.getElementById('btn-toggle-shop').innerHTML = IKON_TOPTANCI + 'Toptancıya git';
+        document.getElementById('btn-sound').innerHTML = SES_ACIK;
+
+        // --- SES AYARLARI ---
+        let isSoundOn = true;
+        let audioCtx;
+
+        function toggleSound() {
+            isSoundOn = !isSoundOn;
+            const btn = document.getElementById('btn-sound');
+            btn.innerHTML = isSoundOn ? SES_ACIK : SES_KAPALI;
+            btn.setAttribute('aria-pressed', isSoundOn);
+        }
+
+        function playBeepSound() {
+            if (!isSoundOn) return;
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(850, audioCtx.currentTime);
+
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.15);
+        }
+
+        // --- YARDIMCI FONKSİYONLAR ---
+        function formatMoney(value) {
+            return value.toFixed(2).replace('.', ',');
+        }
+
+        function roundPrice(val) {
+            return Math.round(val * 100) / 100;
+        }
+
+        // "%25'i", "%26'sı", "%27'si" … (yüzdenin okunuşuna göre ek)
+        const YUZDE_EKI = { 25: "'i", 26: "'sı", 27: "'si", 28: "'i", 29: "'u", 30: "'u" };
+
+        // --- VERİTABANI ---
+        let money = 0;
+
+        const productsDB = [
+            { id: 1, name: "Ekmek", price: 10, icon: "🥖", cost: 0, unlocked: true },
+            { id: 2, name: "Süt", price: 20, icon: "🥛", cost: 0, unlocked: true },
+            { id: 3, name: "Çikolata", price: 30, icon: "🍫", cost: 0, unlocked: true },
+            { id: 4, name: "Yumurta", price: 40, icon: "🥚", cost: 50, unlocked: false },
+            { id: 5, name: "Dondurma", price: 50, icon: "🍦", cost: 100, unlocked: false },
+            { id: 6, name: "Domates", price: 80, icon: "🍅", cost: 150, unlocked: false },
+            { id: 7, name: "Peynir", price: 100, icon: "🧀", cost: 200, unlocked: false },
+            { id: 8, name: "Pasta", price: 120, icon: "🎂", cost: 250, unlocked: false },
+            { id: 9, name: "Sucuk", price: 150, icon: "🥓", cost: 300, unlocked: false },
+            { id: 10, name: "Bal", price: 200, icon: "🍯", cost: 400, unlocked: false },
+            { id: 11, name: "Oyuncak", price: 250, icon: "🧸", cost: 500, unlocked: false },
+            { id: 12, name: "Bisiklet", price: 500, icon: "🚲", cost: 1000, unlocked: false }
+        ];
+
+        let currentOrder = [];
+        let currentItemIndex = 0;
+        let runningTotal = 0;
+        let customerCash = 0;
+        let expectedAnswer = 0;
+        let currentPhase = 'IDLE';
+
+        document.getElementById('money-display').innerText = formatMoney(money);
+
+        function toggleShop() {
+            const shop = document.getElementById('screen-shop');
+            const cashier = document.getElementById('screen-cashier');
+            const btn = document.getElementById('btn-toggle-shop');
+
+            if (shop.classList.contains('active-screen')) {
+                shop.classList.remove('active-screen');
+                cashier.classList.add('active-screen');
+                btn.innerHTML = IKON_TOPTANCI + 'Toptancıya git';
+                if(currentPhase === 'IDLE') document.getElementById('btn-start').style.display = '';
+            } else {
+                if(currentPhase !== 'IDLE') {
+                    Kabuk.pencere({
+                        baslik: 'Kasada müşteri var',
+                        html: '<p>Şu an kasada müşteri var, toptancıya gidemezsin!</p>'
+                    });
+                    return;
+                }
+                cashier.classList.remove('active-screen');
+                shop.classList.add('active-screen');
+                btn.innerHTML = IKON_KASA + 'Kasaya dön';
+                renderShop();
+            }
+        }
+
+        function renderShop() {
+            const grid = document.getElementById('shop-grid');
+            grid.innerHTML = '';
+
+            productsDB.forEach(p => {
+                const card = document.createElement('div');
+                card.className = `urun ${p.unlocked ? 'unlocked' : ''}`;
+
+                let actionHTML = p.unlocked ? `<span class="unlocked-badge">${IKON_TAMAM}Açık</span>`
+                                            : `<button class="dugme p-btn ${money >= p.cost ? 'ana' : ''}" ${money < p.cost ? 'disabled' : ''} onclick="buyProduct(${p.id})">Satın al (${p.cost} TL)</button>`;
+
+                card.innerHTML = `
+                    <span class="p-icon" aria-hidden="true">${p.icon}</span>
+                    <span><span class="p-name">${p.name}</span><span class="p-price">Fiyatı: ${p.price} TL</span></span>
+                    ${actionHTML}
+                `;
+                grid.appendChild(card);
+            });
+            document.getElementById('money-display').innerText = formatMoney(money);
+        }
+
+        function buyProduct(id) {
+            let p = productsDB.find(x => x.id === id);
+            if (p && !p.unlocked && money >= p.cost) {
+                money = roundPrice(money - p.cost);
+                p.unlocked = true;
+                renderShop();
+            }
+        }
+
+        function startNextCustomer() {
+            currentPhase = 'SCANNING';
+
+            if(isSoundOn && !audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+
+            document.getElementById('interaction-panel').innerHTML = '<div class="kasa-hazir" id="bip-text">Kasa hazır!</div>';
+
+            document.getElementById('receipt-items').innerHTML = '';
+            document.getElementById('receipt-total').innerText = '0,00 TL';
+            document.getElementById('receipt-payment').style.display = 'none';
+            runningTotal = 0;
+
+            let unlocked = productsDB.filter(p => p.unlocked);
+            let itemCount = Math.floor(Math.random() * 3) + 3;
+            currentOrder = [];
+
+            for (let i = 0; i < itemCount; i++) {
+                let randomProduct = unlocked[Math.floor(Math.random() * unlocked.length)];
+
+                let hasDiscount = Math.random() > 0.7;
+                let discountPct = 0;
+                let displayPrice = randomProduct.price;
+                let finalPrice = randomProduct.price;
+
+                if (hasDiscount) {
+                    const validDiscounts = [10, 20, 50];
+                    discountPct = validDiscounts[Math.floor(Math.random() * validDiscounts.length)];
+                    displayPrice = randomProduct.price;
+                    finalPrice = randomProduct.price - (randomProduct.price * discountPct / 100);
+                } else {
+                    const decimalCents = [0.25, 0.50, 0.75, 0.45, 0.90, 0.95];
+                    let extra = decimalCents[Math.floor(Math.random() * decimalCents.length)];
+                    displayPrice = randomProduct.price + extra;
+                    finalPrice = displayPrice;
+                }
+
+                currentOrder.push({
+                    name: randomProduct.name,
+                    icon: randomProduct.icon,
+                    basePrice: displayPrice,
+                    hasDiscount: hasDiscount,
+                    discountPct: discountPct,
+                    finalPrice: finalPrice
+                });
+            }
+
+            currentItemIndex = 0;
+            processNextItem();
+        }
+
+        function processNextItem() {
+            if (currentItemIndex >= currentOrder.length) {
+                handlePaymentPhase();
+                return;
+            }
+
+            let item = currentOrder[currentItemIndex];
+            let belt = document.getElementById('belt');
+            let itemView = document.getElementById('current-item-view');
+
+            document.getElementById('ci-icon').innerText = item.icon;
+
+            let tag = document.getElementById('ci-discount');
+            if(item.hasDiscount) {
+                tag.style.display = 'block';
+                tag.innerText = `%${item.discountPct} indirim`;
+            } else {
+                tag.style.display = 'none';
+            }
+
+            belt.style.animationPlayState = 'running';
+            itemView.style.transition = 'none';
+            itemView.style.left = '-100px';
+            void itemView.offsetWidth;
+
+            itemView.style.transition = 'left 1.5s linear';
+            itemView.style.left = 'calc(100% - 150px)';
+
+            setTimeout(() => {
+                belt.style.animationPlayState = 'paused';
+
+                if (item.hasDiscount) {
+                    currentPhase = 'WAIT_DISCOUNT';
+                    expectedAnswer = item.finalPrice;
+
+                    document.getElementById('interaction-panel').innerHTML = `
+                        <div class="question-text">${item.name} (${formatMoney(item.basePrice)} TL): %${item.discountPct} indirimli!</div>
+                        <div class="alt-yazi">Yeni fiyatı nedir?</div>
+                        <div class="input-group">
+                            <input class="giris" type="text" inputmode="decimal" id="answer-input" placeholder="Örn: 16" autocomplete="off" aria-label="Yeni fiyat">
+                            <button class="dugme ana buyuk" onclick="checkDiscount()">Onayla</button>
+                        </div>
+                        <div id="error-msg" class="hata" role="alert"></div>
+                    `;
+                    document.getElementById('answer-input').focus();
+                    document.getElementById('answer-input').addEventListener('keypress', function(e) {
+                        if(e.key === 'Enter') checkDiscount();
+                    });
+
+                } else {
+                    playBip();
+                    addToReceipt(item.name, item.finalPrice, false, null, item.icon);
+                    moveItemOffScreen();
+                }
+            }, 1500);
+        }
+
+        function playBip() {
+            playBeepSound();
+            let pnl = document.getElementById('interaction-panel');
+            pnl.innerHTML = '<div class="bip-text" id="bip-text" style="display:block;">Bip!</div>';
+            setTimeout(() => {
+                if(currentPhase === 'SCANNING') pnl.innerHTML = '';
+            }, 600);
+        }
+
+        function checkDiscount() {
+            let valStr = document.getElementById('answer-input').value.replace(',', '.');
+            let val = parseFloat(valStr);
+
+            if (Math.abs(val - expectedAnswer) < 0.01) {
+                let item = currentOrder[currentItemIndex];
+                playBip();
+                addToReceipt(item.name, item.finalPrice, true, item.basePrice, item.icon);
+
+                money = roundPrice(money + 5); // Sabit 5 TL bonus
+                document.getElementById('money-display').innerText = formatMoney(money);
+                moveItemOffScreen();
+            } else {
+                document.getElementById('error-msg').innerText = "Yanlış hesap! İndirimi tekrar düşün.";
+                document.getElementById('answer-input').value = "";
+                document.getElementById('answer-input').focus();
+            }
+        }
+
+        function moveItemOffScreen() {
+            let itemView = document.getElementById('current-item-view');
+            let belt = document.getElementById('belt');
+
+            currentPhase = 'SCANNING';
+            belt.style.animationPlayState = 'running';
+            itemView.style.transition = 'left 1s linear';
+            itemView.style.left = '120%';
+
+            currentItemIndex++;
+            setTimeout(() => {
+                belt.style.animationPlayState = 'paused';
+                processNextItem();
+            }, 1000);
+        }
+
+        function addToReceipt(name, price, isDiscount, oldPrice, icon) {
+            runningTotal = roundPrice(runningTotal + price);
+            const list = document.getElementById('receipt-items');
+
+            let html = `<div class="r-item"><span>${icon} ${name}</span><span class="r-price">${formatMoney(price)} TL</span></div>`;
+            if (isDiscount) {
+                html += `<div class="r-discount">(Normal: ${formatMoney(oldPrice)} TL, indirim)</div>`;
+            }
+
+            list.innerHTML += html;
+            document.getElementById('receipt-total').innerText = formatMoney(runningTotal) + ' TL';
+        }
+
+        function handlePaymentPhase() {
+            currentPhase = 'WAIT_CHANGE';
+
+            customerCash = (Math.floor(runningTotal / 50) + 1) * 50;
+            expectedAnswer = roundPrice(customerCash - runningTotal);
+
+            document.getElementById('receipt-payment').style.display = 'flex';
+            document.getElementById('receipt-cash').innerText = formatMoney(customerCash) + ' TL';
+
+            document.getElementById('interaction-panel').innerHTML = `
+                <div class="question-text">Müşteri ${formatMoney(customerCash)} TL nakit verdi</div>
+                <div class="alt-yazi">Fiş toplamı: <b>${formatMoney(runningTotal)} TL</b>.<br>Ondalık çıkarma işlemi yaparak para üstünü bul!</div>
+                <div class="input-group">
+                    <input class="giris" type="text" inputmode="decimal" id="change-input" placeholder="Örn: 12,50" autocomplete="off" aria-label="Para üstü">
+                    <button class="dugme ana buyuk" onclick="checkChange()">Ver</button>
+                </div>
+                <div id="error-msg" class="hata" role="alert"></div>
+            `;
+            document.getElementById('change-input').focus();
+            document.getElementById('change-input').addEventListener('keypress', function(e) {
+                if(e.key === 'Enter') checkChange();
+            });
+        }
+
+        function checkChange() {
+            let valStr = document.getElementById('change-input').value.replace(',', '.');
+            let val = parseFloat(valStr);
+
+            if (!isNaN(val) && Math.abs(val - expectedAnswer) < 0.01) {
+
+                // --- DİNAMİK KASA KAZANCI ---
+                // Fişin %25'i ile %30'u arasında rastgele bir kâr oranı belirler
+                let randomPct = Math.floor(Math.random() * 6) + 25; // 25, 26, 27, 28, 29 veya 30
+                let profit = roundPrice(runningTotal * (randomPct / 100));
+
+                money = roundPrice(money + profit);
+                document.getElementById('money-display').innerText = formatMoney(money);
+
+                document.getElementById('interaction-panel').innerHTML = `
+                    <div class="tesekkur">Teşekkürler!</div>
+                    <div class="alt-yazi">Para üstünü (${formatMoney(expectedAnswer)} TL) doğru verdin.<br>Fişin %${randomPct}${YUZDE_EKI[randomPct]} oranında <b>+${formatMoney(profit)} TL</b> kasa kârı kazandın!</div>
+                    <button onclick="resetForNext()" class="dugme ana buyuk">Yeni müşteri</button>
+                `;
+            } else {
+                document.getElementById('error-msg').innerText = "Yanlış para üstü! Kuruşları dikkatli çıkar.";
+                document.getElementById('change-input').value = "";
+                document.getElementById('change-input').focus();
+            }
+        }
+
+        function resetForNext() {
+            currentPhase = 'IDLE';
+            document.getElementById('interaction-panel').innerHTML = `
+                <p class="bekliyor">Müşteri bekliyor!</p>
+                <button onclick="startNextCustomer()" class="dugme ana buyuk" id="btn-start">Sıradaki müşteriyi al</button>
+            `;
+            document.getElementById('receipt-items').innerHTML = '';
+            document.getElementById('receipt-total').innerText = '0,00 TL';
+            document.getElementById('receipt-payment').style.display = 'none';
+        }
+</script>
+</body>
+</html>

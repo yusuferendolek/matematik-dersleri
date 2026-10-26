@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ortak Katlar ve Çarpanlar – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    .duzen {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 18px 16px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    /* sayı girişi */
+    /* etiketler üstte bir hizada, kutular ve düğme altta bir hizada */
+    .giris-panel { display: flex; flex-wrap: wrap; align-items: stretch; gap: 14px 16px; }
+    .alan { display: flex; flex-direction: column; justify-content: space-between; gap: 6px; min-width: 0; }
+    .alan-sayi { flex: 1 1 150px; }
+    .etiket { font-size: 15px; font-weight: 700; color: var(--murekkep-2); }
+    .alan .giris { width: 100%; height: 54px; font-size: 24px; }
+    #mode .sekme { height: 45px; }
+    #hesapla { flex: 1 0 auto; align-self: flex-end; }
+
+    /* sayı listeleri */
+    .sonuclar { display: flex; flex-direction: column; gap: 16px; }
+    .listeler { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    @media (max-width: 760px) { .listeler { grid-template-columns: 1fr; } }
+    .liste-baslik {
+        display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px;
+        padding-bottom: 10px;
+        margin-bottom: 14px;
+        border-bottom: 1.5px solid var(--kenarlik);
+    }
+    .liste-baslik .fosfor { --fk: var(--k-carpan); font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .alt-baslik { font-size: 17px; font-weight: 700; color: var(--murekkep-2); }
+    .sayilar { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    /* tıklanabilir sayı */
+    .sayi {
+        min-width: 50px;
+        height: 42px;
+        padding: 0 10px;
+        border: 1.5px solid var(--kenarlik);
+        border-radius: 8px;
+        background: var(--yuzey);
+        color: var(--murekkep);
+        font-size: 18px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        cursor: pointer;
+        transition: background-color .2s, color .2s, border-color .2s;
+    }
+    .sayi:hover { border-color: var(--murekkep); }
+    .sayi:active { transform: translateY(1px); }
+    .sayi.selected { background: var(--mavi); border-color: var(--mavi); color: var(--kagit); }
+    .sayi.selected:hover { filter: brightness(1.08); }
+
+    .yonerge {
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1.5px dashed color-mix(in srgb, var(--mavi) 55%, transparent);
+        background: color-mix(in srgb, var(--mavi) 7%, var(--yuzey));
+        font-weight: 700;
+        text-align: center;
+    }
+    .mavi-nokta { width: 16px; height: 16px; flex: none; border-radius: 50%; background: var(--mavi); }
+
+    .eylemler { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+    #feedbackMessage { text-align: center; font-size: 19px; }
+    .geri-bildirim.uyari { color: var(--turuncu); }
+    .geri-bildirim.bilgi { color: var(--mavi); }
+    #errorMessage { text-align: center; }
+
+    @media (max-width: 560px) {
+        .duzen { padding: 14px 12px 24px; }
+        .giris-panel { padding: 14px; }
+        .alan-mod, #hesapla { flex-basis: 100%; }
+        #mode { width: 100%; }
+        #mode .sekme { flex: 1 0 auto; justify-content: center; padding: 0 10px; font-size: 15px; }
+        .eylemler .dugme { flex: 1 1 100%; }
+        .sayi { min-width: 46px; font-size: 17px; }
+    }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-orta"><span class="ipucu">İki sayı gir, listeleri oluştur ve ortak olanları tıklayarak kendin seç.</span></div>
+</header>
+<script>Kabuk.bar('ortak-katlar');</script>
+
+<main class="oyun">
+<div class="duzen">
+
+    <section class="panel giris-panel">
+        <label class="alan alan-sayi">
+            <span class="etiket">1. sayı</span>
+            <input class="giris" type="number" id="num1" min="1" placeholder="Örn: 12" autocomplete="off">
+        </label>
+        <label class="alan alan-sayi">
+            <span class="etiket">2. sayı</span>
+            <input class="giris" type="number" id="num2" min="1" placeholder="Örn: 18" autocomplete="off">
+        </label>
+        <div class="alan alan-mod">
+            <span class="etiket" id="mode-label">İşlem türü</span>
+            <div class="sekmeler" id="mode" role="tablist" aria-labelledby="mode-label">
+                <button class="sekme" role="tab" data-mod="katlar" aria-selected="true">Katlar (ilk 50 kat)</button>
+                <button class="sekme" role="tab" data-mod="carpanlar" aria-selected="false">Çarpanlar (bölenler)</button>
+            </div>
+        </div>
+        <button class="dugme ana buyuk" id="hesapla" onclick="calculate()">Hesapla ve karşılaştır</button>
+    </section>
+
+    <!-- Hata mesajı -->
+    <div id="errorMessage" class="geri-bildirim yanlis" role="alert" hidden>
+        Lütfen her iki kutuya da geçerli pozitif tam sayılar gir.
+    </div>
+
+    <!-- Sonuçlar -->
+    <section id="resultsArea" class="sonuclar" hidden>
+        <div class="listeler">
+            <div class="panel">
+                <h2 class="liste-baslik">
+                    <span id="resultTitle1" class="fosfor">Sayı 1</span> <span id="resultSubtitle1" class="alt-baslik"></span>
+                </h2>
+                <div id="list1" class="sayilar"></div>
+            </div>
+            <div class="panel">
+                <h2 class="liste-baslik">
+                    <span id="resultTitle2" class="fosfor">Sayı 2</span> <span id="resultSubtitle2" class="alt-baslik"></span>
+                </h2>
+                <div id="list2" class="sayilar"></div>
+            </div>
+        </div>
+
+        <p class="yonerge">
+            <span class="mavi-nokta" aria-hidden="true"></span>
+            Ortak olduğunu düşündüğün sayılara tıklayarak onları maviye boya.
+        </p>
+
+        <div class="eylemler">
+            <button class="dugme basari buyuk" onclick="checkAnswers()">Seçimlerimi kontrol et</button>
+            <button class="dugme buyuk" onclick="showAnswers()">Cevabı göster</button>
+        </div>
+        <div id="feedbackMessage" class="geri-bildirim" role="status" hidden></div>
+    </section>
+
+</div>
+</main>
+
+<script>
+    let currentCommonElements = [];
+
+    // İşlem türü (orijinaldeki açılır liste yerine sekmeler): seçim yalnızca hatırlanır,
+    // listeler "Hesapla ve karşılaştır"a basınca oluşur
+    let selectedMode = 'katlar';
+    document.querySelectorAll('#mode .sekme').forEach(tab => {
+        tab.onclick = () => {
+            selectedMode = tab.dataset.mod;
+            document.querySelectorAll('#mode .sekme').forEach(t => t.setAttribute('aria-selected', t === tab));
+        };
+    });
+
+    // n'in bütün bölenleri, küçükten büyüğe (karekökü kadar deneyerek; büyük sayılarda sayfa donmasın)
+    function divisorsOf(n) {
+        const small = [], large = [];
+        for (let i = 1; i * i <= n; i++) {
+            if (n % i === 0) {
+                small.push(i);
+                if (i !== n / i) large.unshift(n / i);
+            }
+        }
+        return small.concat(large);
+    }
+
+    function calculate() {
+        // Değerleri al
+        const num1Input = document.getElementById('num1').value;
+        const num2Input = document.getElementById('num2').value;
+        const mode = selectedMode;
+
+        const resultsArea = document.getElementById('resultsArea');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Sayıya çevir
+        const num1 = parseInt(num1Input);
+        const num2 = parseInt(num2Input);
+
+        // Doğrulama
+        if (isNaN(num1) || isNaN(num2) || num1 <= 0 || num2 <= 0) {
+            errorMessage.hidden = false;
+            resultsArea.hidden = true;
+            return;
+        }
+
+        // Hatayı gizle, sonuçları göster
+        errorMessage.hidden = true;
+        resultsArea.hidden = false;
+
+        let arr1 = [];
+        let arr2 = [];
+        let subtitle = "";
+
+        if (mode === 'katlar') {
+            subtitle = "Katları";
+            // İlk 50 kat
+            for (let i = 1; i <= 50; i++) {
+                arr1.push(num1 * i);
+                arr2.push(num2 * i);
+            }
+        } else if (mode === 'carpanlar') {
+            subtitle = "Çarpanları (bölenleri)";
+            arr1 = divisorsOf(num1);
+            arr2 = divisorsOf(num2);
+        }
+
+        // Ortak olanları bul
+        currentCommonElements = arr1.filter(value => arr2.includes(value));
+
+        // Geri bildirimi gizle
+        document.getElementById('feedbackMessage').hidden = true;
+
+        // Başlıkları yaz
+        document.getElementById('resultTitle1').innerText = num1;
+        document.getElementById('resultSubtitle1').innerText = subtitle;
+
+        document.getElementById('resultTitle2').innerText = num2;
+        document.getElementById('resultSubtitle2').innerText = subtitle;
+
+        // Listeleri çiz
+        renderList('list1', arr1);
+        renderList('list2', arr2);
+    }
+
+    function renderList(containerId, list) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = ''; // Önceki listeyi temizle
+
+        list.forEach(num => {
+            const btn = document.createElement('button');
+
+            btn.innerText = num;
+            btn.dataset.val = num; // Kontrol için sayıyı sakla
+            btn.className = "sayi number-btn";
+            btn.setAttribute('aria-pressed', 'false');
+
+            // Tıklayınca seç / bırak
+            btn.onclick = function () {
+                this.classList.toggle('selected');
+                this.setAttribute('aria-pressed', this.classList.contains('selected'));
+
+                // Seçim değişince geri bildirimi gizle
+                document.getElementById('feedbackMessage').hidden = true;
+            };
+
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswers() {
+        const allButtons = document.querySelectorAll('.number-btn');
+        let isCorrect = true;
+        let missedCommon = false;
+
+        allButtons.forEach(btn => {
+            const val = parseInt(btn.dataset.val);
+            const isSelected = btn.classList.contains('selected');
+            const isActuallyCommon = currentCommonElements.includes(val);
+
+            if (isSelected && !isActuallyCommon) {
+                isCorrect = false; // Ortak olmayan bir sayı seçilmiş
+            }
+            if (!isSelected && isActuallyCommon) {
+                missedCommon = true; // Ortak bir sayı atlanmış
+            }
+        });
+
+        const feedbackEl = document.getElementById('feedbackMessage');
+        feedbackEl.hidden = false;
+
+        if (isCorrect && !missedCommon) {
+            feedbackEl.innerText = "Harika! Tüm ortak sayıları doğru buldun.";
+            feedbackEl.className = "geri-bildirim dogru";
+        } else if (!isCorrect) {
+            feedbackEl.innerText = "Ortak olmayan bazı sayıları seçtin. Lütfen tekrar kontrol et.";
+            feedbackEl.className = "geri-bildirim yanlis";
+        } else if (missedCommon) {
+            feedbackEl.innerText = "Doğru gidiyorsun ama henüz seçmediğin ortak sayılar var!";
+            feedbackEl.className = "geri-bildirim uyari";
+        }
+    }
+
+    function showAnswers() {
+        const allButtons = document.querySelectorAll('.number-btn');
+
+        allButtons.forEach(btn => {
+            const val = parseInt(btn.dataset.val);
+            const isActuallyCommon = currentCommonElements.includes(val);
+
+            // Ortak olanları seçili (mavi), diğerlerini seçilmemiş yap
+            btn.classList.toggle('selected', isActuallyCommon);
+            btn.setAttribute('aria-pressed', isActuallyCommon);
+        });
+
+        // Otomatik seçim için bilgi mesajı
+        const feedbackEl = document.getElementById('feedbackMessage');
+        feedbackEl.hidden = false;
+        feedbackEl.innerText = currentCommonElements.length
+            ? "Tüm ortak sayılar mavi renkle işaretlendi."
+            : "Bu listelerde ortak sayı yok.";
+        feedbackEl.className = "geri-bildirim bilgi";
+    }
+</script>
+</body>
+</html>
