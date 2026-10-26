@@ -227,7 +227,10 @@
   /* can göstergesi: Kabuk.kalpler(2, 3) */
   const kalpler = (kalan, toplam = 3) => {
     let h = '';
-    for (let i = 0; i < toplam; i++) h += svg(KALP, '', i < kalan ? 'fill="currentColor"' : 'opacity=".45"');
+    for (let i = 0; i < toplam; i++) {
+      const dolu = i < kalan;
+      h += `<svg viewBox="0 0 24 24" fill="${dolu ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"${dolu ? '' : ' opacity=".45"'}>${KALP}</svg>`;
+    }
     return h;
   };
 
