@@ -217,6 +217,11 @@
         .gercek-deger { font-size: 16px; }
         #nextBtn { width: 100%; }
     }
+    /* yatay telefon: ekran kısa, başlık tek satırda kalır; sayaçlar sığmazsa yana kayar */
+    @media (max-height: 520px) and (orientation: landscape) {
+        .bar { flex-wrap: nowrap; }
+        .bar-sag { order: 0; flex: 0 1 auto; flex-wrap: nowrap; min-width: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
+    }
 </style>
 </head>
 <body class="oyun-sayfasi">

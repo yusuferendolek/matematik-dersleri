@@ -88,6 +88,16 @@
     .btn-fire span { font-size: 14px; font-weight: 700; opacity: .9; }
     .btn-ccw { background: var(--mavi); color: var(--kagit); }
     .btn-cw { background: var(--turuncu); color: var(--kagit); }
+
+    /* yatay telefon: oyun alanı kalan yüksekliğe sığsın, kontroller daha sıkı */
+    @media (max-height: 520px) and (orientation: landscape) {
+        .oyun { padding: 8px 12px; gap: 8px; }
+        #game-area { min-height: 200px; }
+        #controls { gap: 8px; }
+        #angle-input { font-size: 20px; height: 40px; width: 80px; }
+        .btn-fire { min-height: 40px; padding: 4px 14px; font-size: 16px; }
+        .btn-fire span { font-size: 12px; }
+    }
 </style>
 </head>
 <body class="oyun-sayfasi">

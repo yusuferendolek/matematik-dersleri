@@ -36,6 +36,7 @@ Açık mod **Defter**: kareli kâğıt, solda kırmızı kenar çizgisi, konular
 - `site/oyunlar/<id>.html` – her oyun ayrı sayfa. Sayfalar arası geçiş normal bağlantıdır (`@view-transition` ile yumuşak).
 - `scripts/check.js` (Vercel build'i bunu çalıştırır; tek sayfa için `node scripts/check.js oyunlar/x.html`) ve `scripts/smoke.js` (internetsiz headless Chrome).
 - Ana sayfa gövdesinin sınıfı `.ana-govde`; `.ana` yalnızca `.dugme.ana` (ana eylem düğmesi) için kullanılır.
+- Başlık çubuğu ekrana göre: masaüstünde tek satır; ≤1000px'te sekmeler/ipucu ikinci satıra iner; telefonda (≤640px) sayaçlar da kendi satırına iner; tablette sayaçlar ilk satıra sığmazsa kabuk.js ölçüp `.sag-satir` sınıfıyla indirir; yatay telefonda (yükseklik ≤520px) her şey tek satırda kalır (sayaçlar sığmazsa yana kayar). Oyunlar da yatay telefon için gerekirse `@media (max-height: 520px) and (orientation: landscape)` ile sıkılaşır (Meteor, Yuvarlama).
 
 ## Yeni bir oyun ekleme / dönüştürme
 
@@ -65,7 +66,7 @@ Açık mod **Defter**: kareli kâğıt, solda kırmızı kenar çizgisi, konular
 6. `alert/confirm/prompt` yok → `Kabuk.pencere({ baslik, html, dugme, ikinci })` (Promise döner). Oyun sonu özetleri de pencere olur.
 7. Sabit 600–1500px genişlikler kalkar; `clamp()`, `%`, container query (`cqw`) ile ekrana sığdır. 390px telefonda kullanılabilir olmalı.
 8. Metinler cümle düzeninde, BÜYÜK HARF değil; emoji yalnızca içeriğin parçasıysa (ör. market ürünleri). Hitap "siz".
-9. `node scripts/check.js` ve `node scripts/smoke.js` geçmeli; iki temada, 1440 ve 390 genişlikte ekran görüntüsüyle kontrol et.
+9. `node scripts/check.js` ve `node scripts/smoke.js` geçmeli; iki temada, 1440, 768 (tablet), 390 (telefon) ve yatay 844×390 boyutunda ekran görüntüsüyle kontrol et. Sürükleme/çizme olan oyunlarda dokunmatikle de dene (canvas'ta `touch-action: none`, dokunma olayları ya da pointer olayları).
 10. Orijinalde düzeltilen hataları commit mesajına yaz.
 
 ## Durum ve açık notlar

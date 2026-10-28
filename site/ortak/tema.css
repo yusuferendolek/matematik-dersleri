@@ -119,6 +119,8 @@ body {
   background-attachment: fixed;
 }
 button, input, select, textarea { font: inherit; color: inherit; }
+/* telefonda düğmeye hızlı art arda dokununca sayfa yakınlaşmasın (iki parmakla yakınlaştırma çalışır) */
+button, a, input, select, label, [role="tab"] { touch-action: manipulation; }
 a { color: inherit; }
 h1, h2, h3, h4, p { margin: 0; }
 :focus-visible { outline: 3px solid var(--kalem); outline-offset: 2px; border-radius: 6px; }
@@ -209,7 +211,7 @@ h1, h2, h3, h4, p { margin: 0; }
   text-overflow: ellipsis;
 }
 .yer-ad.site { font-family: var(--el); font-size: 34px; font-weight: 700; color: var(--kalem); }
-.yer-ad a { text-decoration: none; }
+.yer-ad a { text-decoration: none; display: inline-block; padding: 4px 0; }
 .adim { display: flex; gap: 4px; flex: none; }
 .ikon-btn {
   width: 44px; height: 44px;
@@ -229,6 +231,13 @@ h1, h2, h3, h4, p { margin: 0; }
 .bar-sag { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
 .araclar { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
 .bar-sag ~ .araclar { margin-left: 0; }
+/* ilk satır sığmayınca (kabuk.js ölçer) sayaçlar başlığın kendi satırına iner */
+.bar.sag-satir { flex-wrap: wrap; row-gap: 0; }
+.bar.sag-satir .kenar-btn { height: var(--bar); align-self: flex-start; }
+.bar.sag-satir .yer { flex: 1 1 0; height: var(--bar); }
+.bar.sag-satir .adim, .bar.sag-satir .araclar { height: var(--bar); align-items: center; }
+.bar.sag-satir .bar-sag { order: 11; flex-basis: 100%; flex-wrap: wrap; gap: 6px 8px; padding: 0 0 10px calc(var(--kenar) + 4px); }
+.bar.sag-satir .bar-sag ~ .araclar { margin-left: auto; }
 
 /* başlıktaki puan / rekor / can */
 .durum {
@@ -554,6 +563,9 @@ input[type="range"] { accent-color: var(--kalem); width: 100%; cursor: pointer; 
   /* telefonda fotoğraf yazının altına iner */
   .ana-ust { flex-direction: column; align-items: flex-start; gap: calc(var(--kare) * 1.5); }
   .ana-foto { width: min(100%, 440px); margin: 8px 0 0; transform: rotate(-1.5deg); }
+}
+@media (max-width: 640px) {
+  /* telefonda sayaçlar başlığın kendi satırına iner (tablette ilk satırda yer var) */
   .bar-sag { order: 11; flex-basis: 100%; padding: 0 0 10px calc(var(--kenar) + 4px); }
   .bar-sag ~ .araclar { margin-left: auto; }
 }
@@ -564,6 +576,37 @@ input[type="range"] { accent-color: var(--kalem); width: 100%; cursor: pointer; 
   .bar-orta .sekmeler { width: 100%; }
   .bar-orta .sekme { flex: 1 0 auto; justify-content: center; padding: 0 10px; font-size: 14px; }
   .cekmece-ic { padding-right: 16px; padding-left: calc(var(--kenar) + 12px); }
+  /* sayaçlar küçülür ki çok sayaçlı oyunlarda başlık az yer kaplasın */
+  .bar-sag { flex-wrap: wrap; row-gap: 6px; gap: 6px; }
+  .durum { height: 34px; padding: 0 9px; gap: 4px; line-height: 32px; }
+  .durum-ad { font-size: 12px; }
+  .durum-deger { font-size: 17px; }
+  .kalpler svg { width: 19px; height: 19px; }
+}
+/* yatay telefon: ekran kısa, başlık tek satıra iner ki oyuna yer kalsın */
+@media (max-height: 520px) and (orientation: landscape) {
+  :root { --kenar: 48px; --bar: 52px; }
+  .bar { flex-wrap: nowrap; gap: 8px; padding-right: 8px; }
+  .kenar-btn .svg { width: 24px; height: 24px; }
+  .yer { flex: 0 1 auto; min-width: 72px; }
+  .yer-ust { display: none; }
+  .yer-ad { font-size: 16px; }
+  .yer-ad.site { font-size: 24px; }
+  .bar-orta { order: 0; flex: 1 1 0; min-width: 0; padding: 0; justify-content: center; }
+  .bar-orta .ipucu {
+    font-size: 12.5px; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .bar-orta .sekmeler { width: auto; }
+  .bar-orta .sekme { flex: none; }
+  .bar-sag { order: 0; flex: 0 1 auto; flex-wrap: nowrap; min-width: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
+  .ikon-btn, .adim .ikon-btn { width: 36px; height: 36px; }
+  .durum { height: 32px; padding: 0 8px; gap: 4px; line-height: 30px; }
+  .durum-ad { font-size: 12px; }
+  .durum-deger { font-size: 16px; }
+  .kalpler svg { width: 18px; height: 18px; }
+  .sekme { height: 32px; padding: 0 10px; font-size: 14px; }
+  .tam-ekran-btn { display: grid; }
 }
 @media (prefers-reduced-motion: reduce) {
   @view-transition { navigation: none; }

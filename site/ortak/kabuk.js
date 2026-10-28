@@ -181,6 +181,25 @@
       if (e.key === 'Escape' && document.body.classList.contains('cekmece-acik')) { cekmece(false); document.getElementById('menuBtn').focus(); }
     });
     if (oyun) document.title = oyun.ad + ' – Oyun Defteri';
+
+    // Başlığın ilk satırı sığmazsa sayaçlar kendi satırına iner (telefonda CSS zaten indirir; tablette ve
+    // çok sayaçlı oyunlarda yalnızca gerektiğinde). Yatay telefonda başlık tek satırda kalır.
+    if (sag) {
+      const yatayKisa = matchMedia('(max-height: 520px) and (orientation: landscape)');
+      const menu = document.getElementById('menuBtn');
+      const satirKontrol = () => {
+        bar.classList.remove('sag-satir');
+        if (yatayKisa.matches) return;
+        // sağdaki düğmeler menü düğmesinin altına geçtiyse ilk satıra sığmamıştır
+        const kaydi = araclar.getBoundingClientRect().top >= menu.getBoundingClientRect().bottom - 4;
+        if (kaydi || bar.scrollWidth > bar.clientWidth + 1) bar.classList.add('sag-satir');
+      };
+      addEventListener('resize', satirKontrol);
+      // oyun başlayınca sayaçlar görünür, puanlar büyür: yeniden ölç
+      new MutationObserver(satirKontrol).observe(sag, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'class', 'style'] });
+      satirKontrol();
+      if (document.fonts) document.fonts.ready.then(satirKontrol);
+    }
   }
 
   /* ---------- pencere (alert yerine) ----------
