@@ -67,7 +67,6 @@
   --fosfor-alfa: 100%;
   --golge: 0 2px 0 rgba(28, 37, 71, .12), 0 12px 32px rgba(28, 37, 71, .14);
   --perde: rgba(28, 37, 71, .32);
-  --foto-kenar: #FFFFFF;
   /* kalem renkleri (çizimlerde ve vurgularda) */
   --mavi: #2346C8; --kirmizi: #D63A45; --yesil: #1F8A4C; --turuncu: #D9730D; --sari: #C99A00; --mor: #7A3FD1;
   --dogru: #1F8A4C; --yanlis: #D63A45;
@@ -93,7 +92,6 @@
   --fosfor-alfa: 30%;
   --golge: 0 2px 0 rgba(0, 0, 0, .25), 0 16px 40px rgba(0, 0, 0, .35);
   --perde: rgba(8, 18, 15, .55);
-  --foto-kenar: #DDE3DB;     /* tahtada bembeyaz kenar göz almasın */
   --mavi: #9FD3F0; --kirmizi: #F2A0A8; --yesil: #A8E6A1; --turuncu: #F6C690; --sari: #F2DF86; --mor: #CFC1F5;
   --dogru: #A8E6A1; --yanlis: #F2A0A8;
   --k-sayilar: #F2E38E; --k-kesirler: #F4B1D0; --k-ondalik: #F6C690; --k-acilar: #A9DDF6;
@@ -376,36 +374,6 @@ a.satir:hover { background: color-mix(in srgb, var(--murekkep) 6%, transparent);
   padding: calc(var(--kare) * 2) 32px calc(var(--kare) * 3) calc(var(--kenar) + 40px);
 }
 .ana-ic { max-width: 1120px; }
-.ana-giris { max-width: 60ch; color: var(--murekkep-2); font-size: 18px; }
-.ana-ust {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(var(--kare) * 2);
-  margin-bottom: calc(var(--kare) * 2);
-}
-/* deftere bantla yapıştırılmış fotoğraf baskısı */
-.ana-foto {
-  position: relative;
-  flex: none;
-  width: clamp(240px, 34vw, 440px);
-  margin: 12px 8px 0 0;
-  padding: 10px 10px 12px;
-  background: var(--foto-kenar);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, .08), 0 10px 24px rgba(28, 37, 71, .16);
-  transform: rotate(2deg);
-}
-.ana-foto img { display: block; width: 100%; height: auto; }
-.ana-foto::before {
-  content: "";
-  position: absolute;
-  top: -12px; left: 50%;
-  width: 96px; height: 26px;
-  margin-left: -48px;
-  background: rgba(238, 226, 178, .72);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
-  transform: rotate(-4deg);
-}
 
 /* oyun sayfası: başlık + oyun alanı ekranı doldurur */
 .oyun-sayfasi { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
@@ -560,9 +528,6 @@ input[type="range"] { accent-color: var(--kalem); width: 100%; cursor: pointer; 
   .yer-ad { font-size: 19px; }
   .yer-ad.site { font-size: 28px; }
   .ana-govde { padding-left: calc(var(--kenar) + 20px); padding-right: 20px; }
-  /* telefonda fotoğraf yazının altına iner */
-  .ana-ust { flex-direction: column; align-items: flex-start; gap: calc(var(--kare) * 1.5); }
-  .ana-foto { width: min(100%, 440px); margin: 8px 0 0; transform: rotate(-1.5deg); }
 }
 @media (max-width: 640px) {
   /* telefonda sayaçlar başlığın kendi satırına iner (tablette ilk satırda yer var) */

@@ -14,12 +14,12 @@ Mustafa'nın tek tek yazdığı matematik/fen oyun HTML'lerini (`mustafa-htmls/`
 - Oyun seçimi başlığın **solundan** yapılır (İçindekiler çekmecesi), oklarla önceki/sonraki oyuna geçilir.
 - Mat/Fen seçici **yok**: iki ders de her zaman listelenir.
 - Karanlık mod var (sistem ayarıyla başlar, seçim hatırlanır).
-- Ana sayfada `site/photo/mustosyusuf.jpeg` fotoğrafı, deftere bantla yapıştırılmış baskı gibi durur. Fotoğraftakilerin adları yazılmaz (kim olduklarını bilmiyoruz).
+- Ana sayfada fotoğraf yok (önce vardı, kullanıcı kaldırttı).
 - Tekrar etmeyen her oyun sitede: `mat4-1 yuvarlama` ile `mat5-3 yuvarlama` birebir aynı (tek oyun); kesir boyamanın v2'si kullanılır.
 - Oyunların mantığına dokunulmaz; görünüm ortak temaya taşınır, gerçek hatalar ve yanlış metinler düzeltilir.
 - **İnternetsiz** çalışır: dışarıdan kaynak (CDN, Google Fonts, Tailwind, Font Awesome, Chart.js) yüklenmez. `site/index.html` çift tıklanınca da çalışmalı.
 - Sunucu (backend) yok.
-- Sınıfı bilinmeyen oyunlar (Sayı Örüntüsü Treni, Patron Kasiyer, Maliyet Hesaplayıcı, Şans Çarkı) sınıfsız kalır; kullanıcı da bilmiyor.
+- Sınıfı bilinmeyen oyunlar (Sayı Örüntüsü Treni, Patron Kasiyer, Maliyet Hesaplayıcı, Şans Çarkı, Çarpma ve Bölme Atölyesi, Açı Dedektifi, Asal Çarpan Laboratuvarı, Deneysel Olasılık Laboratuvarı) sınıfsız kalır; kullanıcı da bilmiyor.
 
 ## Tasarım dili
 
@@ -60,7 +60,7 @@ Açık mod **Defter**: kareli kâğıt, solda kırmızı kenar çizgisi, konular
    <script>/* oyunun kodu */</script>
    </body></html>
    ```
-3. Oyunun kendi başlığı (h1, logo, alt başlık) kaldırılır; başlık çubuğu oyunun adını ve "N. sınıf Ders" bilgisini zaten gösterir. Oyunun üst çubuğundaki her şey `.bar-orta` / `.bar-sag`'a taşınır, id'ler aynı kalır ki oyun kodu çalışsın. Başlık 1280px'te tek satıra sığmalı.
+3. Oyunun kendi başlığı (h1, logo, alt başlık) kaldırılır; başlık çubuğu oyunun adını ve "N. sınıf Ders" bilgisini zaten gösterir. Oyunun üst çubuğundaki her şey `.bar-orta` / `.bar-sag`'a taşınır, id'ler aynı kalır ki oyun kodu çalışsın. Başlık 1280px'te tek satıra sığmalı. Sayfada ikinci bir üst çubuk/başlık şeridi **asla** olmaz; başlığa sığmayan denetimler `<main>` içinde **solda bir panele** konur (telefonda içeriğin üstüne iner). Kareli defter / tahta zemini görünür kalır.
 4. Renkler yalnızca değişkenlerden: `--kagit --yuzey --yuzey-2 --kenarlik --murekkep(-2,-3) --kalem --kalem-yazi --mavi --kirmizi --yesil --turuncu --sari --mor --dogru --yanlis --k-<konu>`. Canvas'ta `Kabuk.renk('mavi')` ile oku, `Kabuk.temaDegisince(fn)` ile yenile.
 5. Ortak parçalar: `.panel`, `.panel-baslik`, `.dugme` (`.ana`, `.tehlike`, `.basari`, `.buyuk`, `.kucuk`), `.giris`, `.sekmeler/.sekme`, `.durum`, `.kalpler`, `.rozet`, `.geri-bildirim (.dogru/.yanlis)`, `.sahne`, `.ani-mesaj`, `.ipucu`. Tailwind sınıfları ve Font Awesome ikonları kullanılmaz (gerekirse küçük satır içi SVG).
 6. `alert/confirm/prompt` yok → `Kabuk.pencere({ baslik, html, dugme, ikinci })` (Promise döner). Oyun sonu özetleri de pencere olur.
@@ -71,6 +71,6 @@ Açık mod **Defter**: kareli kâğıt, solda kırmızı kenar çizgisi, konular
 
 ## Durum ve açık notlar
 
-- 17 oyunun hepsi ortak temada ve yayında.
+- 23 oyunun hepsi ortak temada ve yayında (6 oyun Kasım 2026'da eklendi).
 - Şans Çarkı'nda dört dilim eşit görünür ama kırmızı %40 olasılıkla gelir (orijinalde de böyle; muhtemelen "çark adil mi?" dersi için bilerek). Değiştirilmedi.
 - Alan–çevre oyunlarındaki (Çiftlik Mimarı, En Küçük Çevre Avcısı, Maliyet Hesaplayıcı) ızgara stilleri üç sayfada kopya duruyor; istenirse tema.css'e taşınabilir.

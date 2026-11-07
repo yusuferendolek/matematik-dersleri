@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Açı Dedektifi – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    .oyun { user-select: none; -webkit-user-select: none; }
+
+    /* başlıktaki vaka sekmeleri: geniş ekranda vakanın adı, dar ekranda "Vaka 1" */
+    .sekme .kisa { display: none; }
+
+    /* geniş ekranda: solda vaka paneli (yönerge + cevap), sağda olay yeri çizimi */
+    .duzen {
+        height: 100%;
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 16px;
+        display: grid;
+        grid-template-columns: clamp(300px, 30vw, 400px) minmax(0, 1fr);
+        grid-template-rows: auto auto 1fr;
+        grid-template-areas: "bas sahne" "eylem sahne" ". sahne";
+        gap: 16px;
+    }
+
+    .vaka-bas { grid-area: bas; display: flex; gap: 12px; align-items: flex-start; }
+    .vaka-ikon { flex: none; color: var(--murekkep-2); margin-top: 2px; }
+    .vaka-ikon .svg { width: 30px; height: 30px; }
+    .vaka-ad { font-size: 15px; font-weight: 700; color: var(--murekkep-2); margin-bottom: 6px; }
+    .talimat { font-size: clamp(18px, 1.5vw, 20px); font-weight: 600; line-height: 1.4; }
+
+    .eylem {
+        grid-area: eylem;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .eylem-not { font-weight: 700; color: var(--murekkep-2); }
+    .eylem-not.vurgu { color: var(--turuncu); }
+    .secenekler { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .secenek { white-space: normal; line-height: 1.2; padding-block: 8px; }
+    .giris-satir { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+    .giris-satir label { font-weight: 700; }
+    #degree-in { width: 120px; text-align: center; user-select: text; -webkit-user-select: text; }
+    .giris-satir .dugme { flex: 1 1 auto; }
+
+    /* olay yeri: çizim deftere / tahtaya yapılır */
+    .vaka-sahne { grid-area: sahne; min-height: 0; }
+    #svg-board {
+        position: absolute;
+        inset: 8px;
+        width: calc(100% - 16px);
+        height: calc(100% - 16px);
+        display: block;
+        overflow: visible;
+        fill: var(--murekkep);
+        font-family: var(--yazi);
+        font-weight: 800;
+    }
+    #svg-board.cizim { touch-action: none; }
+    .c-mavi { stroke: var(--mavi); }
+    .c-kirmizi { stroke: var(--kirmizi); }
+    .c-turuncu { stroke: var(--turuncu); }
+    .c-gri { stroke: var(--murekkep-2); }
+    .c-silik { stroke: var(--murekkep-3); }
+    .c-yuzey { stroke: var(--yuzey); }
+    .f-mavi { fill: var(--mavi); }
+    .f-kirmizi { fill: var(--kirmizi); }
+    .f-turuncu { fill: var(--turuncu); }
+    .f-gri { fill: var(--murekkep-2); }
+    .f-yuzey { fill: var(--yuzey); }
+    .f-tarali { fill: var(--kirmizi); fill-opacity: .2; }
+
+    /* Vaka 3: şekil üzerindeki harf düğmeleri */
+    .harf-btn { cursor: pointer; outline: none; }
+    .harf-btn .gorunen { transition: transform .2s, fill .2s; transform-box: fill-box; transform-origin: center; }
+    .harf-btn:hover .gorunen, .harf-btn:focus-visible .gorunen { transform: scale(1.2); fill: var(--turuncu); }
+    .harf-btn:focus-visible .gorunen { stroke: var(--kalem); }
+    .harf-btn text { pointer-events: none; }
+
+    /* Vaka 4: sürüklenen kol */
+    .draggable-arm { cursor: grab; outline: none; }
+    .draggable-arm:active { cursor: grabbing; }
+    .draggable-arm:focus-visible .tutamak { stroke: var(--kalem); stroke-width: 5; }
+
+    /* doğru cevapta kalem çizgileri saçılır */
+    .konfeti {
+        position: fixed;
+        left: 50%; top: 58%;
+        width: 12px; height: 4px;
+        border-radius: 2px;
+        pointer-events: none;
+        z-index: 70;
+        animation: konfeti 1.2s cubic-bezier(.15, .7, .35, 1) forwards;
+    }
+    @keyframes konfeti {
+        from { transform: translate(-50%, -50%) rotate(0); opacity: 1; }
+        55% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(calc(var(--r) * .6)); opacity: 1; }
+        to { transform: translate(calc(-50% + var(--dx) * 1.2), calc(-50% + var(--dy) + 140px)) rotate(var(--r)); opacity: 0; }
+    }
+
+    /* tablet ve telefon: yönerge, çizim, cevap alt alta */
+    @media (max-width: 900px) {
+        .duzen {
+            height: auto;
+            min-height: 100%;
+            max-width: 720px;
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            grid-template-areas: "bas" "sahne" "eylem";
+            gap: 12px;
+        }
+        .vaka-sahne { min-height: min(86vw, 620px); }
+        .secenekler { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .eylem.yatay { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center; }
+    }
+    @media (max-width: 560px) {
+        .duzen { padding: 12px; }
+        .vaka-bas.panel { padding: 12px 14px; }
+        .vaka-ikon .svg { width: 26px; height: 26px; }
+        .talimat { font-size: 17px; }
+        .vaka-sahne { min-height: 86vw; }
+        .secenek.buyuk { font-size: 17px; min-height: 52px; padding-inline: 10px; }
+    }
+    @media (max-width: 560px), (max-height: 520px) and (orientation: landscape) {
+        .sekme .uzun { display: none; }
+        .sekme .kisa { display: inline; }
+    }
+    /* yatay telefon: solda panel, sağda çizim; her şey tek ekrana sığar */
+    @media (max-height: 520px) and (orientation: landscape) {
+        .duzen {
+            height: 100%;
+            min-height: 0;
+            max-width: none;
+            padding: 10px 12px;
+            gap: 10px;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            grid-template-rows: auto auto 1fr;
+            grid-template-areas: "bas sahne" "eylem sahne" ". sahne";
+        }
+        .vaka-bas.panel { padding: 8px 12px; }
+        .vaka-ad { font-size: 13px; margin-bottom: 2px; }
+        .vaka-ikon { display: none; }
+        .talimat { font-size: 15px; line-height: 1.3; }
+        .vaka-sahne { min-height: 0; aspect-ratio: auto; }
+        .eylem { gap: 8px; }
+        .eylem.yatay { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; }
+        .eylem-not { font-size: 14px; }
+        .secenekler { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .secenek.buyuk, .eylem .dugme.buyuk { min-height: 44px; font-size: 15px; padding-inline: 10px; }
+        #degree-in { height: 44px; width: 96px; }
+    }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-orta">
+        <div class="sekmeler" role="tablist" aria-label="Vakalar">
+            <button class="sekme" role="tab" aria-selected="true" data-vaka="1" title="Vaka 1: Kimlik tespiti"><span class="uzun">Kimlik tespiti</span><span class="kisa">Vaka 1</span></button>
+            <button class="sekme" role="tab" aria-selected="false" data-vaka="2" title="Vaka 2: Gizli ölçü"><span class="uzun">Gizli ölçü</span><span class="kisa">Vaka 2</span></button>
+            <button class="sekme" role="tab" aria-selected="false" data-vaka="3" title="Vaka 3: Zıt ikizler (ters açı)"><span class="uzun">Zıt ikizler</span><span class="kisa">Vaka 3</span></button>
+            <button class="sekme" role="tab" aria-selected="false" data-vaka="4" title="Vaka 4: Açı çizim lab"><span class="uzun">Açı çizim lab</span><span class="kisa">Vaka 4</span></button>
+        </div>
+    </div>
+    <div class="bar-sag">
+        <span class="durum"><span class="durum-ad">Dedektif puanı</span><b class="durum-deger" id="score-display">0</b></span>
+    </div>
+</header>
+<script>Kabuk.bar('aci-dedektifi');</script>
+
+<main class="oyun">
+<div class="duzen">
+
+    <div class="panel vaka-bas">
+        <span class="vaka-ikon" id="detective-avatar" aria-hidden="true"></span>
+        <div>
+            <div class="vaka-ad"><span class="fosfor" style="--fk:var(--k-acilar)">Vaka <span id="stage-num-display">1</span>/4</span> · <span id="stage-name">Kimlik tespiti</span></div>
+            <p class="talimat" id="instruction-text" aria-live="polite"></p>
+        </div>
+    </div>
+
+    <div class="sahne vaka-sahne">
+        <svg id="svg-board" viewBox="180 40 440 380" aria-label="Olay yeri çizimi"></svg>
+    </div>
+
+    <!-- Şıklar veya girdi alanları buraya dinamik gelir -->
+    <div class="eylem" id="action-bar"></div>
+
+</div>
+</main>
+
+<script>
+    let currentStage = 1;
+    let score = 0;
+    let stageData = {};
+    let isDraggingArm = false;
+    let currentDrawAngle = 30;
+    // her vakada bir önceki soru: "Sıradaki soru" aynı soruyu arka arkaya getirmesin
+    const sonSoru = {};
+
+    const svgBoard = document.getElementById('svg-board');
+    const instructionText = document.getElementById('instruction-text');
+    const actionBar = document.getElementById('action-bar');
+    const detectiveAvatar = document.getElementById('detective-avatar');
+
+    const VAKA_ADLARI = { 1: 'Kimlik tespiti', 2: 'Gizli ölçü', 3: 'Zıt ikizler (ters açı)', 4: 'Açı çizim lab' };
+    const ikon = ic => `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ic}</svg>`;
+    const BUYUTEC = ikon('<circle cx="10" cy="10" r="6.5"/><path d="M15 15l6 6"/>');
+    const KALEM = ikon('<path d="M4 20l1.2-4.6L16.4 4.2a2 2 0 0 1 2.8 0l.6.6a2 2 0 0 1 0 2.8L8.6 18.8z"/><path d="M14.5 6l3.5 3.5"/>');
+
+    const rastgele = n => Math.floor(Math.random() * n);
+    function yeniSoru(stage, uret) {
+        let s;
+        do { s = uret(); } while (s.anahtar === sonSoru[stage]);
+        sonSoru[stage] = s.anahtar;
+        return s;
+    }
+    function karistir(dizi) {
+        for (let i = dizi.length - 1; i > 0; i--) { const j = rastgele(i + 1); [dizi[i], dizi[j]] = [dizi[j], dizi[i]]; }
+        return dizi;
+    }
+    // açı (derece) ve yarıçapla merkezden bir nokta; y ekranda aşağı doğru artar
+    const nokta = (cx, cy, r, derece) => [cx + r * Math.cos(derece * Math.PI / 180), cy - r * Math.sin(derece * Math.PI / 180)];
+
+    function init() {
+        document.querySelectorAll('.sekme[data-vaka]').forEach(btn => btn.onclick = () => switchStage(+btn.dataset.vaka));
+        loadStage(1);
+    }
+
+    function switchStage(stageNum) {
+        currentStage = stageNum;
+        document.querySelectorAll('.sekme[data-vaka]').forEach((btn, idx) => {
+            btn.setAttribute('aria-selected', idx + 1 === stageNum);
+        });
+        document.getElementById('stage-num-display').innerText = stageNum;
+        loadStage(stageNum);
+    }
+
+    function loadStage(stageNum) {
+        svgBoard.innerHTML = '';
+        actionBar.innerHTML = '';
+        actionBar.className = 'eylem';
+        isDraggingArm = false;
+        svgBoard.classList.toggle('cizim', stageNum === 4);
+        document.getElementById('stage-name').innerText = VAKA_ADLARI[stageNum];
+
+        if (stageNum === 1) renderStage1();
+        else if (stageNum === 2) renderStage2();
+        else if (stageNum === 3) renderStage3();
+        else if (stageNum === 4) renderStage4();
+    }
+
+    // --- VAKA 1: KİMLİK TESPİTİ (Semboller & Harfli Gösterimler) ---
+    function renderStage1() {
+        detectiveAvatar.innerHTML = BUYUTEC;
+
+        // Hem genel adı hem de harfli gösterimleri içerir (örn: AB ışını, [AB] doğru parçası)
+        const questions = [
+            {
+                draw: 'ray',
+                correct: 'AB ışını',
+                options: ['AB ışını', 'AB doğrusu', '[AB] doğru parçası', 'm(AÔB) açısı'],
+                explanation: 'Harika Dedektif! A noktası kapalı, B tarafı ok işaretiyle sonsuza uzandığı için bu bir <b>AB ışını</b>dır.'
+            },
+            {
+                draw: 'segment',
+                correct: '[AB] doğru parçası',
+                options: ['[AB] doğru parçası', 'AB ışını', 'AB doğrusu', 'BA ışını'],
+                explanation: 'Doğru tespit! İki ucu da sınırlı (nokta ile kapalı) olduğu için bu bir <b>[AB] doğru parçası</b>dır.'
+            },
+            {
+                draw: 'line',
+                correct: 'AB doğrusu',
+                options: ['AB doğrusu', '[AB] doğru parçası', 'AB ışını', 'AÔB açısı'],
+                explanation: 'Süper! İki ucu da ok işaretleriyle sonsuza uzandığı için bu <b>AB doğrusu</b>dur.'
+            },
+            {
+                draw: 'angle',
+                correct: 'AÔB açısı',
+                options: ['AÔB açısı', '[AB] doğru parçası', 'AB ışını', 'AB doğrusu'],
+                explanation: 'Mükemmel! Başlangıç noktası O olan iki ışının oluşturduğu bu açıklık <b>AÔB açısı</b>dır.'
+            }
+        ];
+
+        const chosen = yeniSoru(1, () => { const q = questions[rastgele(questions.length)]; return { ...q, anahtar: q.draw }; });
+        stageData = {
+            correct: chosen.correct,
+            explanation: chosen.explanation
+        };
+
+        instructionText.innerHTML = `Olay yerindeki şüpheli geometrik yapının <b>sembolik kimliğini</b> tespit edin!`;
+
+        const y = 230;
+        const ok = (uc, yon) => `<polygon class="f-mavi" points="${uc},${y} ${uc - 20 * yon},${y - 10} ${uc - 20 * yon},${y + 10}"/>`;
+        let svgContent = '';
+        if (chosen.draw === 'segment') {
+            svgContent = `
+                <line x1="260" y1="${y}" x2="540" y2="${y}" class="c-mavi" stroke-width="5" stroke-linecap="round"/>
+                <circle cx="260" cy="${y}" r="9" class="f-kirmizi"/>
+                <circle cx="540" cy="${y}" r="9" class="f-kirmizi"/>
+                <text x="260" y="${y - 26}" font-size="24" text-anchor="middle">A</text>
+                <text x="540" y="${y - 26}" font-size="24" text-anchor="middle">B</text>
+            `;
+        } else if (chosen.draw === 'ray') {
+            svgContent = `
+                <line x1="260" y1="${y}" x2="540" y2="${y}" class="c-mavi" stroke-width="5"/>
+                <circle cx="260" cy="${y}" r="9" class="f-kirmizi"/>
+                ${ok(555, 1)}
+                <circle cx="470" cy="${y}" r="5"/>
+                <text x="260" y="${y - 26}" font-size="24" text-anchor="middle">A</text>
+                <text x="470" y="${y - 26}" font-size="24" text-anchor="middle">B</text>
+            `;
+        } else if (chosen.draw === 'line') {
+            svgContent = `
+                <line x1="250" y1="${y}" x2="550" y2="${y}" class="c-mavi" stroke-width="5"/>
+                ${ok(245, -1)}
+                ${ok(555, 1)}
+                <circle cx="330" cy="${y}" r="5"/>
+                <circle cx="470" cy="${y}" r="5"/>
+                <text x="330" y="${y - 26}" font-size="24" text-anchor="middle">A</text>
+                <text x="470" y="${y - 26}" font-size="24" text-anchor="middle">B</text>
+            `;
+        } else if (chosen.draw === 'angle') {
+            const ox = 330, oy = 300;
+            const aci = Math.atan2(130, 110) * 180 / Math.PI;
+            const [yx, yy] = nokta(ox, oy, 50, aci);
+            svgContent = `
+                <path d="M ${ox + 160} ${oy} L ${ox} ${oy} L ${ox + 110} ${oy - 130}" fill="none" class="c-mavi" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M ${ox + 50} ${oy} A 50 50 0 0 0 ${yx} ${yy}" fill="none" class="c-kirmizi" stroke-width="3.5"/>
+                <circle cx="${ox}" cy="${oy}" r="8" class="f-kirmizi"/>
+                <text x="${ox - 24}" y="${oy + 30}" font-size="24">O</text>
+                <text x="${ox + 160}" y="${oy + 30}" font-size="24">B</text>
+                <text x="${ox + 118}" y="${oy - 138}" font-size="24">A</text>
+            `;
+        }
+        svgBoard.innerHTML = svgContent;
+
+        const grup = document.createElement('div');
+        grup.className = 'secenekler';
+        karistir([...chosen.options]).forEach(opt => {
+            const b = document.createElement('button');
+            b.className = 'dugme buyuk secenek';
+            b.textContent = opt;
+            b.onclick = () => checkStage1(opt);
+            grup.appendChild(b);
+        });
+        actionBar.appendChild(grup);
+    }
+
+    function checkStage1(ans) {
+        if (ans === stageData.correct) {
+            score += 25;
+            updateScore();
+            confetti();
+            showModal("İz bulundu!", stageData.explanation, true);
+        } else {
+            showModal("İz kaçtı!", "Dikkat edin Dedektif! Sembolün ışın mı, doğru parçası mı yoksa açı mı bildirdiğini harflerden ve oklardan kontrol edin.", false);
+        }
+    }
+
+    // --- VAKA 2: GİZLİ ÖLÇÜ ---
+    function renderStage2() {
+        detectiveAvatar.innerHTML = BUYUTEC;
+        const soru = yeniSoru(2, () => {
+            const isComp = Math.random() > 0.5;
+            const known = isComp ? rastgele(5) * 10 + 20 : rastgele(8) * 10 + 40;
+            return { isComp, known, anahtar: (isComp ? 't' : 'b') + known };
+        });
+        const known = soru.known;
+
+        if (soru.isComp) {
+            const target = 90 - known;
+            stageData = {
+                correct: target,
+                explanation: `Süper mantık! Dik açı (90 derece) referansına göre gizli açının ölçüsü: 90 − ${known} = <b>${target} derece</b> olarak bulunur.`
+            };
+
+            instructionText.innerHTML = `Dik açının (90 derece) bir parçası <b>${known} derece</b> olarak ölçüldü. <b>Kayıp parçanın</b> ölçüsü kaç derecedir?`;
+            drawCompVisual(known);
+        } else {
+            const target = 180 - known;
+            stageData = {
+                correct: target,
+                explanation: `Mükemmel hesap! Doğru açı (180 derece) üzerindeki gizli komşu açının ölçüsü: 180 − ${known} = <b>${target} derece</b> olarak bulunur.`
+            };
+
+            instructionText.innerHTML = `Doğru açının (180 derece) bir parçası <b>${known} derece</b> ise, ona komşu olan <b>bütünler açısını</b> bulun!`;
+            drawSuppVisual(known);
+        }
+
+        actionBar.innerHTML = `
+            <div class="giris-satir">
+                <label for="degree-in">Kayıp açı (derece):</label>
+                <input class="giris" type="number" id="degree-in" inputmode="numeric" placeholder="Örn: 40" min="0" max="180">
+                <button class="dugme ana buyuk" id="btn-coz">Vakayı çözün</button>
+            </div>
+        `;
+        document.getElementById('btn-coz').onclick = checkStage2Input;
+        document.getElementById('degree-in').addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); checkStage2Input(); }
+        });
+    }
+
+    function drawCompVisual(known) {
+        const cx = 320, cy = 320, len = 170;
+        const [rx, ry] = nokta(cx, cy, len, known);
+        const [ax, ay] = nokta(cx, cy, 50, known);
+        const [lx, ly] = nokta(cx, cy, 110, known / 2);
+        const [qx, qy] = nokta(cx, cy, 82, (known + 90) / 2);
+
+        svgBoard.innerHTML = `
+            <path d="M ${cx} ${cy} L ${cx + 50} ${cy} A 50 50 0 0 0 ${ax} ${ay} Z" class="f-tarali c-kirmizi" stroke-width="2.5"/>
+            <path d="M ${cx + 24} ${cy} L ${cx + 24} ${cy - 24} L ${cx} ${cy - 24}" fill="none" class="c-turuncu" stroke-width="3"/>
+            <line x1="${cx}" y1="${cy}" x2="${cx + len}" y2="${cy}" class="c-mavi" stroke-width="5" stroke-linecap="round"/>
+            <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - len}" class="c-mavi" stroke-width="5" stroke-linecap="round"/>
+            <line x1="${cx}" y1="${cy}" x2="${rx}" y2="${ry}" class="c-kirmizi" stroke-width="5" stroke-linecap="round"/>
+            <text x="${lx}" y="${ly + 6}" class="f-kirmizi" font-size="18" text-anchor="middle">${known} derece</text>
+            <text x="${qx}" y="${qy + 10}" class="f-turuncu" font-size="30" text-anchor="middle">?</text>
+        `;
+    }
+
+    function drawSuppVisual(known) {
+        const cx = 400, cy = 300, len = 170;
+        const [rx, ry] = nokta(cx, cy, len, 180 - known);
+        const [ax, ay] = nokta(cx, cy, 50, 180 - known);
+        const [lx, ly] = nokta(cx, cy, 110, 180 - known / 2);
+        const [qx, qy] = nokta(cx, cy, 82, (180 - known) / 2);
+
+        svgBoard.innerHTML = `
+            <path d="M ${cx} ${cy} L ${cx - 50} ${cy} A 50 50 0 0 1 ${ax} ${ay} Z" class="f-tarali c-kirmizi" stroke-width="2.5"/>
+            <line x1="${cx - len}" y1="${cy}" x2="${cx + len}" y2="${cy}" class="c-mavi" stroke-width="5" stroke-linecap="round"/>
+            <line x1="${cx}" y1="${cy}" x2="${rx}" y2="${ry}" class="c-kirmizi" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="${cx}" cy="${cy}" r="6"/>
+            <text x="${lx}" y="${ly + 6}" class="f-kirmizi" font-size="18" text-anchor="middle">${known} derece</text>
+            <text x="${qx}" y="${qy + 10}" class="f-turuncu" font-size="30" text-anchor="middle">?</text>
+        `;
+    }
+
+    function checkStage2Input() {
+        const val = parseInt(document.getElementById('degree-in').value);
+        if (isNaN(val)) return;
+
+        if (val === stageData.correct) {
+            score += 30;
+            updateScore();
+            confetti();
+            showModal("Vaka çözüldü!", stageData.explanation, true);
+        } else {
+            showModal("Yanlış ipucu", "Hesaplamanızı tekrar yapın Dedektif! Tümler açılar birbirini 90 dereceye, bütünler açılar ise 180 dereceye tamamlar.", false);
+        }
+    }
+
+    // --- VAKA 3: ZIT İKİZLER (Ters Açı) ---
+    function renderStage3() {
+        detectiveAvatar.innerHTML = BUYUTEC;
+        const anglePairs = { 'A': 'D', 'B': 'E', 'C': 'F', 'D': 'A', 'E': 'B', 'F': 'C' };
+        const angleValues = { 'A': 45, 'B': 75, 'C': 60, 'D': 45, 'E': 75, 'F': 60 };
+
+        const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
+        const target = yeniSoru(3, () => ({ anahtar: keys[rastgele(keys.length)] })).anahtar;
+        const correctOpposite = anglePairs[target];
+        const val = angleValues[target];
+
+        stageData = {
+            target: target,
+            correctOpposite: correctOpposite,
+            val: val,
+            explanation: `Tebrikler Dedektif! <b>${target}</b> açısı (${val} derece) ile tam zıt yönündeki <b>${correctOpposite}</b> açısı <b>zıt ikizlerdir (ters açılardır)</b> ve ölçüleri birbirine eşittir (${val} derece).`
+        };
+
+        instructionText.innerHTML = `Zanlı <b>${target}</b> açısı (${val} derece)! Onunla tam zıt yönde olan <b>zıt ikizini (ters açısını)</b> yakalayın!`;
+
+        draw3LineIntersection(target);
+        actionBar.innerHTML = `<span class="eylem-not">Şekil üzerindeki harf butonuna tıklayarak zıt ikizi seçin!</span>`;
+    }
+
+    function draw3LineIntersection(highlightLetter) {
+        const cx = 400, cy = 230, len = 190;
+        const dogru = derece => {
+            const [x1, y1] = nokta(cx, cy, len, derece + 180), [x2, y2] = nokta(cx, cy, len, derece);
+            return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="c-gri" stroke-width="4" stroke-linecap="round"/>`;
+        };
+
+        let svgContent = `${dogru(0)}${dogru(45)}${dogru(120)}<circle cx="${cx}" cy="${cy}" r="7" class="f-gri"/>`;
+
+        const labels = [
+            { id: 'A', x: cx + 70, y: cy - 22 },
+            { id: 'B', x: cx + 30, y: cy - 65 },
+            { id: 'C', x: cx - 50, y: cy - 40 },
+            { id: 'D', x: cx - 70, y: cy + 22 },
+            { id: 'E', x: cx - 30, y: cy + 65 },
+            { id: 'F', x: cx + 50, y: cy + 40 }
+        ];
+
+        labels.forEach(l => {
+            const isTarget = (l.id === highlightLetter);
+            svgContent += `
+                <g class="harf-btn" data-harf="${l.id}" tabindex="0" role="button" aria-label="${l.id} açısı">
+                    <circle cx="${l.x}" cy="${l.y}" r="28" fill="transparent"/>
+                    <circle class="gorunen ${isTarget ? 'f-kirmizi' : 'f-mavi'} c-yuzey" cx="${l.x}" cy="${l.y}" r="19" stroke-width="3"/>
+                    <text x="${l.x}" y="${l.y + 6}" class="f-yuzey" font-size="17" text-anchor="middle">${l.id}</text>
+                </g>
+            `;
+        });
+
+        svgBoard.innerHTML = svgContent;
+    }
+
+    function handleAngleClick(clickedId) {
+        if (clickedId === stageData.correctOpposite) {
+            score += 25;
+            updateScore();
+            confetti();
+            showModal("Zıt ikiz yakalandı!", stageData.explanation, true);
+        } else {
+            showModal("Yanlış şüpheli!", `Seçtiğiniz ${clickedId} açısı ters açı değildir. Sorulan ${stageData.target} açısının tam karşısında (zıt yönünde) kalan açıyı seçin!`, false);
+        }
+    }
+
+    // --- VAKA 4: İNTERAKTİF AÇI ÇİZİM LABORATUVARI (Gizli Ölçü Modu) ---
+    const LAB = { cx: 300, cy: 320, len: 200 };
+
+    function renderStage4() {
+        detectiveAvatar.innerHTML = KALEM;
+        const baseVal = yeniSoru(4, () => ({ anahtar: rastgele(5) * 10 + 20 })).anahtar; // 20-60 arası
+        const targetDrawAngle = 90 - baseVal; // Öğrencinin çizmesi gereken tümler açı
+
+        stageData = {
+            targetDrawAngle: targetDrawAngle,
+            baseVal: baseVal,
+            explanation: `İnanılmaz çizim Dedektif! ${baseVal} derecelik açının tümler açısı olan <b>${targetDrawAngle} derece</b>lik açıyı kusursuz şekilde çizdiniz!`
+        };
+
+        currentDrawAngle = 10; // Başlangıç kol açısı
+
+        instructionText.innerHTML = `Dedektif çizim labı: <b>${baseVal} derece</b>lik açının <b>tümlerini</b> bulup çizmek için kırmızı kolu sürükleyin!`;
+
+        drawInteractiveLab();
+
+        actionBar.className = 'eylem yatay';
+        actionBar.innerHTML = `
+            <span class="eylem-not vurgu">Kolu sürükleyerek açıyı oluşturun!</span>
+            <button class="dugme ana buyuk" id="btn-onay">Çizimi onaylayın</button>
+        `;
+        document.getElementById('btn-onay').onclick = checkDrawAnswer;
+    }
+
+    function drawInteractiveLab() {
+        const { cx, cy, len } = LAB;
+        const [rx, ry] = nokta(cx, cy, len, currentDrawAngle);
+        const [ax, ay] = nokta(cx, cy, 60, currentDrawAngle);
+        const odakta = document.activeElement && document.activeElement.id === 'arm-group';
+
+        svgBoard.innerHTML = `
+            <!-- Diklik referans çizgisi -->
+            <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - len}" class="c-silik" stroke-width="3" stroke-dasharray="8,8"/>
+            <text x="${cx}" y="${cy - len - 14}" class="f-gri" font-size="16" text-anchor="middle">90 derece</text>
+
+            <!-- Sabit taban kolu -->
+            <line x1="${cx}" y1="${cy}" x2="${cx + len}" y2="${cy}" class="c-mavi" stroke-width="5" stroke-linecap="round"/>
+
+            <!-- Değişen yay -->
+            <path d="M ${cx} ${cy} L ${cx + 60} ${cy} A 60 60 0 0 0 ${ax} ${ay} Z" class="f-tarali c-kirmizi" stroke-width="3"/>
+
+            <!-- Hareketli kol -->
+            <g class="draggable-arm" id="arm-group" tabindex="0" role="button" aria-label="Kırmızı kol: sürükleyin ya da ok tuşlarıyla çevirin">
+                <line x1="${cx}" y1="${cy}" x2="${rx}" y2="${ry}" stroke="transparent" stroke-width="40" stroke-linecap="round"/>
+                <line x1="${cx}" y1="${cy}" x2="${rx}" y2="${ry}" class="c-kirmizi" stroke-width="5" stroke-linecap="round"/>
+                <circle cx="${rx}" cy="${ry}" r="30" fill="transparent"/>
+                <circle class="tutamak f-kirmizi c-yuzey" cx="${rx}" cy="${ry}" r="14" stroke-width="3"/>
+            </g>
+
+            <circle cx="${cx}" cy="${cy}" r="7" class="f-turuncu"/>
+        `;
+        if (odakta) document.getElementById('arm-group').focus();
+    }
+
+    // Kol fareyle de parmakla da sürüklenir (pointer olayları); tuval yerine SVG koordinatına çevrilir
+    function kolAcisi(e) {
+        const p = svgBoard.createSVGPoint();
+        p.x = e.clientX; p.y = e.clientY;
+        const q = p.matrixTransform(svgBoard.getScreenCTM().inverse());
+        let angle = Math.round((Math.atan2(LAB.cy - q.y, q.x - LAB.cx) * 180) / Math.PI);
+        if (angle < 0) angle = 0;
+        if (angle > 90) angle = 90;
+        return angle;
+    }
+
+    function setupInteractions() {
+        svgBoard.addEventListener('pointerdown', e => {
+            if (currentStage !== 4 || !e.target.closest('#arm-group')) return;
+            e.preventDefault();
+            isDraggingArm = true;
+            svgBoard.setPointerCapture(e.pointerId);
+        });
+        svgBoard.addEventListener('pointermove', e => {
+            if (!isDraggingArm) return;
+            const angle = kolAcisi(e);
+            if (angle !== currentDrawAngle) { currentDrawAngle = angle; drawInteractiveLab(); }
+        });
+        const birak = () => { isDraggingArm = false; };
+        svgBoard.addEventListener('pointerup', birak);
+        svgBoard.addEventListener('pointercancel', birak);
+        svgBoard.addEventListener('lostpointercapture', birak);
+
+        // Vaka 3: harf düğmeleri (tıklama ve klavye)
+        svgBoard.addEventListener('click', e => {
+            const g = e.target.closest('[data-harf]');
+            if (g && currentStage === 3) handleAngleClick(g.dataset.harf);
+        });
+        svgBoard.addEventListener('keydown', e => {
+            const g = e.target.closest && e.target.closest('[data-harf]');
+            if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handleAngleClick(g.dataset.harf); return; }
+            if (e.target.id === 'arm-group') {
+                const fark = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+                if (!fark) return;
+                e.preventDefault();
+                currentDrawAngle = Math.max(0, Math.min(90, currentDrawAngle + fark));
+                drawInteractiveLab();
+            }
+        });
+    }
+
+    function checkDrawAnswer() {
+        const diff = Math.abs(currentDrawAngle - stageData.targetDrawAngle);
+        if (diff <= 4) { // Tolerans aralığı
+            score += 35;
+            updateScore();
+            confetti();
+            showModal("Mükemmel çizim!", stageData.explanation, true);
+        } else {
+            showModal("Açı ölçüsü hatalı", `Çizdiğiniz açı ${currentDrawAngle} derece oldu. ${stageData.baseVal} derecelik açının tümlerini (90 dereceye tamamlayan açıyı) bulup kolu tekrar ayarlayın!`, false);
+        }
+    }
+
+    function updateScore() {
+        document.getElementById('score-display').innerText = score;
+    }
+
+    // Doğru cevapta küçük bir kutlama: renkli kalem çizgileri saçılır (dışarıdan kütüphane yüklenmez)
+    function confetti() {
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const renkler = ['mavi', 'kirmizi', 'yesil', 'turuncu', 'sari', 'mor'];
+        for (let i = 0; i < 36; i++) {
+            const p = document.createElement('span');
+            p.className = 'konfeti';
+            const aci = (Math.random() * 140 + 20) * Math.PI / 180;
+            const hiz = 140 + Math.random() * 240;
+            p.style.setProperty('--dx', Math.cos(aci) * hiz + 'px');
+            p.style.setProperty('--dy', -Math.sin(aci) * hiz + 'px');
+            p.style.setProperty('--r', (Math.random() * 720 - 360) + 'deg');
+            p.style.background = `var(--${renkler[i % renkler.length]})`;
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 1300);
+        }
+    }
+
+    function showModal(title, body, isSuccess) {
+        Kabuk.pencere({
+            baslik: title,
+            html: `<p>${body}</p>`,
+            dugme: isSuccess ? 'Sıradaki soru' : 'Tekrar deneyin'
+        }).then(() => {
+            if (isSuccess) loadStage(currentStage);
+        });
+    }
+
+    setupInteractions();
+    init();
+</script>
+</body>
+</html>

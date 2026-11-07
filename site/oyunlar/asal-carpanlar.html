@@ -1,0 +1,1352 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asal Çarpan Laboratuvarı – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    /* başlıktaki örnek sayılar */
+    .ornekler { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+    .ornekler .dugme.kucuk { min-height: 36px; font-size: 15px; padding: 0 11px; }
+    .ornekler .svg { width: 18px; height: 18px; }
+    .ornek-ad { font-size: 15px; font-weight: 700; color: var(--murekkep-2); white-space: nowrap; margin-right: 2px; }
+
+    /* geniş ekranda: solda sayı ve adım denetimi, sağda sonuçlar; dar ekranda alt alta */
+    .duzen {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 18px 16px 40px;
+        display: grid;
+        grid-template-columns: clamp(300px, 25vw, 350px) minmax(0, 1fr);
+        gap: 24px 28px;
+        align-items: start;
+    }
+    .yan { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 18px; }
+    .icerik { container-type: inline-size; display: flex; flex-direction: column; gap: calc(var(--kare) * 1.5); min-width: 0; }
+    @media (max-width: 1000px) {
+        .duzen { grid-template-columns: minmax(0, 1fr); }
+        .yan { position: static; }
+    }
+    /* tablette ve yatay telefonda panelin iki parçası yan yana: panel kısa kalır */
+    @media (max-width: 1000px) and (min-width: 700px) {
+        .yan { flex-direction: row; align-items: flex-start; gap: 24px; }
+        .yan > div { flex: 1 1 0; min-width: 0; }
+        .yan .ara-cizgi { align-self: stretch; border-top: 0; border-left: 1.5px dashed var(--kenarlik); }
+    }
+
+    .etiket { display: block; font-size: 15px; font-weight: 700; color: var(--murekkep-2); margin-bottom: 6px; }
+    .ara-cizgi { border: 0; border-top: 1.5px dashed var(--kenarlik); margin: 0; }
+
+    /* sayı girişi */
+    .giris-satir { display: flex; gap: 10px; flex-wrap: wrap; }
+    .giris-kap { position: relative; flex: 1 1 140px; min-width: 0; }
+    .giris-kap .giris { width: 100%; height: 52px; font-size: 24px; padding-right: 46px; }
+    .temizle {
+        position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+        width: 36px; height: 36px; display: grid; place-items: center;
+        border: 0; border-radius: 8px; background: transparent; color: var(--murekkep-3); cursor: pointer;
+    }
+    .temizle:hover { color: var(--murekkep); }
+    .temizle .svg { width: 18px; height: 18px; }
+    #analizBtn { flex: 1 0 auto; min-height: 52px; }
+    #errorBox { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: 15px; }
+    #errorBox .svg { width: 20px; height: 20px; margin-top: 1px; }
+    #errorBox span { display: inline; margin: 0; color: inherit; font-weight: 700; }
+
+    /* adım adım denetim */
+    .sim-ust { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .sim-ust .etiket { margin: 0; }
+    #stepStatusBadge { color: var(--kalem); font-variant-numeric: tabular-nums; white-space: normal; }
+    [data-tema="tahta"] #stepStatusBadge { color: var(--mavi); }
+    .oynatici { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+    .oynatici .dugme { padding: 0 8px; gap: 6px; font-size: 15px; }
+    .oynatici .svg { width: 18px; height: 18px; }
+    #playPauseBtn { grid-column: 1 / -1; order: -1; }
+    #playPauseBtn.oynuyor { background: var(--turuncu); border-color: var(--turuncu); color: var(--kalem-yazi); }
+    .hiz { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+    .hiz label { font-size: 15px; font-weight: 700; color: var(--murekkep-2); }
+    .secim {
+        flex: 1; min-width: 0; height: 44px; padding: 0 10px;
+        border: 1.5px solid var(--kenarlik); border-radius: 10px;
+        background: var(--yuzey); color: var(--murekkep); font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    .secim:focus { outline: none; border-color: var(--kalem); }
+
+    /* bölüm başlıkları: kâğıdın üstüne yazılır */
+    .blok-ust { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 14px; }
+    .blok-ust h2 { font-size: 20px; font-weight: 800; line-height: 1.25; }
+    .blok-ust h2 .fosfor { --fk: var(--k-carpan); }
+    .blok-ust p { margin-top: 2px; font-size: 15px; color: var(--murekkep-2); max-width: 62ch; }
+
+    /* özet: üç bölüm, aralarında kesik çizgi */
+    .ozet { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr) minmax(0, 1.1fr); gap: 16px 0; }
+    .ozet-bolum { min-width: 0; padding: 0 22px; }
+    .ozet-bolum:first-child { padding-left: 0; }
+    .ozet-bolum:last-child { padding-right: 0; }
+    .ozet-bolum + .ozet-bolum { border-left: 1.5px dashed var(--kenarlik); }
+    .ozet-ust { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; min-height: 32px; margin-bottom: 6px; }
+    .ozet-ad { font-size: 15px; font-weight: 700; color: var(--murekkep-2); }
+    #primeStatusTitle { font-size: 24px; font-weight: 800; line-height: 1.2; color: var(--mavi); }
+    #primeStatusTitle[data-tur="asal"] { color: var(--yesil); }
+    #primeStatusTitle[data-tur="bir"] { color: var(--turuncu); }
+    #primeStatusDesc { margin-top: 4px; font-size: 15px; color: var(--murekkep-2); }
+    #exponentialDisplay {
+        font-size: clamp(26px, 3.4cqw, 36px); font-weight: 800; line-height: 1.3;
+        color: var(--kalem); font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+    }
+    [data-tema="tahta"] #exponentialDisplay { color: var(--mavi); }
+    #exponentialDisplay sup { font-size: .58em; line-height: 0; margin-left: 1px; }
+    #expandedDisplay { margin-top: 4px; font-size: 15px; color: var(--murekkep-2); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .ozet-ust .dugme.kucuk .svg { width: 16px; height: 16px; }
+    #distinctPrimeCount { color: var(--yesil); }
+    #distinctPrimesContainer { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+    .asal-cip {
+        display: inline-flex; align-items: baseline; gap: 4px;
+        padding: 3px 10px; border-radius: 8px;
+        border: 1.5px solid var(--yesil); color: var(--yesil); background: var(--yuzey);
+        font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums;
+    }
+    .asal-cip small { font-size: 13px; font-weight: 700; }
+    .yok { font-size: 15px; color: var(--murekkep-3); font-style: italic; }
+    #divisorCountFormula { padding-top: 8px; border-top: 1.5px dashed var(--kenarlik); font-size: 15px; color: var(--murekkep-2); font-variant-numeric: tabular-nums; }
+
+    /* bölen listesi ve çarpan ağacı yan yana (sağ sütun yeterince genişse) */
+    .cizimler { display: grid; grid-template-columns: minmax(0, 1fr); gap: calc(var(--kare) * 1.5) 28px; }
+    @container (min-width: 780px) { .cizimler { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
+    /* alt alta dururken bölen listesi kendi boyu kadar yer kaplar */
+    @container (max-width: 779px) {
+        .bl-alan { height: auto; max-height: 560px; }
+        #treeViewport { height: auto; min-height: 240px; max-height: 600px; }
+    }
+    @container (max-width: 700px) {
+        .ozet { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+        .ozet-bolum.genis { grid-column: 1 / -1; grid-row: 2; padding: 16px 0 0; border-left: 0; border-top: 1.5px dashed var(--kenarlik); }
+        .ozet-bolum:last-child { padding-left: 22px; padding-right: 0; }
+    }
+    @container (max-width: 440px) {
+        .ozet { grid-template-columns: minmax(0, 1fr); }
+        .ozet-bolum, .ozet-bolum:last-child { padding: 16px 0 0; border-left: 0; border-top: 1.5px dashed var(--kenarlik); }
+        .ozet-bolum:first-child { padding-top: 0; border-top: 0; }
+        .ozet-bolum.genis { grid-row: auto; }
+    }
+
+    /* çizim alanı: deftere kalemle çizilmiş gibi, kâğıt görünür */
+    .cizim-alan {
+        height: clamp(360px, 58vh, 560px);
+        border: 1.5px dashed var(--kenarlik);
+        border-radius: var(--kose);
+        overflow: auto;
+        scrollbar-gutter: stable;
+    }
+
+    /* bölen listesi (dikey çizgi yöntemi) */
+    .bl-alan { padding: 12px 12px 16px; }
+    .bl-basliklar, .bl-satir { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 360px); margin: 0 auto; }
+    .bl-basliklar { padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1.5px dashed var(--kenarlik); font-size: 14px; font-weight: 700; color: var(--murekkep-2); }
+    .bl-basliklar span:first-child { text-align: right; padding-right: 20px; }
+    .bl-basliklar span:last-child { padding-left: 20px; color: var(--yesil); }
+    .bl-tablo { position: relative; width: min(100%, 360px); margin: 0 auto; }
+    .bl-cizgi { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 2.5px; transform: translateX(-50%); border-radius: 2px; background: var(--kalem); }
+    [data-tema="tahta"] .bl-cizgi { background: var(--mavi); }
+    .bl-satir { align-items: center; min-height: 48px; padding: 4px 0; border-radius: 10px; cursor: pointer; position: relative; }
+    .bl-satir:hover { background: color-mix(in srgb, var(--murekkep) 5%, transparent); }
+    .bl-satir.secili { background: color-mix(in srgb, var(--kalem) 14%, transparent); }
+    .bl-bolunen { text-align: right; padding-right: 20px; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .bl-satir.secili .bl-bolunen { color: var(--kalem); }
+    [data-tema="tahta"] .bl-satir.secili .bl-bolunen { color: var(--mavi); }
+    .bl-sag { padding-left: 20px; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+    .bl-bolen { color: var(--yesil); font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .bl-not { font-size: 13px; color: var(--murekkep-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .bl-satir.son { cursor: default; }
+    .bl-satir.son:hover { background: none; }
+    .bl-satir.son .bl-bolunen { color: var(--turuncu); }
+    .bl-bitti { font-size: 14px; font-style: italic; color: var(--murekkep-2); }
+    .bos-not { padding: 20px; text-align: center; color: var(--murekkep-2); }
+    .ipucu-alt { margin-top: 10px; font-size: 14px; color: var(--murekkep-2); text-align: center; }
+
+    /* çarpan ağacı */
+    .agac-arac { display: flex; align-items: center; justify-content: space-between; gap: 8px 14px; flex-wrap: wrap; margin-bottom: 8px; }
+    .lejant { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 15px; font-weight: 700; color: var(--murekkep-2); }
+    .lejant span { display: inline-flex; align-items: center; gap: 6px; }
+    .lejant i { width: 14px; height: 14px; border-radius: 50%; border: 2.5px solid var(--r); background: color-mix(in srgb, var(--r) 16%, var(--yuzey)); }
+    .yakinlik { display: flex; gap: 4px; }
+    .yakinlik .ikon-btn { width: 40px; height: 40px; }
+    .yakinlik .svg { width: 20px; height: 20px; }
+    .yakinlik .dugme { min-height: 40px; padding: 0 12px; font-size: 15px; }
+    #treeViewport { display: flex; padding: 8px; }
+    #factorTreeSvg { flex: none; margin: auto; display: block; overflow: visible; }
+    .dal { stroke: var(--murekkep-3); stroke-width: 2.2; stroke-linecap: round; }
+    .dal.aktif { stroke: var(--mavi); stroke-width: 3.5; }
+    .dugum { --r: var(--mavi); cursor: pointer; }
+    .dugum.asal { --r: var(--yesil); }
+    .dugum.bir { --r: var(--turuncu); }
+    .dugum .daire { fill: color-mix(in srgb, var(--r) 14%, var(--yuzey)); stroke: var(--r); stroke-width: 2.5; }
+    .dugum:hover .daire { stroke-width: 3.5; }
+    .dugum.aktif .daire { stroke: var(--turuncu); stroke-width: 4; }
+    .dugum .halka { fill: none; stroke: var(--turuncu); stroke-width: 2; animation: nabiz 1.5s infinite; }
+    .dugum text { fill: var(--r); font-family: var(--yazi); font-weight: 800; font-variant-numeric: tabular-nums; }
+    @keyframes nabiz { 0%, 100% { opacity: 0; } 50% { opacity: .9; } }
+
+    /* algoritma adımları */
+    .denetim {
+        display: inline-flex; align-items: center; gap: 10px;
+        min-height: 44px; padding: 0 14px;
+        border: 1.5px solid var(--kenarlik); border-radius: 10px; background: var(--yuzey);
+        font-size: 15px; font-weight: 700; cursor: pointer; user-select: none;
+    }
+    .denetim input { width: 20px; height: 20px; accent-color: var(--kalem); margin: 0; cursor: pointer; }
+    #algorithmStepsList { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    @container (min-width: 700px) { #algorithmStepsList { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .islem {
+        padding: 12px 14px;
+        border: 1.5px solid var(--kenarlik);
+        border-left: 4px solid var(--mavi);
+        border-radius: 0 10px 10px 0;
+        background: var(--yuzey);
+        cursor: pointer;
+    }
+    .islem:hover { border-color: var(--murekkep-3); border-left-color: var(--mavi); }
+    .islem.secili { border-color: var(--kalem); border-left-color: var(--kalem); background: color-mix(in srgb, var(--kalem) 8%, var(--yuzey)); }
+    .islem-ust { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .islem-ust .rozet { font-size: 14px; }
+    .islem-no { color: var(--mavi); }
+    .asal-rozet { color: var(--yesil); font-variant-numeric: tabular-nums; }
+    .islem-hesap {
+        display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+        margin: 10px 0 8px; padding: 8px 12px; border-radius: 8px; background: var(--yuzey-2);
+        font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums;
+    }
+    .islem-hesap .y { color: var(--yesil); }
+    .islem-hesap .m { color: var(--mavi); }
+    .kalan { font-size: 13px; font-weight: 700; color: var(--murekkep-2); }
+    .islem-not { font-size: 15px; color: var(--murekkep-2); }
+    .islem-not strong { color: var(--murekkep); font-variant-numeric: tabular-nums; }
+    .islem-not .bitti { color: var(--dogru); font-weight: 700; }
+    .gecis {
+        display: flex; gap: 8px; align-items: flex-start;
+        margin-top: 10px; padding: 8px 10px; border-radius: 8px;
+        border: 1.5px dashed color-mix(in srgb, var(--turuncu) 60%, transparent);
+        font-size: 14px; color: var(--murekkep-2);
+    }
+    .gecis .svg { width: 18px; height: 18px; color: var(--turuncu); margin-top: 1px; }
+    .gecis strong { color: var(--turuncu); }
+    .ozel-durum { grid-column: 1 / -1; padding: 14px 16px; border-radius: 10px; border: 1.5px solid var(--turuncu); background: var(--yuzey); }
+    .ozel-durum strong { color: var(--turuncu); }
+
+    /* bölenler */
+    .olcumler { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    @container (max-width: 600px) { .olcumler { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .olcum { padding: 8px 12px; border-left: 3px solid var(--murekkep-3); }
+    .olcum-ad { font-size: 14px; font-weight: 700; color: var(--murekkep-2); }
+    .olcum-deger { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .olcum.asal { border-left-color: var(--yesil); }
+    .olcum.asal .olcum-deger { color: var(--yesil); }
+    .olcum.toplam .olcum-deger { color: var(--mavi); }
+    #divisorsContainer { display: flex; flex-wrap: wrap; gap: 8px; }
+    .bolen {
+        display: inline-flex; align-items: center; gap: 6px;
+        min-height: 40px; padding: 0 12px;
+        border: 1.5px solid var(--kenarlik); border-radius: 8px; background: var(--yuzey);
+        font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums;
+    }
+    .bolen.asal { border-color: var(--yesil); color: var(--yesil); font-weight: 800; }
+    .bolen.asal small { font-size: 12px; font-weight: 800; padding: 1px 6px; border-radius: 6px; background: color-mix(in srgb, var(--yesil) 16%, var(--yuzey)); }
+    .cift {
+        display: inline-flex; align-items: center; gap: 8px;
+        min-height: 42px; padding: 0 14px;
+        border: 1.5px solid var(--kenarlik); border-radius: 8px; background: var(--yuzey);
+        font-size: 17px; font-variant-numeric: tabular-nums;
+    }
+    .cift-no { font-size: 13px; color: var(--murekkep-3); }
+    .cift b { font-weight: 800; }
+    .cift b.asal { color: var(--yesil); }
+    .cift b.sonuc { color: var(--mavi); }
+    .cift .isaret { color: var(--murekkep-3); }
+
+    .giris-anim { animation: girisAnim .35s cubic-bezier(.16, 1, .3, 1); }
+    @keyframes girisAnim { from { opacity: 0; transform: translateY(8px); } }
+
+    /* kısa bildirim */
+    .bildirimler { position: fixed; right: 16px; bottom: 16px; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: none; }
+    .bildirim {
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 14px; border-radius: 10px;
+        border: 1.5px solid var(--kenarlik); background: var(--yuzey); box-shadow: var(--golge);
+        font-size: 15px; font-weight: 700; transition: opacity .25s;
+        animation: girisAnim .3s ease-out;
+    }
+    .bildirim .svg { width: 18px; height: 18px; color: var(--dogru); }
+
+    @media (max-width: 1100px) and (min-width: 1001px) { .ornek-ad { display: none; } }
+    @media (max-width: 560px) {
+        .duzen { padding: 14px 12px 32px; gap: 20px; }
+        .yan.panel { padding: 14px; }
+        .ornek-ad, .rastgele-yazi { display: none; }
+        .ornekler { gap: 5px; }
+        .ornekler .dugme.kucuk { padding: 0 7px; font-size: 14px; }
+        .bildirimler { left: 12px; right: 12px; bottom: 12px; align-items: center; }
+        .bl-not { display: none; }
+        .bl-bolunen { font-size: 21px; }
+        .islem-hesap { font-size: 18px; }
+    }
+    @media (max-height: 520px) and (orientation: landscape) {
+        .ornek-ad, .rastgele-yazi { display: none; }
+        .ornekler .dugme.kucuk { min-height: 32px; padding: 0 8px; font-size: 14px; }
+        .cizim-alan { height: 340px; }
+    }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-orta">
+        <div class="ornekler" role="group" aria-label="Örnek sayılar">
+            <span class="ornek-ad">Örnekler:</span>
+            <button class="dugme kucuk" onclick="loadPreset(60)">60</button>
+            <button class="dugme kucuk" onclick="loadPreset(72)">72</button>
+            <button class="dugme kucuk" onclick="loadPreset(360)">360</button>
+            <button class="dugme kucuk basari" onclick="loadPreset(97)">97 (asal)</button>
+            <button class="dugme kucuk" onclick="loadPreset(2310)">2310</button>
+            <button class="dugme kucuk" onclick="generateRandomNumber()" title="Rastgele sayı üretin" aria-label="Rastgele sayı üretin">
+                <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.4" fill="currentColor" stroke="none"/></svg>
+                <span class="rastgele-yazi">Rastgele</span>
+            </button>
+        </div>
+    </div>
+</header>
+<script>Kabuk.bar('asal-carpanlar');</script>
+
+<main class="oyun">
+<div class="duzen">
+
+    <!-- sol: sayı girişi ve adım adım denetim -->
+    <aside class="panel yan">
+        <div>
+            <label for="numberInput" class="etiket">Pozitif tam sayı girin (1 – 999.999.999)</label>
+            <div class="giris-satir">
+                <div class="giris-kap">
+                    <input class="giris" type="number" id="numberInput" min="1" max="999999999" value="360" placeholder="Örn: 360" inputmode="numeric" autocomplete="off">
+                    <button class="temizle" onclick="clearInput()" title="Temizleyin" aria-label="Sayıyı temizleyin">
+                        <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    </button>
+                </div>
+                <button class="dugme ana" id="analizBtn" onclick="handleAnalyze()">Çarpanlara ayırın</button>
+            </div>
+            <div id="errorBox" class="geri-bildirim yanlis" role="alert" hidden>
+                <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>
+                <span id="errorText">Lütfen geçerli bir pozitif tam sayı girin.</span>
+            </div>
+        </div>
+
+        <hr class="ara-cizgi">
+
+        <div>
+            <div class="sim-ust">
+                <span class="etiket">Adım adım simülasyon kontrolü</span>
+                <span id="stepStatusBadge" class="rozet" role="status">Adım: tümü gösteriliyor</span>
+            </div>
+            <div class="oynatici">
+                <button class="dugme" onclick="resetSteps()" title="Başa sarın" aria-label="Başa alın">
+                    <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 5v14"/><path d="M12.5 6.5v11L7 12zM20 6.5v11L14.5 12z" fill="currentColor"/></svg>
+                </button>
+                <button class="dugme" onclick="prevStep()" title="Önceki adım">
+                    <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5v14"/><path d="M18 6.5v11L10 12z" fill="currentColor"/></svg>
+                    <span>Geri</span>
+                </button>
+                <button class="dugme ana" id="playPauseBtn" onclick="togglePlaySteps()">
+                    <svg class="svg" id="playPauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+                    <span id="playPauseText">Adım adım oynatın</span>
+                </button>
+                <button class="dugme" onclick="nextStep()" title="Sonraki adım">
+                    <span>İleri</span>
+                    <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 5v14"/><path d="M6 6.5v11L14 12z" fill="currentColor"/></svg>
+                </button>
+                <button class="dugme" onclick="showAllSteps()" title="Tüm adımları gösterin" aria-label="Tüm adımları gösterin">
+                    <span>Tümü</span>
+                </button>
+            </div>
+            <div class="hiz">
+                <label for="speedSelect">Hız:</label>
+                <select id="speedSelect" class="secim" onchange="updateSpeed()">
+                    <option value="1400">Yavaş (1,4 sn)</option>
+                    <option value="900" selected>Normal (0,9 sn)</option>
+                    <option value="450">Hızlı (0,45 sn)</option>
+                </select>
+            </div>
+        </div>
+    </aside>
+
+    <!-- sağ: sonuçlar -->
+    <div class="icerik">
+
+        <!-- özet -->
+        <section class="ozet" aria-label="Özet">
+            <div class="ozet-bolum">
+                <div class="ozet-ust"><span class="ozet-ad">Sayı sınıflandırması</span></div>
+                <div id="primeStatusTitle">Bileşik sayı</div>
+                <p id="primeStatusDesc">1 ve kendisi dışında pozitif tam bölenleri vardır.</p>
+            </div>
+            <div class="ozet-bolum genis">
+                <div class="ozet-ust">
+                    <span class="ozet-ad">Asal çarpanların üslü ve açık gösterimi</span>
+                    <button class="dugme kucuk" onclick="copyFactorization()">
+                        <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></svg>
+                        <span>Kopyalayın</span>
+                    </button>
+                </div>
+                <div id="exponentialDisplay">360 = 2<sup>3</sup> · 3<sup>2</sup> · 5<sup>1</sup></div>
+                <div id="expandedDisplay">Açık çarpım: 2 × 2 × 2 × 3 × 3 × 5</div>
+            </div>
+            <div class="ozet-bolum">
+                <div class="ozet-ust">
+                    <span class="ozet-ad">Asal bölenler (küme)</span>
+                    <span id="distinctPrimeCount" class="rozet">3 farklı asal</span>
+                </div>
+                <div id="distinctPrimesContainer"></div>
+                <div id="divisorCountFormula">Pozitif bölen sayısı: (3+1)·(2+1)·(1+1) = 24</div>
+            </div>
+        </section>
+
+        <div class="cizimler">
+            <!-- bölen listesi (dikey çizgi yöntemi) -->
+            <section>
+                <div class="blok-ust">
+                    <div>
+                        <h2><span class="fosfor">Asal çarpan algoritması (bölen listesi)</span></h2>
+                        <p>Dikey çizgi yöntemi ile en küçük asal sayıdan başlayarak bölme</p>
+                    </div>
+                </div>
+                <div class="cizim-alan bl-alan">
+                    <div class="bl-basliklar"><span>Bölünen / bölüm</span><span>Asal bölen</span></div>
+                    <div id="verticalLineContainer"></div>
+                </div>
+                <p class="ipucu-alt">İpucu: Satırlara tıklayarak ilgili adımı çarpan ağacında ve açıklamada vurgulayabilirsiniz.</p>
+            </section>
+
+            <!-- çarpan ağacı -->
+            <section>
+                <div class="blok-ust">
+                    <div>
+                        <h2><span class="fosfor">Çarpan ağacı (factor tree) görselleştirmesi</span></h2>
+                        <p>Sayının asal yapraklara (yeşil düğümler) kadar dallanarak ayrıştırılması</p>
+                    </div>
+                    <div class="sekmeler" role="tablist" aria-label="Ağaç türü">
+                        <button class="sekme" role="tab" id="treeModeSequential" aria-selected="true" onclick="setTreeMode('sequential')">Sıralı ağaç</button>
+                        <button class="sekme" role="tab" id="treeModeBalanced" aria-selected="false" onclick="setTreeMode('balanced')">Dengeli ağaç</button>
+                    </div>
+                </div>
+                <div class="agac-arac">
+                    <div class="lejant">
+                        <span><i style="--r: var(--mavi)"></i>Bileşik sayı (düğüm)</span>
+                        <span><i style="--r: var(--yesil)"></i>Asal çarpan (yaprak)</span>
+                    </div>
+                    <div class="yakinlik">
+                        <button class="ikon-btn" onclick="zoomTree(1.15)" title="Yakınlaştırın" aria-label="Yakınlaştırın">
+                            <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20M8 10.5h5M10.5 8v5"/></svg>
+                        </button>
+                        <button class="ikon-btn" onclick="zoomTree(0.85)" title="Uzaklaştırın" aria-label="Uzaklaştırın">
+                            <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20M8 10.5h5"/></svg>
+                        </button>
+                        <button class="dugme" onclick="resetTreeZoom()" title="Sıfırlayın">Sığdırın</button>
+                    </div>
+                </div>
+                <div id="treeViewport" class="cizim-alan">
+                    <svg id="factorTreeSvg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Çarpan ağacı"></svg>
+                </div>
+            </section>
+        </div>
+
+        <!-- adım adım açıklama -->
+        <section>
+            <div class="blok-ust">
+                <div>
+                    <h2><span class="fosfor">Adım adım algoritma çalışması ve açıklaması</span></h2>
+                    <p>Algoritmanın her adımda hangi asal sayıya böldüğü, kalan kontrolü ve elde edilen yeni bölüm</p>
+                </div>
+                <label class="denetim">
+                    <input type="checkbox" id="showSkippedToggle" onchange="renderAlgorithmSteps()" checked>
+                    <span>Asal bölen değişim nedenlerini gösterin</span>
+                </label>
+            </div>
+            <ol id="algorithmStepsList"></ol>
+        </section>
+
+        <!-- bütün bölenler -->
+        <section>
+            <div class="blok-ust">
+                <div>
+                    <h2><span class="fosfor">Tüm pozitif tam bölenler (çarpanlar) listesi</span></h2>
+                    <p id="divisorsSubtitle">Sayının kalansız bölünebildiği tüm pozitif tam sayılar ve asal olanların vurgulanması</p>
+                </div>
+                <div class="sekmeler" role="tablist" aria-label="Gösterim">
+                    <button class="sekme" role="tab" id="divViewListBtn" aria-selected="true" onclick="setDivisorView('list')">Sıralı liste</button>
+                    <button class="sekme" role="tab" id="divViewPairsBtn" aria-selected="false" onclick="setDivisorView('pairs')">Çarpan çiftleri (ikili)</button>
+                </div>
+            </div>
+            <div class="olcumler">
+                <div class="olcum"><div class="olcum-ad">Pozitif bölen sayısı</div><div id="metricTotalDivisors" class="olcum-deger">24</div></div>
+                <div class="olcum asal"><div class="olcum-ad">Asal bölen sayısı</div><div id="metricPrimeDivisors" class="olcum-deger">3</div></div>
+                <div class="olcum"><div class="olcum-ad">Asal olmayan bölen</div><div id="metricNonPrimeDivisors" class="olcum-deger">21</div></div>
+                <div class="olcum toplam"><div class="olcum-ad">Bölenler toplamı σ(n)</div><div id="metricSumDivisors" class="olcum-deger">1170</div></div>
+            </div>
+            <div id="divisorsContainer"></div>
+        </section>
+
+    </div>
+</div>
+</main>
+
+<div class="bildirimler" id="toastContainer" aria-live="polite"></div>
+
+<script>
+        /**
+         * Global State Management
+         */
+        const state = {
+            number: 360,
+            isPrime: false,
+            steps: [],              // Each division step: { stepIndex, dividend, divisor, quotient, skippedPrimes: [] }
+            primeFactorsList: [],   // e.g. [2, 2, 2, 3, 3, 5]
+            primeCounts: {},        // e.g. { 2: 3, 3: 2, 5: 1 }
+            distinctPrimes: [],     // e.g. [2, 3, 5]
+            divisors: [],           // All positive divisors sorted
+            currentStep: null,      // null means "Show All Steps", integer 0..steps.length-1 means active step
+            isPlaying: false,
+            playTimer: null,
+            playSpeed: 900,
+            treeMode: 'sequential', // 'sequential' | 'balanced'
+            treeZoom: 1,
+            treeW: 460,             // çizimin kendi ölçüsü (viewBox)
+            treeH: 320,
+            divisorView: 'list'     // 'list' | 'pairs'
+        };
+
+        const IKON_OYNAT = '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>';
+        const IKON_DURAKLAT = '<path d="M8.5 5.5v13M15.5 5.5v13" stroke-width="3.2"/>';
+        const IKON_GECIS = '<path d="M5 5v6a3 3 0 0 0 3 3h11"/><path d="M15 10l4 4-4 4"/>';
+
+        /**
+         * Superscript helper for exponential notation
+         */
+        const superscriptMap = {
+            '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+            '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+        };
+
+        function toSuperscript(num) {
+            return String(num).split('').map(ch => superscriptMap[ch] || ch).join('');
+        }
+
+        function formatNumberTR(num) {
+            return Number(num).toLocaleString('tr-TR');
+        }
+
+        /**
+         * Prime Factorization & Analysis Engine
+         */
+        function analyzeNumber(n) {
+            const result = {
+                number: n,
+                isPrime: false,
+                steps: [],
+                primeFactorsList: [],
+                primeCounts: {},
+                distinctPrimes: [],
+                divisors: []
+            };
+
+            if (n === 1) {
+                result.divisors = [1];
+                return result;
+            }
+
+            let temp = n;
+            let currentCandidate = 2;
+            let stepIndex = 1;
+            let skippedSinceLastSuccess = [];
+
+            // Trial division with step-by-step tracking
+            while (currentCandidate * currentCandidate <= temp) {
+                if (temp % currentCandidate === 0) {
+                    const quotient = temp / currentCandidate;
+                    result.steps.push({
+                        stepIndex: stepIndex++,
+                        dividend: temp,
+                        divisor: currentCandidate,
+                        quotient: quotient,
+                        skippedPrimes: [...skippedSinceLastSuccess]
+                    });
+                    skippedSinceLastSuccess = [];
+                    result.primeFactorsList.push(currentCandidate);
+                    result.primeCounts[currentCandidate] = (result.primeCounts[currentCandidate] || 0) + 1;
+                    temp = quotient;
+                } else {
+                    // Record prime transition for educational explanation
+                    if (isSmallPrime(currentCandidate) && skippedSinceLastSuccess.length < 4) {
+                        skippedSinceLastSuccess.push({
+                            prime: currentCandidate,
+                            remainder: temp % currentCandidate
+                        });
+                    }
+                    currentCandidate = currentCandidate === 2 ? 3 : currentCandidate + 2;
+                }
+            }
+
+            // If remaining temp > 1, it is prime itself
+            if (temp > 1) {
+                result.steps.push({
+                    stepIndex: stepIndex++,
+                    dividend: temp,
+                    divisor: temp,
+                    quotient: 1,
+                    skippedPrimes: [...skippedSinceLastSuccess]
+                });
+                result.primeFactorsList.push(temp);
+                result.primeCounts[temp] = (result.primeCounts[temp] || 0) + 1;
+            }
+
+            result.distinctPrimes = Object.keys(result.primeCounts).map(Number).sort((a, b) => a - b);
+            result.isPrime = (result.primeFactorsList.length === 1 && result.primeFactorsList[0] === n);
+
+            // Generate all positive divisors from prime factorization
+            result.divisors = generateDivisorsFromFactors(result.primeCounts);
+
+            return result;
+        }
+
+        function isSmallPrime(num) {
+            if (num < 2) return false;
+            if (num === 2 || num === 3) return true;
+            if (num % 2 === 0 || num % 3 === 0) return false;
+            for (let i = 5; i * i <= num; i += 6) {
+                if (num % i === 0 || num % (i + 2) === 0) return false;
+            }
+            return true;
+        }
+
+        function generateDivisorsFromFactors(primeCounts) {
+            const primes = Object.keys(primeCounts).map(Number);
+            let divisors = [1];
+
+            for (const p of primes) {
+                const count = primeCounts[p];
+                const nextDivisors = [];
+                let multiplier = 1;
+                for (let e = 0; e <= count; e++) {
+                    for (const d of divisors) {
+                        nextDivisors.push(d * multiplier);
+                    }
+                    multiplier *= p;
+                }
+                divisors = nextDivisors;
+            }
+
+            return divisors.sort((a, b) => a - b);
+        }
+
+        /**
+         * Input Handling & Validation
+         */
+        function handleAnalyze() {
+            stopPlaySteps();
+            const inputEl = document.getElementById('numberInput');
+            const errorBox = document.getElementById('errorBox');
+            const errorText = document.getElementById('errorText');
+
+            const rawVal = inputEl.value.trim();
+            const parsed = Number(rawVal);
+
+            if (!rawVal || isNaN(parsed) || !Number.isInteger(parsed) || parsed < 1) {
+                errorText.textContent = 'Lütfen 1 veya 1\'den büyük geçerli bir pozitif tam sayı girin.';
+                errorBox.hidden = false;
+                return;
+            }
+
+            if (parsed > 999999999) {
+                errorText.textContent = 'Görselleştirmenin akıcı olması için lütfen 999.999.999 veya daha küçük bir sayı girin.';
+                errorBox.hidden = false;
+                return;
+            }
+
+            errorBox.hidden = true;
+
+            const analysis = analyzeNumber(parsed);
+            state.number = analysis.number;
+            state.isPrime = analysis.isPrime;
+            state.steps = analysis.steps;
+            state.primeFactorsList = analysis.primeFactorsList;
+            state.primeCounts = analysis.primeCounts;
+            state.distinctPrimes = analysis.distinctPrimes;
+            state.divisors = analysis.divisors;
+            state.currentStep = null; // Show all by default
+
+            renderAll();
+        }
+
+        function loadPreset(num) {
+            document.getElementById('numberInput').value = num;
+            handleAnalyze();
+            showToast(`${formatNumberTR(num)} sayısı yüklendi ve analiz edildi.`);
+        }
+
+        function generateRandomNumber() {
+            // Generate an interesting composite or occasional prime number
+            const randomPool = [
+                24, 36, 48, 54, 60, 72, 84, 90, 96, 108, 120, 144, 150, 180,
+                210, 240, 252, 300, 360, 420, 480, 504, 600, 720, 840, 1024, 1260,
+                47, 73, 89, 101, 137
+            ];
+            let chosen;
+            if (Math.random() < 0.65) {
+                chosen = randomPool[Math.floor(Math.random() * randomPool.length)];
+            } else {
+                chosen = Math.floor(Math.random() * 980) + 20;
+            }
+            document.getElementById('numberInput').value = chosen;
+            handleAnalyze();
+            showToast(`Rastgele sayı üretildi: ${formatNumberTR(chosen)}`);
+        }
+
+        function clearInput() {
+            const inputEl = document.getElementById('numberInput');
+            inputEl.value = '';
+            inputEl.focus();
+        }
+
+        /**
+         * Master Render Function
+         */
+        function renderAll() {
+            renderSummaryCards();
+            renderStepStatusBadge();
+            renderVerticalLineMethod();
+            renderFactorTree();
+            renderAlgorithmSteps();
+            renderDivisorsSection();
+        }
+
+        /**
+         * 1. Özet
+         */
+        function renderSummaryCards() {
+            const n = state.number;
+            const primeStatusTitle = document.getElementById('primeStatusTitle');
+            const primeStatusDesc = document.getElementById('primeStatusDesc');
+            const exponentialDisplay = document.getElementById('exponentialDisplay');
+            const expandedDisplay = document.getElementById('expandedDisplay');
+            const distinctPrimeCount = document.getElementById('distinctPrimeCount');
+            const distinctPrimesContainer = document.getElementById('distinctPrimesContainer');
+            const divisorCountFormula = document.getElementById('divisorCountFormula');
+
+            if (n === 1) {
+                primeStatusTitle.textContent = 'Özel sayı (1)';
+                primeStatusTitle.dataset.tur = 'bir';
+                primeStatusDesc.textContent = '1 sayısı ne asal ne de bileşik sayıdır. Asal çarpanı yoktur.';
+
+                exponentialDisplay.textContent = '1 = Asal çarpanı yoktur';
+                exponentialDisplay.dataset.metin = exponentialDisplay.textContent;
+                expandedDisplay.textContent = 'Birim eleman: 1';
+                distinctPrimeCount.textContent = '0 asal';
+                distinctPrimesContainer.innerHTML = '<span class="yok">Yok</span>';
+                divisorCountFormula.textContent = 'Pozitif bölen sayısı: 1 (sadece kendisi)';
+                return;
+            }
+
+            if (state.isPrime) {
+                primeStatusTitle.textContent = 'Asal sayı';
+                primeStatusTitle.dataset.tur = 'asal';
+                primeStatusDesc.textContent = `${formatNumberTR(n)} sayısı yalnızca 1'e ve kendisine kalansız bölünebilir.`;
+            } else {
+                primeStatusTitle.textContent = 'Bileşik sayı';
+                primeStatusTitle.dataset.tur = 'bilesik';
+                primeStatusDesc.textContent = `${formatNumberTR(n)} sayısı ${state.primeFactorsList.length} adet asal sayının çarpımından oluşur.`;
+            }
+
+            // Üslü gösterim: ekranda <sup> ile, kopyalanan metinde üst simge karakterleriyle
+            exponentialDisplay.innerHTML = `${formatNumberTR(n)} = ` + state.distinctPrimes
+                .map(p => `${formatNumberTR(p)}<sup>${state.primeCounts[p]}</sup>`).join(' · ');
+            exponentialDisplay.dataset.metin = `${formatNumberTR(n)} = ` + state.distinctPrimes
+                .map(p => `${formatNumberTR(p)}${toSuperscript(state.primeCounts[p])}`).join(' · ');
+
+            // Expanded multiplication form
+            expandedDisplay.textContent = `Açık çarpım: ${state.primeFactorsList.map(formatNumberTR).join(' × ')}`;
+
+            // Distinct Primes List
+            distinctPrimeCount.textContent = `${state.distinctPrimes.length} farklı asal`;
+            distinctPrimesContainer.innerHTML = state.distinctPrimes.map(p => `
+                <span class="asal-cip">${formatNumberTR(p)}<small>(${state.primeCounts[p]}×)</small></span>
+            `).join('');
+
+            // Positive Divisor Count Formula: (e1 + 1)(e2 + 1)...
+            const formulaTerms = state.distinctPrimes.map(p => `(${state.primeCounts[p]}+1)`).join('·');
+            divisorCountFormula.textContent = `Pozitif bölen sayısı: ${formulaTerms} = ${formatNumberTR(state.divisors.length)}`;
+        }
+
+        /**
+         * 2. Bölen listesi (dikey çizgi yöntemi)
+         */
+        function renderVerticalLineMethod() {
+            const container = document.getElementById('verticalLineContainer');
+
+            if (state.number === 1) {
+                container.innerHTML = `<div class="bos-not">1 sayısının asal çarpanı olmadığı için bölen listesi oluşturulmaz.</div>`;
+                return;
+            }
+
+            const maxVisibleStep = state.currentStep === null ? state.steps.length : state.currentStep + 1;
+            const visibleSteps = state.steps.slice(0, maxVisibleStep);
+
+            let rowsHtml = '';
+
+            visibleSteps.forEach((step, idx) => {
+                const isHighlighted = state.currentStep === idx;
+                rowsHtml += `
+                    <div class="bl-satir giris-anim${isHighlighted ? ' secili' : ''}" data-adim="${idx}" role="button" tabindex="0"
+                         aria-label="Adım ${idx + 1}: ${formatNumberTR(step.dividend)} bölü ${formatNumberTR(step.divisor)} eşittir ${formatNumberTR(step.quotient)}">
+                        <div class="bl-bolunen">${formatNumberTR(step.dividend)}</div>
+                        <div class="bl-sag">
+                            <span class="bl-bolen">${formatNumberTR(step.divisor)}</span>
+                            <span class="bl-not">÷${formatNumberTR(step.divisor)} → ${formatNumberTR(step.quotient)}</span>
+                        </div>
+                    </div>`;
+            });
+
+            // Final "1" at the bottom left when last step is visible
+            if (maxVisibleStep >= state.steps.length) {
+                rowsHtml += `
+                    <div class="bl-satir son giris-anim">
+                        <div class="bl-bolunen">1</div>
+                        <div class="bl-sag"><span class="bl-bitti">(Bölme işlemi tamamlandı)</span></div>
+                    </div>`;
+            }
+
+            container.innerHTML = `<div class="bl-tablo"><div class="bl-cizgi" aria-hidden="true"></div>${rowsHtml}</div>`;
+        }
+
+        /**
+         * 3. Çarpan ağacı (SVG)
+         */
+        function buildFactorTreeData(n, mode) {
+            if (n === 1) {
+                return { value: 1, isPrime: false, children: [], stepIndex: 0 };
+            }
+
+            if (mode === 'sequential') {
+                // Builds tree matching the exact step-by-step division order
+                let root = { value: n, isPrime: state.isPrime, children: [], stepIndex: 0 };
+                let currentNode = root;
+
+                state.steps.forEach((step, idx) => {
+                    // Only split if dividend != quotient (i.e. composite split)
+                    if (step.quotient > 1) {
+                        const leftChild = {
+                            value: step.divisor,
+                            isPrime: true,
+                            children: [],
+                            stepIndex: idx + 1
+                        };
+                        const rightChild = {
+                            value: step.quotient,
+                            isPrime: idx + 1 === state.steps.length - 1,
+                            children: [],
+                            stepIndex: idx + 1
+                        };
+                        currentNode.children = [leftChild, rightChild];
+                        currentNode = rightChild;
+                    } else {
+                        currentNode.isPrime = true;
+                    }
+                });
+                return root;
+            } else {
+                // Balanced Factor Tree: splits n into two factors as close to sqrt(n) as possible
+                function splitBalanced(val, depth) {
+                    if (isSmallPrime(val) || val <= 3) {
+                        return { value: val, isPrime: val > 1, children: [], stepIndex: depth };
+                    }
+                    let bestA = 2;
+                    const limit = Math.floor(Math.sqrt(val));
+                    for (let d = limit; d >= 2; d--) {
+                        if (val % d === 0) {
+                            bestA = d;
+                            break;
+                        }
+                    }
+                    const bestB = val / bestA;
+                    return {
+                        value: val,
+                        isPrime: false,
+                        stepIndex: depth,
+                        children: [
+                            splitBalanced(bestA, depth + 1),
+                            splitBalanced(bestB, depth + 1)
+                        ]
+                    };
+                }
+                return splitBalanced(n, 0);
+            }
+        }
+
+        function renderFactorTree() {
+            const svg = document.getElementById('factorTreeSvg');
+            const root = buildFactorTreeData(state.number, state.treeMode);
+
+            // Filter tree depth based on currentStep
+            const maxDepth = state.currentStep === null ? Infinity : state.currentStep + 1;
+
+            // Compute tree layout coordinates
+            const levelHeight = 78;
+            let leafCounter = 0;
+            let maxTreeDepth = 0;
+
+            function assignCoordinates(node, depth) {
+                node.depth = depth;
+                if (depth > maxTreeDepth) maxTreeDepth = depth;
+
+                const shouldShowChildren = node.children && node.children.length > 0 && depth < maxDepth;
+
+                if (!shouldShowChildren) {
+                    node.xIndex = leafCounter++;
+                    node.visibleChildren = [];
+                    return;
+                }
+
+                node.visibleChildren = node.children;
+                node.visibleChildren.forEach(child => assignCoordinates(child, depth + 1));
+                const firstChild = node.visibleChildren[0];
+                const lastChild = node.visibleChildren[node.visibleChildren.length - 1];
+                node.xIndex = (firstChild.xIndex + lastChild.xIndex) / 2;
+            }
+
+            assignCoordinates(root, 0);
+
+            const leafSpacing = 86;
+            const totalLeaves = Math.max(1, leafCounter);
+            const svgWidth = Math.max(460, totalLeaves * leafSpacing + 80);
+            const svgHeight = Math.max(320, (maxTreeDepth + 1) * levelHeight + 80);
+
+            const xOffset = (svgWidth - (totalLeaves - 1) * leafSpacing) / 2;
+            const yOffset = 48;
+
+            const edges = [];
+            const nodes = [];
+
+            function collectRenderItems(node) {
+                const cx = xOffset + node.xIndex * leafSpacing;
+                const cy = yOffset + node.depth * levelHeight;
+                node.cx = cx;
+                node.cy = cy;
+                nodes.push(node);
+
+                if (node.visibleChildren && node.visibleChildren.length > 0) {
+                    node.visibleChildren.forEach(child => {
+                        collectRenderItems(child);
+                        edges.push({
+                            x1: cx,
+                            y1: cy,
+                            x2: child.cx,
+                            y2: child.cy,
+                            active: state.currentStep !== null && child.depth === state.currentStep + 1
+                        });
+                    });
+                }
+            }
+
+            collectRenderItems(root);
+
+            svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+            state.treeW = svgWidth;
+            state.treeH = svgHeight;
+
+            // Dallar
+            const edgesSvg = edges.map(edge =>
+                `<line class="dal${edge.active ? ' aktif' : ''}" x1="${edge.x1}" y1="${edge.y1}" x2="${edge.x2}" y2="${edge.y2}"/>`
+            ).join('');
+
+            // Düğümler: renkler temadan (mavi bileşik, yeşil asal, turuncu 1)
+            const nodesSvg = nodes.map(node => {
+                const isCurrentActive = state.currentStep !== null && node.depth === state.currentStep + 1;
+                const label = formatNumberTR(node.value);
+                const radius = Math.max(24, Math.min(40, 16 + label.length * 3.5));
+                const tur = node.value === 1 ? 'bir' : (node.isPrime ? 'asal' : 'bilesik');
+
+                return `
+                    <g class="dugum ${tur}${isCurrentActive ? ' aktif' : ''}" transform="translate(${node.cx}, ${node.cy})" onclick="onTreeNodeClick(${node.depth})">
+                        ${isCurrentActive ? `<circle class="halka" r="${radius + 7}"/>` : ''}
+                        <circle class="daire" r="${radius}"/>
+                        <text text-anchor="middle" dominant-baseline="central" font-size="${label.length > 5 ? '12' : '15'}">${label}</text>
+                    </g>`;
+            }).join('');
+
+            svg.innerHTML = `<g>${edgesSvg}${nodesSvg}</g>`;
+            // aynı ağaçta adım değişince kaydırma yeri korunur; yeni sayı ya da yeni ağaç türünde baştan gösterilir
+            const agacAnahtar = state.number + state.treeMode;
+            olcekle(agacAnahtar === sonAgac);
+            sonAgac = agacAnahtar;
+        }
+
+        // Ağaç alana sığacak kadar büyütülür / küçültülür (yazılar okunamayacak kadar küçülmez; sığmazsa alan kayar),
+        // yakınlaştırma bunun üstüne çarpılır. Çizim gerçekten büyüdüğü için yakınlaşınca her yeri kaydırılabilir.
+        let sonAgac = '';
+        function olcekle(koru) {
+            const alan = document.getElementById('treeViewport');
+            const svg = document.getElementById('factorTreeSvg');
+            // alt alta düzende alanın boyu çizime göre değişir; o zaman ekranın boyuna göre sığdırılır
+            const tekSutun = alan.closest('.cizimler').clientWidth < 780;
+            const aw = alan.clientWidth - 16;
+            const ah = (tekSutun ? Math.min(560, innerHeight * 0.65) : alan.clientHeight) - 16;
+            if (aw <= 0 || ah <= 0) return;
+            const sigdir = Math.max(0.6, Math.min(1.3, aw / state.treeW, ah / state.treeH));
+            const s = sigdir * state.treeZoom;
+            // görünen yerin ortası korunur (yakınlaşınca ağaç ortadan büyür); ilk çizimde ağacın üst ortası görünür
+            const oranX = koru ? (alan.scrollLeft + alan.clientWidth / 2) / alan.scrollWidth : 0.5;
+            const oranY = koru ? (alan.scrollTop + alan.clientHeight / 2) / alan.scrollHeight : 0;
+            svg.style.width = Math.round(state.treeW * s) + 'px';
+            svg.style.height = Math.round(state.treeH * s) + 'px';
+            alan.scrollLeft = oranX * alan.scrollWidth - alan.clientWidth / 2;
+            alan.scrollTop = koru ? oranY * alan.scrollHeight - alan.clientHeight / 2 : 0;
+        }
+
+        function setTreeMode(mode) {
+            state.treeMode = mode;
+            document.getElementById('treeModeSequential').setAttribute('aria-selected', mode === 'sequential');
+            document.getElementById('treeModeBalanced').setAttribute('aria-selected', mode === 'balanced');
+            renderFactorTree();
+        }
+
+        function zoomTree(factor) {
+            state.treeZoom = Math.min(2.2, Math.max(0.5, state.treeZoom * factor));
+            olcekle(true);
+        }
+
+        function resetTreeZoom() {
+            state.treeZoom = 1;
+            olcekle();
+        }
+
+        function onTreeNodeClick(depth) {
+            if (state.steps.length === 0) return;
+            const targetStep = Math.min(state.steps.length - 1, Math.max(0, depth - 1));
+            selectStep(targetStep);
+        }
+
+        /**
+         * 4. Adım adım açıklama
+         */
+        function renderAlgorithmSteps() {
+            const listEl = document.getElementById('algorithmStepsList');
+            const showSkipped = document.getElementById('showSkippedToggle').checked;
+
+            if (state.number === 1) {
+                listEl.innerHTML = `
+                    <li class="ozel-durum">
+                        <strong>1 sayısı özel durumu:</strong> Asal sayılar 2'den başlar. 1 sayısının kendisi dışında böleni olmadığı için asal çarpan algoritması uygulanmaz.
+                    </li>`;
+                return;
+            }
+
+            const maxVisibleStep = state.currentStep === null ? state.steps.length : state.currentStep + 1;
+            const visibleSteps = state.steps.slice(0, maxVisibleStep);
+
+            listEl.innerHTML = visibleSteps.map((step, idx) => {
+                const isActive = state.currentStep === idx;
+
+                let skippedHtml = '';
+                if (showSkipped && step.skippedPrimes && step.skippedPrimes.length > 0) {
+                    const skippedText = step.skippedPrimes.map(sp =>
+                        `${formatNumberTR(step.dividend)} ÷ ${sp.prime} işleminde kalan ${sp.remainder} olduğu için ${sp.prime} asal sayısına bölünmez`
+                    ).join('; ');
+                    skippedHtml = `
+                        <div class="gecis">
+                            <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IKON_GECIS}</svg>
+                            <span><strong>Asal bölen geçişi:</strong> ${skippedText}. Bu nedenle bir sonraki asal bölen denendi.</span>
+                        </div>`;
+                }
+
+                const isLastStep = step.quotient === 1;
+
+                return `
+                    <li class="islem giris-anim${isActive ? ' secili' : ''}" data-adim="${idx}" role="button" tabindex="0">
+                        <div class="islem-ust">
+                            <span class="rozet islem-no">Adım ${step.stepIndex}</span>
+                            <span class="rozet asal-rozet">Asal bölen: ${formatNumberTR(step.divisor)}</span>
+                        </div>
+                        <div class="islem-hesap">
+                            <span>${formatNumberTR(step.dividend)} ÷ <span class="y">${formatNumberTR(step.divisor)}</span> = <span class="m">${formatNumberTR(step.quotient)}</span></span>
+                            <span class="kalan">Kalan: 0</span>
+                        </div>
+                        <p class="islem-not">
+                            <strong>${formatNumberTR(step.dividend)}</strong> sayısı en küçük asal böleni olan <strong>${formatNumberTR(step.divisor)}</strong> sayısına kalansız bölündü ve bölüm <strong>${formatNumberTR(step.quotient)}</strong> olarak bulundu.
+                            ${isLastStep ? '<span class="bitti"> Bölüm 1 olduğu için algoritma tamamlandı!</span>' : ''}
+                        </p>
+                        ${skippedHtml}
+                    </li>`;
+            }).join('');
+        }
+
+        /**
+         * 5. Bütün pozitif bölenler
+         */
+        function renderDivisorsSection() {
+            const divisors = state.divisors;
+            const primeSet = new Set(state.distinctPrimes);
+
+            // Metrics
+            const totalDivs = divisors.length;
+            const primeDivs = state.distinctPrimes.length;
+            const nonPrimeDivs = totalDivs - primeDivs;
+            const sumDivs = divisors.reduce((acc, val) => acc + val, 0);
+
+            document.getElementById('metricTotalDivisors').textContent = formatNumberTR(totalDivs);
+            document.getElementById('metricPrimeDivisors').textContent = formatNumberTR(primeDivs);
+            document.getElementById('metricNonPrimeDivisors').textContent = formatNumberTR(nonPrimeDivs);
+            document.getElementById('metricSumDivisors').textContent = formatNumberTR(sumDivs);
+
+            const container = document.getElementById('divisorsContainer');
+
+            if (state.divisorView === 'list') {
+                container.innerHTML = divisors.map(d => primeSet.has(d)
+                    ? `<span class="bolen asal" title="Asal bölen">${formatNumberTR(d)}<small>asal</small></span>`
+                    : `<span class="bolen">${formatNumberTR(d)}</span>`
+                ).join('');
+            } else {
+                // Factor pairs view: 1 x 360, 2 x 180, ...
+                const pairs = [];
+                const halfLen = Math.ceil(divisors.length / 2);
+                for (let i = 0; i < halfLen; i++) {
+                    const d1 = divisors[i];
+                    const d2 = divisors[divisors.length - 1 - i];
+                    pairs.push([d1, d2]);
+                }
+
+                container.innerHTML = pairs.map(([d1, d2], idx) => `
+                    <span class="cift">
+                        <span class="cift-no">#${idx + 1}</span>
+                        <b class="${primeSet.has(d1) ? 'asal' : ''}">${formatNumberTR(d1)}</b>
+                        <span class="isaret">×</span>
+                        <b class="${primeSet.has(d2) ? 'asal' : ''}">${formatNumberTR(d2)}</b>
+                        <span class="isaret">=</span>
+                        <b class="sonuc">${formatNumberTR(state.number)}</b>
+                    </span>`).join('');
+            }
+        }
+
+        function setDivisorView(view) {
+            state.divisorView = view;
+            document.getElementById('divViewListBtn').setAttribute('aria-selected', view === 'list');
+            document.getElementById('divViewPairsBtn').setAttribute('aria-selected', view === 'pairs');
+            renderDivisorsSection();
+        }
+
+        /**
+         * Adım adım oynatma ve adım seçme
+         */
+        function renderStepStatusBadge() {
+            const badge = document.getElementById('stepStatusBadge');
+            if (state.steps.length === 0) {
+                badge.textContent = 'Adım yok';
+                return;
+            }
+            if (state.currentStep === null) {
+                badge.textContent = `Adım: tümü gösteriliyor (${state.steps.length} adım)`;
+            } else {
+                badge.textContent = `Adım: ${state.currentStep + 1} / ${state.steps.length}`;
+            }
+        }
+
+        function renderStepViews() {
+            renderStepStatusBadge();
+            renderVerticalLineMethod();
+            renderFactorTree();
+            renderAlgorithmSteps();
+        }
+
+        function selectStep(stepIdx) {
+            stopPlaySteps();
+            state.currentStep = stepIdx;
+            renderStepViews();
+        }
+
+        function resetSteps() {
+            stopPlaySteps();
+            if (state.steps.length > 0) {
+                state.currentStep = 0;
+            } else {
+                state.currentStep = null;
+            }
+            renderStepViews();
+        }
+
+        function showAllSteps() {
+            stopPlaySteps();
+            state.currentStep = null;
+            renderStepViews();
+        }
+
+        function nextStep() {
+            stopPlaySteps();
+            advanceOneStep();
+        }
+
+        function advanceOneStep() {
+            if (state.steps.length === 0) return;
+
+            if (state.currentStep === null) {
+                state.currentStep = 0;
+            } else if (state.currentStep < state.steps.length - 1) {
+                state.currentStep++;
+            } else {
+                state.currentStep = null; // Reveal final completion state
+                stopPlaySteps();
+            }
+
+            renderStepViews();
+        }
+
+        function prevStep() {
+            stopPlaySteps();
+            if (state.steps.length === 0) return;
+
+            if (state.currentStep === null) {
+                state.currentStep = state.steps.length - 1;
+            } else if (state.currentStep > 0) {
+                state.currentStep--;
+            }
+
+            renderStepViews();
+        }
+
+        function togglePlaySteps() {
+            if (state.isPlaying) {
+                stopPlaySteps();
+            } else {
+                startPlaySteps();
+            }
+        }
+
+        function startPlaySteps() {
+            if (state.steps.length === 0) return;
+            state.isPlaying = true;
+
+            if (state.currentStep === null || state.currentStep >= state.steps.length - 1) {
+                state.currentStep = 0;
+            }
+
+            updatePlayButtonUI();
+            renderStepViews();
+
+            state.playTimer = setInterval(() => {
+                if (state.currentStep !== null && state.currentStep < state.steps.length - 1) {
+                    state.currentStep++;
+                    renderStepViews();
+                } else {
+                    state.currentStep = null;
+                    renderStepViews();
+                    stopPlaySteps();
+                    showToast('Adım adım simülasyon tamamlandı.');
+                }
+            }, state.playSpeed);
+        }
+
+        function stopPlaySteps() {
+            state.isPlaying = false;
+            if (state.playTimer) {
+                clearInterval(state.playTimer);
+                state.playTimer = null;
+            }
+            updatePlayButtonUI();
+        }
+
+        function updatePlayButtonUI() {
+            document.getElementById('playPauseIcon').innerHTML = state.isPlaying ? IKON_DURAKLAT : IKON_OYNAT;
+            document.getElementById('playPauseText').textContent = state.isPlaying ? 'Duraklatın' : 'Adım adım oynatın';
+            document.getElementById('playPauseBtn').classList.toggle('oynuyor', state.isPlaying);
+        }
+
+        function updateSpeed() {
+            const select = document.getElementById('speedSelect');
+            state.playSpeed = Number(select.value);
+            if (state.isPlaying) {
+                stopPlaySteps();
+                startPlaySteps();
+            }
+        }
+
+        /**
+         * Kopyalama ve kısa bildirim
+         */
+        function copyFactorization() {
+            const expEl = document.getElementById('exponentialDisplay');
+            const expText = (expEl.dataset.metin || expEl.textContent).trim();
+            const expandedText = document.getElementById('expandedDisplay').textContent.trim();
+            const fullText = `${expText} (${expandedText})`;
+
+            const eskiYol = () => {
+                const tempArea = document.createElement('textarea');
+                tempArea.value = fullText;
+                tempArea.setAttribute('readonly', '');
+                tempArea.style.position = 'fixed';
+                tempArea.style.opacity = '0';
+                document.body.appendChild(tempArea);
+                tempArea.select();
+                let tamam = false;
+                try { tamam = document.execCommand('copy'); } catch (err) { tamam = false; }
+                document.body.removeChild(tempArea);
+                showToast(tamam ? 'Üslü gösterim panoya kopyalandı!' : 'Kopyalama başarısız oldu.', tamam);
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(fullText)
+                    .then(() => showToast('Üslü gösterim panoya kopyalandı!'))
+                    .catch(eskiYol);
+            } else {
+                eskiYol();
+            }
+        }
+
+        function showToast(message, basarili = true) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'bildirim';
+            toast.innerHTML = (basarili
+                ? '<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+                : '') + '<span></span>';
+            toast.querySelector('span').textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 250);
+            }, 2400);
+        }
+
+        /**
+         * Başlangıç
+         */
+        const inputEl = document.getElementById('numberInput');
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                handleAnalyze();
+            }
+        });
+
+        // bölen listesindeki satırlar ve açıklama kartları: tıklayınca / Enter'a basınca o adım seçilir
+        document.addEventListener('click', e => {
+            const s = e.target.closest('[data-adim]');
+            if (s) selectStep(Number(s.dataset.adim));
+        });
+        document.addEventListener('keydown', e => {
+            const s = e.target.closest && e.target.closest('[data-adim]');
+            if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); selectStep(Number(s.dataset.adim)); }
+        });
+
+        if (window.ResizeObserver) new ResizeObserver(() => olcekle(true)).observe(document.getElementById('treeViewport'));
+        else addEventListener('resize', () => olcekle(true));
+
+        updatePlayButtonUI();
+        // Initial calculation for default value 360
+        handleAnalyze();
+</script>
+</body>
+</html>

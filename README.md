@@ -1,6 +1,6 @@
 # Oyun Defteri
 
-Matematik ve fen konuları için sınıfta ya da evde oynanan 17 etkileşimli oyun. Hepsi tek bir sitede, aynı görünümde ve tek bir başlık çubuğuyla toplanır: sol üstteki menüden (İçindekiler) istediğiniz oyuna geçebilir, oklarla sıradakine ilerleyebilirsiniz. Açık mod kareli defter, koyu mod kara tahta görünümündedir; sağ üstteki düğmeyle değişir ve seçim hatırlanır.
+Matematik ve fen konuları için sınıfta ya da evde oynanan 23 etkileşimli oyun. Hepsi tek bir sitede, aynı görünümde ve tek bir başlık çubuğuyla toplanır: sol üstteki menüden (İçindekiler) istediğiniz oyuna geçebilir, oklarla sıradakine ilerleyebilirsiniz. Açık mod kareli defter, koyu mod kara tahta görünümündedir; sağ üstteki düğmeyle değişir ve seçim hatırlanır.
 
 **Canlı site:** https://mustafa-cubukcu.vercel.app
 
@@ -19,16 +19,22 @@ Matematik ve fen konuları için sınıfta ya da evde oynanan 17 etkileşimli oy
 | | | Sihirli Sayı Çözümleyici | 5 |
 | | | Yuvarlama Tepesi | 4–5 |
 | | | Sayı Örüntüsü Treni | – |
+| | | Çarpma ve Bölme Atölyesi | – |
 | | Kesirler | Kesir Boyama | 5 |
 | | | Kesir Avcısı | 5 |
 | | Ondalık ve yüzde | Patron Kasiyer | – |
 | | Açılar | Meteor Avcısı | 5 |
 | | | Açı Tahmincisi | 5 |
+| | | Açı Dedektifi | – |
 | | Alan ve çevre | Çiftlik Mimarı | 5 |
 | | | En Küçük Çevre Avcısı | 5 |
 | | | Maliyet Hesaplayıcı | – |
+| | | Paralelkenar ve Üçgenin Alanı | 6 |
 | | Çarpanlar ve katlar | Ortak Katlar ve Çarpanlar | 6 |
+| | | Asal Çarpan Laboratuvarı | – |
+| | | Bölünebilme Sepeti | 6 |
 | | Veri ve olasılık | Şans Çarkı | – |
+| | | Deneysel Olasılık Laboratuvarı | – |
 | | | Soru Dedektifi | 11 |
 | | | Korelasyon Dedektifi | 11 |
 | Fen Bilgisi | Elektrik | Elektrik Devreleri | 7 |
@@ -39,12 +45,11 @@ Oyunları Mustafa yazdı; orijinal hâlleri `mustafa-htmls/` klasöründe deği�
 
 ```
 site/                 yayınlanan site (Vercel bunu sunar)
-  index.html          ana sayfa: fotoğraf ve İçindekiler
+  index.html          ana sayfa: İçindekiler
   ortak/tema.css      ortak tema: renkler, yazı tipleri, başlık çubuğu, düğmeler, paneller
   ortak/kabuk.js      başlık çubuğu, İçindekiler menüsü, tema, oyun listesi, ortak pencere
   ortak/fontlar/      yazı tipleri (internetsiz çalışsın diye site içinde)
   oyunlar/*.html      her oyun ayrı sayfa
-  photo/              ana sayfadaki fotoğraf
 mustafa-htmls/        oyunların orijinal hâlleri (değiştirilmez, yayınlanmaz)
 scripts/check.js      statik kontroller
 scripts/smoke.js      her sayfayı internetsiz Chrome'da açan duman testi

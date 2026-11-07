@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="tr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asal Çarpan Algoritması & Çarpan Ağacı Laboratuvarı</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar & Smooth Animations */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.4);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.6);
+        }
+
+        .step-row-enter {
+            animation: slideFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .node-pulse {
+            animation: pulseGlow 1.5s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                filter: drop-shadow(0 0 0px rgba(99, 102, 241, 0));
+            }
+            50% {
+                filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.7));
+            }
+        }
+
+        /* Dotted Grid Background for SVG Canvas */
+        .canvas-grid {
+            background-image: radial-gradient(rgba(148, 163, 184, 0.35) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .dark .canvas-grid {
+            background-image: radial-gradient(rgba(71, 85, 105, 0.45) 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-200 font-sans selection:bg-indigo-500 selection:text-white">
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Top Navigation / Header -->
+    <header class="sticky top-0 z-30 backdrop-blur-md bg-white/85 dark:bg-slate-900/85 border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                    <i class="fa-solid fa-sitemap text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
+                        Asal Çarpan Algoritması
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        İnteraktif Bölen Listesi, Çarpan Ağacı ve Adım Adım Analiz
+                    </p>
+                </div>
+            </div>
+
+            <!-- Preset Quick Buttons & Theme Toggle -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 hidden md:inline mr-1">Örnekler:</span>
+                <button onclick="loadPreset(60)" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 dark:bg-slate-800 dark:hover:bg-indigo-950/60 dark:text-slate-300 dark:hover:text-indigo-400 transition">60</button>
+                <button onclick="loadPreset(72)" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 dark:bg-slate-800 dark:hover:bg-indigo-950/60 dark:text-slate-300 dark:hover:text-indigo-400 transition">72</button>
+                <button onclick="loadPreset(360)" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 dark:bg-slate-800 dark:hover:bg-indigo-950/60 dark:text-slate-300 dark:hover:text-indigo-400 transition">360</button>
+                <button onclick="loadPreset(97)" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 dark:text-emerald-300 transition">97 (Asal)</button>
+                <button onclick="loadPreset(2310)" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 dark:bg-slate-800 dark:hover:bg-indigo-950/60 dark:text-slate-300 dark:hover:text-indigo-400 transition">2310</button>
+                <button onclick="generateRandomNumber()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:hover:bg-indigo-900/70 dark:text-indigo-300 transition flex items-center gap-1.5" title="Rastgele Sayı Üret">
+                    <i class="fa-solid fa-dice"></i>
+                    <span class="hidden sm:inline">Rastgele</span>
+                </button>
+
+                <div class="h-5 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
+
+                <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" aria-label="Tema Değiştir">
+                    <i id="themeIcon" class="fa-solid fa-moon text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Control & Input Panel -->
+        <section class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+                <!-- Number Input Form -->
+                <div class="lg:col-span-5">
+                    <label for="numberInput" class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                        Pozitif Tam Sayı Girin (2 - 999.999.999)
+                    </label>
+                    <div class="flex gap-2.5">
+                        <div class="relative flex-1">
+                            <input
+                                type="number"
+                                id="numberInput"
+                                min="1"
+                                max="999999999"
+                                value="360"
+                                placeholder="Örn: 360"
+                                class="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/90 text-lg font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                            />
+                            <button onclick="clearInput()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1" title="Temizle">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <button
+                            onclick="handleAnalyze()"
+                            class="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-semibold shadow-md shadow-indigo-500/20 transition flex items-center gap-2 whitespace-nowrap"
+                        >
+                            <i class="fa-solid fa-calculator"></i>
+                            <span>Çarpanlara Ayır</span>
+                        </button>
+                    </div>
+                    <!-- Validation Message Box -->
+                    <div id="errorBox" class="hidden mt-2.5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-medium flex items-center gap-2">
+                        <i class="fa-solid fa-circle-exclamation text-sm"></i>
+                        <span id="errorText">Lütfen geçerli bir pozitif tam sayı girin.</span>
+                    </div>
+                </div>
+
+                <!-- Step-by-Step Playback Controller -->
+                <div class="lg:col-span-7 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-4 border border-slate-200/70 dark:border-slate-800">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                Adım Adım Simülasyon Kontrolü
+                            </span>
+                        </div>
+                        <span id="stepStatusBadge" class="text-xs font-mono font-semibold px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                            Adım: Tümü Gösteriliyor
+                        </span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="resetSteps()" class="px-3 py-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition flex items-center gap-1.5" title="Başa Sar">
+                                <i class="fa-solid fa-backward-fast"></i>
+                                <span class="hidden sm:inline">BaşaAl</span>
+                            </button>
+                            <button onclick="prevStep()" class="px-3 py-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition flex items-center gap-1.5" title="Önceki Adım">
+                                <i class="fa-solid fa-backward-step"></i>
+                                <span>Geri</span>
+                            </button>
+                            <button id="playPauseBtn" onclick="togglePlaySteps()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                                <i id="playPauseIcon" class="fa-solid fa-play"></i>
+                                <span id="playPauseText">Adım Adım Oynat</span>
+                            </button>
+                            <button onclick="nextStep()" class="px-3 py-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition flex items-center gap-1.5" title="Sonraki Adım">
+                                <span>İleri</span>
+                                <i class="fa-solid fa-forward-step"></i>
+                            </button>
+                            <button onclick="showAllSteps()" class="px-3 py-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition flex items-center gap-1.5" title="Tüm Adımları Göster">
+                                <i class="fa-solid fa-forward-fast"></i>
+                                <span class="hidden sm:inline">Tümü</span>
+                            </button>
+                        </div>
+
+                        <!-- Speed Selector -->
+                        <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                            <label for="speedSelect" class="font-medium">Hız:</label>
+                            <select id="speedSelect" onchange="updateSpeed()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="1400">Yavaş (1.4 sn)</option>
+                                <option value="900" selected>Normal (0.9 sn)</option>
+                                <option value="450">Hızlı (0.45 sn)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Summary Cards (4-Column Bento Grid) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Card 1: Asallık Durumu -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Sayı Sınıflandırması</span>
+                    <div id="primeBadgeIcon" class="w-8 h-8 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                </div>
+                <div>
+                    <div id="primeStatusTitle" class="text-xl font-extrabold text-slate-900 dark:text-white mb-1">
+                        Bileşik Sayı
+                    </div>
+                    <p id="primeStatusDesc" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        1 ve kendisi dışında pozitif tam bölenleri vardır.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card 2: Üslü Gösterim -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between sm:col-span-2">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Asal Çarpanların Üslü ve Açık Gösterimi</span>
+                    <button onclick="copyFactorization()" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Kopyala</span>
+                    </button>
+                </div>
+                <div class="my-1">
+                    <div id="exponentialDisplay" class="text-2xl sm:text-3xl font-mono font-extrabold text-indigo-600 dark:text-indigo-400 tracking-tight break-words">
+                        360 = 2³ · 3² · 5¹
+                    </div>
+                    <div id="expandedDisplay" class="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1.5 break-words">
+                        Açık Çarpım: 2 × 2 × 2 × 3 × 3 × 5
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Asal Çarpanlar Listesi & Bölen Sayısı -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Asal Bölenler (Küme)</span>
+                    <span id="distinctPrimeCount" class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300">
+                        3 Asal
+                    </span>
+                </div>
+                <div id="distinctPrimesContainer" class="flex flex-wrap gap-1.5 my-2">
+                    <!-- Dynamic Prime Badges -->
+                </div>
+                <div id="divisorCountFormula" class="text-[11px] font-mono text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    Pozitif Bölen Sayısı: (3+1)(2+1)(1+1) = 24
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Visualizations Grid: 1) Bölen Listesi (Vertical Line) & 2) Çarpan Ağacı (Factor Tree) -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Left Column (5 cols): Bölen Listesi (Dikey Çizgi Yöntemi) -->
+            <div class="lg:col-span-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col overflow-hidden">
+                <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-grip-lines-vertical text-indigo-500"></i>
+                            <span>Asal Çarpan Algoritması (Bölen Listesi)</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Dikey çizgi yöntemi ile en küçük asal sayıdan başlayarak bölme
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Vertical Line Visualization Area -->
+                <div class="p-6 flex-1 flex flex-col items-center justify-start overflow-y-auto max-h-[540px]">
+                    <!-- Header Labels -->
+                    <div class="w-full max-w-sm grid grid-cols-2 pb-2 mb-2 border-b border-dashed border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        <div class="text-right pr-6">Bölünen / Bölüm</div>
+                        <div class="text-left pl-6 text-emerald-600 dark:text-emerald-400">Asal Bölen</div>
+                    </div>
+
+                    <!-- The Classic Turkish Curriculum Vertical Line Table -->
+                    <div id="verticalLineContainer" class="w-full max-w-sm relative">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+
+                    <!-- Interactive Hint -->
+                    <p class="mt-6 text-[11px] text-center text-slate-400 dark:text-slate-500">
+                        <i class="fa-regular fa-hand-pointer mr-1"></i>
+                        İpucu: Satırlara tıklayarak ilgili adımı çarpan ağacında ve açıklamada vurgulayabilirsiniz.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right Column (7 cols): Çarpan Ağacı (Factor Tree) -->
+            <div class="lg:col-span-7 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col overflow-hidden">
+                <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-diagram-project text-indigo-500"></i>
+                            <span>Çarpan Ağacı (Factor Tree) Görselleştirmesi</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Sayının asal yapraklara (yeşil düğümler) kadar dallanarak ayrıştırılması
+                        </p>
+                    </div>
+
+                    <!-- Tree Mode Selector (Sequential vs Balanced) -->
+                    <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                        <button id="treeModeSequential" onclick="setTreeMode('sequential')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm">
+                            Sıralı Ağaç
+                        </button>
+                        <button id="treeModeBalanced" onclick="setTreeMode('balanced')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                            Dengeli Ağaç
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Legend Bar -->
+                <div class="px-5 py-2.5 bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-4">
+                        <span class="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
+                            <span class="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span>
+                            Bileşik Sayı (Düğüm)
+                        </span>
+                        <span class="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
+                            <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                            Asal Çarpan (Yaprak)
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="zoomTree(1.15)" class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" title="Yakınlaştır">
+                            <i class="fa-solid fa-magnifying-glass-plus"></i>
+                        </button>
+                        <button onclick="zoomTree(0.85)" class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" title="Uzaklaştır">
+                            <i class="fa-solid fa-magnifying-glass-minus"></i>
+                        </button>
+                        <button onclick="resetTreeZoom()" class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition text-xs font-semibold" title="Sıfırla">
+                            Sığdır
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SVG Factor Tree Viewport -->
+                <div id="treeViewport" class="relative flex-1 min-h-[420px] max-h-[540px] overflow-auto canvas-grid flex items-center justify-center p-4">
+                    <svg id="factorTreeSvg" class="w-full h-full min-h-[380px] transition-transform duration-200 origin-top" xmlns="http://www.w3.org/2000/svg"></svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Step-by-Step Algorithm Explanation (Açıklamalı Algoritma Adımları) -->
+        <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-indigo-500"></i>
+                        <span>Adım Adım Algoritma Çalışması ve Açıklaması</span>
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Algoritmanın her adımda hangi asal sayıya böldüğü, kalan kontrolü ve elde edilen yeni bölüm
+                    </p>
+                </div>
+
+                <!-- Toggle to also show skipped/unsuccessful prime division checks -->
+                <label class="inline-flex items-center gap-2 cursor-pointer select-none bg-slate-100 dark:bg-slate-800 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <input type="checkbox" id="showSkippedToggle" onchange="renderAlgorithmSteps()" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4" checked>
+                    <span>Asal Bölen Değişim Nedenlerini Göster</span>
+                </label>
+            </div>
+
+            <div class="p-5 sm:p-6">
+                <div id="algorithmStepsList" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: All Positive Divisors & Pair Analysis -->
+        <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group text-indigo-500"></i>
+                        <span>Tüm Pozitif Tam Bölenler (Çarpanlar) Listesi</span>
+                    </h2>
+                    <p id="divisorsSubtitle" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Sayının kalansız bölünebildiği tüm pozitif tam sayılar ve asal olanların vurgulanması
+                    </p>
+                </div>
+
+                <!-- View Mode: List vs Factor Pairs -->
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                        <button id="divViewListBtn" onclick="setDivisorView('list')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm">
+                            Sıralı Liste
+                        </button>
+                        <button id="divViewPairsBtn" onclick="setDivisorView('pairs')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                            Çarpan Çiftleri (İkili)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-5 sm:p-6 space-y-5">
+                <!-- Quick Metrics Row -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800">
+                        <div class="text-[11px] font-bold uppercase text-slate-400">Pozitif Bölen Sayısı</div>
+                        <div id="metricTotalDivisors" class="text-lg font-mono font-extrabold text-slate-800 dark:text-white mt-0.5">24</div>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/50">
+                        <div class="text-[11px] font-bold uppercase text-emerald-600 dark:text-emerald-400">Asal Bölen Sayısı</div>
+                        <div id="metricPrimeDivisors" class="text-lg font-mono font-extrabold text-emerald-700 dark:text-emerald-300 mt-0.5">3</div>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800">
+                        <div class="text-[11px] font-bold uppercase text-slate-400">Asal Olmayan Bölen</div>
+                        <div id="metricNonPrimeDivisors" class="text-lg font-mono font-extrabold text-slate-800 dark:text-white mt-0.5">21</div>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800">
+                        <div class="text-[11px] font-bold uppercase text-slate-400">Bölenler Toplamı σ(n)</div>
+                        <div id="metricSumDivisors" class="text-lg font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-0.5">1170</div>
+                    </div>
+                </div>
+
+                <!-- Divisors Chips / Pairs Container -->
+                <div id="divisorsContainer" class="flex flex-wrap gap-2">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-xs text-slate-400 dark:text-slate-500 border-t border-slate-200/60 dark:border-slate-800/80 mt-8">
+        <p>Asal Çarpan Algoritması İnteraktif Eğitim Uygulaması • Bölen Listesi, Çarpan Ağacı ve Adım Adım Matematiksel Analiz</p>
+    </footer>
+
+    <!-- Application JavaScript -->
+    <script>
+        /**
+         * Global State Management
+         */
+        const state = {
+            number: 360,
+            isPrime: false,
+            steps: [],              // Each division step: { stepIndex, dividend, divisor, quotient, skippedPrimes: [] }
+            primeFactorsList: [],   // e.g. [2, 2, 2, 3, 3, 5]
+            primeCounts: {},        // e.g. { 2: 3, 3: 2, 5: 1 }
+            distinctPrimes: [],     // e.g. [2, 3, 5]
+            divisors: [],           // All positive divisors sorted
+            currentStep: null,      // null means "Show All Steps", integer 0..steps.length-1 means active step
+            isPlaying: false,
+            playTimer: null,
+            playSpeed: 900,
+            treeMode: 'sequential', // 'sequential' | 'balanced'
+            treeZoom: 1,
+            divisorView: 'list'     // 'list' | 'pairs'
+        };
+
+        /**
+         * Superscript helper for exponential notation
+         */
+        const superscriptMap = {
+            '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+            '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+        };
+
+        function toSuperscript(num) {
+            return String(num).split('').map(ch => superscriptMap[ch] || ch).join('');
+        }
+
+        function formatNumberTR(num) {
+            return Number(num).toLocaleString('tr-TR');
+        }
+
+        /**
+         * Prime Factorization & Analysis Engine
+         */
+        function analyzeNumber(n) {
+            const result = {
+                number: n,
+                isPrime: false,
+                steps: [],
+                primeFactorsList: [],
+                primeCounts: {},
+                distinctPrimes: [],
+                divisors: []
+            };
+
+            if (n === 1) {
+                result.divisors = [1];
+                return result;
+            }
+
+            let temp = n;
+            let currentCandidate = 2;
+            let stepIndex = 1;
+            let skippedSinceLastSuccess = [];
+
+            // Trial division with step-by-step tracking
+            while (currentCandidate * currentCandidate <= temp) {
+                if (temp % currentCandidate === 0) {
+                    const quotient = temp / currentCandidate;
+                    result.steps.push({
+                        stepIndex: stepIndex++,
+                        dividend: temp,
+                        divisor: currentCandidate,
+                        quotient: quotient,
+                        skippedPrimes: [...skippedSinceLastSuccess]
+                    });
+                    skippedSinceLastSuccess = [];
+                    result.primeFactorsList.push(currentCandidate);
+                    result.primeCounts[currentCandidate] = (result.primeCounts[currentCandidate] || 0) + 1;
+                    temp = quotient;
+                } else {
+                    // Record prime transition for educational explanation
+                    if (isSmallPrime(currentCandidate) && skippedSinceLastSuccess.length < 4) {
+                        skippedSinceLastSuccess.push({
+                            prime: currentCandidate,
+                            remainder: temp % currentCandidate
+                        });
+                    }
+                    currentCandidate = currentCandidate === 2 ? 3 : currentCandidate + 2;
+                }
+            }
+
+            // If remaining temp > 1, it is prime itself
+            if (temp > 1) {
+                result.steps.push({
+                    stepIndex: stepIndex++,
+                    dividend: temp,
+                    divisor: temp,
+                    quotient: 1,
+                    skippedPrimes: [...skippedSinceLastSuccess]
+                });
+                result.primeFactorsList.push(temp);
+                result.primeCounts[temp] = (result.primeCounts[temp] || 0) + 1;
+            }
+
+            result.distinctPrimes = Object.keys(result.primeCounts).map(Number).sort((a, b) => a - b);
+            result.isPrime = (result.primeFactorsList.length === 1 && result.primeFactorsList[0] === n);
+
+            // Generate all positive divisors from prime factorization
+            result.divisors = generateDivisorsFromFactors(result.primeCounts);
+
+            return result;
+        }
+
+        function isSmallPrime(num) {
+            if (num < 2) return false;
+            if (num === 2 || num === 3) return true;
+            if (num % 2 === 0 || num % 3 === 0) return false;
+            for (let i = 5; i * i <= num; i += 6) {
+                if (num % i === 0 || num % (i + 2) === 0) return false;
+            }
+            return true;
+        }
+
+        function generateDivisorsFromFactors(primeCounts) {
+            const primes = Object.keys(primeCounts).map(Number);
+            let divisors = [1];
+
+            // Cap full divisor generation if number of divisors is huge (unlikely for <10^9, max is 1344 divisors for 735134400)
+            for (const p of primes) {
+                const count = primeCounts[p];
+                const nextDivisors = [];
+                let multiplier = 1;
+                for (let e = 0; e <= count; e++) {
+                    for (const d of divisors) {
+                        nextDivisors.push(d * multiplier);
+                    }
+                    multiplier *= p;
+                }
+                divisors = nextDivisors;
+            }
+
+            return divisors.sort((a, b) => a - b);
+        }
+
+        /**
+         * Input Handling & Validation
+         */
+        function handleAnalyze() {
+            stopPlaySteps();
+            const inputEl = document.getElementById('numberInput');
+            const errorBox = document.getElementById('errorBox');
+            const errorText = document.getElementById('errorText');
+
+            const rawVal = inputEl.value.trim();
+            const parsed = Number(rawVal);
+
+            if (!rawVal || isNaN(parsed) || !Number.isInteger(parsed) || parsed < 1) {
+                errorText.textContent = 'Lütfen 1 veya 1\'den büyük geçerli bir pozitif tam sayı girin.';
+                errorBox.classList.remove('hidden');
+                return;
+            }
+
+            if (parsed > 999999999) {
+                errorText.textContent = 'Görselleştirmenin akıcı olması için lütfen 999.999.999 veya daha küçük bir sayı girin.';
+                errorBox.classList.remove('hidden');
+                return;
+            }
+
+            errorBox.classList.add('hidden');
+
+            const analysis = analyzeNumber(parsed);
+            state.number = analysis.number;
+            state.isPrime = analysis.isPrime;
+            state.steps = analysis.steps;
+            state.primeFactorsList = analysis.primeFactorsList;
+            state.primeCounts = analysis.primeCounts;
+            state.distinctPrimes = analysis.distinctPrimes;
+            state.divisors = analysis.divisors;
+            state.currentStep = null; // Show all by default
+
+            renderAll();
+        }
+
+        function loadPreset(num) {
+            document.getElementById('numberInput').value = num;
+            handleAnalyze();
+            showToast(`${formatNumberTR(num)} sayısı yüklendi ve analiz edildi.`);
+        }
+
+        function generateRandomNumber() {
+            // Generate an interesting composite or occasional prime number between 12 and 2500
+            const randomPool = [
+                24, 36, 48, 54, 60, 72, 84, 90, 96, 108, 120, 144, 150, 180,
+                210, 240, 252, 300, 360, 420, 480, 504, 600, 720, 840, 1024, 1260,
+                47, 73, 89, 101, 137
+            ];
+            let chosen;
+            if (Math.random() < 0.65) {
+                chosen = randomPool[Math.floor(Math.random() * randomPool.length)];
+            } else {
+                chosen = Math.floor(Math.random() * 980) + 20;
+            }
+            document.getElementById('numberInput').value = chosen;
+            handleAnalyze();
+            showToast(`Rastgele sayı üretildi: ${formatNumberTR(chosen)}`);
+        }
+
+        function clearInput() {
+            const inputEl = document.getElementById('numberInput');
+            inputEl.value = '';
+            inputEl.focus();
+        }
+
+        /**
+         * Master Render Function
+         */
+        function renderAll() {
+            renderSummaryCards();
+            renderStepStatusBadge();
+            renderVerticalLineMethod();
+            renderFactorTree();
+            renderAlgorithmSteps();
+            renderDivisorsSection();
+        }
+
+        /**
+         * 1. Render Top Summary Bento Cards
+         */
+        function renderSummaryCards() {
+            const n = state.number;
+            const primeStatusTitle = document.getElementById('primeStatusTitle');
+            const primeStatusDesc = document.getElementById('primeStatusDesc');
+            const primeBadgeIcon = document.getElementById('primeBadgeIcon');
+            const exponentialDisplay = document.getElementById('exponentialDisplay');
+            const expandedDisplay = document.getElementById('expandedDisplay');
+            const distinctPrimeCount = document.getElementById('distinctPrimeCount');
+            const distinctPrimesContainer = document.getElementById('distinctPrimesContainer');
+            const divisorCountFormula = document.getElementById('divisorCountFormula');
+
+            if (n === 1) {
+                primeStatusTitle.textContent = 'Özel Sayı (1)';
+                primeStatusTitle.className = 'text-xl font-extrabold text-amber-600 dark:text-amber-400 mb-1';
+                primeStatusDesc.textContent = '1 sayısı ne asal ne de bileşik sayıdır. Asal çarpanı yoktur.';
+                primeBadgeIcon.className = 'w-8 h-8 rounded-lg flex items-center justify-center bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400';
+                primeBadgeIcon.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+
+                exponentialDisplay.textContent = '1 = Asal çarpanı yoktur';
+                expandedDisplay.textContent = 'Birim eleman: 1';
+                distinctPrimeCount.textContent = '0 Asal';
+                distinctPrimesContainer.innerHTML = '<span class="text-xs text-slate-400 italic">Yok</span>';
+                divisorCountFormula.textContent = 'Pozitif Bölen Sayısı: 1 (Sadece kendisi)';
+                return;
+            }
+
+            if (state.isPrime) {
+                primeStatusTitle.textContent = 'Asal Sayı';
+                primeStatusTitle.className = 'text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mb-1';
+                primeStatusDesc.textContent = `${formatNumberTR(n)} sayısı yalnızca 1'e ve kendisine kalansız bölünebilir.`;
+                primeBadgeIcon.className = 'w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400';
+                primeBadgeIcon.innerHTML = '<i class="fa-solid fa-star"></i>';
+            } else {
+                primeStatusTitle.textContent = 'Bileşik Sayı';
+                primeStatusTitle.className = 'text-xl font-extrabold text-indigo-600 dark:text-indigo-400 mb-1';
+                primeStatusDesc.textContent = `${formatNumberTR(n)} sayısı ${state.primeFactorsList.length} adet asal sayının çarpımından oluşur.`;
+                primeBadgeIcon.className = 'w-8 h-8 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400';
+                primeBadgeIcon.innerHTML = '<i class="fa-solid fa-cubes"></i>';
+            }
+
+            // Exponential form: e.g. 360 = 2³ · 3² · 5¹
+            const expParts = state.distinctPrimes.map(p => {
+                const exp = state.primeCounts[p];
+                return `${formatNumberTR(p)}${toSuperscript(exp)}`;
+            });
+            exponentialDisplay.textContent = `${formatNumberTR(n)} = ${expParts.join(' · ')}`;
+
+            // Expanded multiplication form
+            expandedDisplay.textContent = `Açık Çarpım: ${state.primeFactorsList.map(formatNumberTR).join(' × ')}`;
+
+            // Distinct Primes List
+            distinctPrimeCount.textContent = `${state.distinctPrimes.length} Farklı Asal`;
+            distinctPrimesContainer.innerHTML = state.distinctPrimes.map(p => `
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800/70">
+                    ${formatNumberTR(p)}
+                    <span class="text-[10px] text-emerald-500 dark:text-emerald-400 font-normal">(${state.primeCounts[p]}x)</span>
+                </span>
+            `).join('');
+
+            // Positive Divisor Count Formula: (e1 + 1)(e2 + 1)...
+            const formulaTerms = state.distinctPrimes.map(p => `(${state.primeCounts[p]}+1)`).join('·');
+            divisorCountFormula.textContent = `Pozitif Bölen Sayısı: ${formulaTerms} = ${state.divisors.length}`;
+        }
+
+        /**
+         * 2. Render Vertical Line Method (Asal Çarpan Algoritması Bölen Listesi)
+         */
+        function renderVerticalLineMethod() {
+            const container = document.getElementById('verticalLineContainer');
+
+            if (state.number === 1) {
+                container.innerHTML = `
+                    <div class="p-6 text-center text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                        1 sayısının asal çarpanı olmadığı için bölen listesi oluşturulmaz.
+                    </div>
+                `;
+                return;
+            }
+
+            const maxVisibleStep = state.currentStep === null ? state.steps.length : state.currentStep + 1;
+            const visibleSteps = state.steps.slice(0, maxVisibleStep);
+
+            let rowsHtml = '';
+
+            visibleSteps.forEach((step, idx) => {
+                const isHighlighted = state.currentStep === idx;
+                const rowBg = isHighlighted
+                    ? 'bg-indigo-50/90 dark:bg-indigo-950/70 ring-1 ring-indigo-400/50 rounded-xl'
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl';
+
+                rowsHtml += `
+                    <div onclick="selectStep(${idx})" class="grid grid-cols-2 items-center py-2.5 px-3 cursor-pointer transition step-row-enter ${rowBg}">
+                        <!-- Left side of vertical line: Dividend -->
+                        <div class="text-right pr-6 font-mono text-lg sm:text-xl font-bold ${isHighlighted ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-slate-100'}">
+                            ${formatNumberTR(step.dividend)}
+                        </div>
+                        <!-- Right side of vertical line: Prime Divisor -->
+                        <div class="text-left pl-6 flex items-center justify-between">
+                            <span class="inline-flex items-center justify-center px-3 py-1 rounded-lg font-mono text-base sm:text-lg font-extrabold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800">
+                                ${formatNumberTR(step.divisor)}
+                            </span>
+                            <span class="text-[11px] font-mono text-slate-400 dark:text-slate-500 hidden sm:inline">
+                                ÷${formatNumberTR(step.divisor)} → ${formatNumberTR(step.quotient)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Final "1" at the bottom left when last step is visible
+            if (maxVisibleStep >= state.steps.length) {
+                rowsHtml += `
+                    <div class="grid grid-cols-2 items-center py-2.5 px-3 step-row-enter">
+                        <div class="text-right pr-6 font-mono text-lg sm:text-xl font-extrabold text-amber-600 dark:text-amber-400">
+                            1
+                        </div>
+                        <div class="text-left pl-6 text-xs font-semibold text-slate-400 dark:text-slate-500 italic">
+                            (Bölme işlemi tamamlandı)
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="relative">
+                    <!-- Continuous Vertical Divider Line -->
+                    <div class="absolute left-1/2 top-1 bottom-1 w-0.5 -translate-x-1/2 bg-indigo-500 dark:bg-indigo-400 rounded-full"></div>
+                    <div class="space-y-1 relative z-10">
+                        ${rowsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * 3. Build & Render SVG Factor Tree (Çarpan Ağacı)
+         */
+        function buildFactorTreeData(n, mode) {
+            if (n === 1) {
+                return { value: 1, isPrime: false, children: [], stepIndex: 0 };
+            }
+
+            if (mode === 'sequential') {
+                // Builds tree matching the exact step-by-step division order
+                let root = { value: n, isPrime: state.isPrime, children: [], stepIndex: 0 };
+                let currentNode = root;
+
+                state.steps.forEach((step, idx) => {
+                    // Only split if dividend != quotient (i.e. composite split)
+                    if (step.quotient > 1) {
+                        const leftChild = {
+                            value: step.divisor,
+                            isPrime: true,
+                            children: [],
+                            stepIndex: idx + 1
+                        };
+                        const rightChild = {
+                            value: step.quotient,
+                            isPrime: idx + 1 === state.steps.length - 1,
+                            children: [],
+                            stepIndex: idx + 1
+                        };
+                        currentNode.children = [leftChild, rightChild];
+                        currentNode = rightChild;
+                    } else {
+                        currentNode.isPrime = true;
+                    }
+                });
+                return root;
+            } else {
+                // Balanced Factor Tree: splits n into two factors as close to sqrt(n) as possible
+                let stepCounter = 0;
+                function splitBalanced(val, depth) {
+                    if (isSmallPrime(val) || val <= 3) {
+                        return { value: val, isPrime: val > 1, children: [], stepIndex: depth };
+                    }
+                    let bestA = 2;
+                    const limit = Math.floor(Math.sqrt(val));
+                    for (let d = limit; d >= 2; d--) {
+                        if (val % d === 0) {
+                            bestA = d;
+                            break;
+                        }
+                    }
+                    const bestB = val / bestA;
+                    stepCounter++;
+                    return {
+                        value: val,
+                        isPrime: false,
+                        stepIndex: depth,
+                        children: [
+                            splitBalanced(bestA, depth + 1),
+                            splitBalanced(bestB, depth + 1)
+                        ]
+                    };
+                }
+                return splitBalanced(n, 0);
+            }
+        }
+
+        function renderFactorTree() {
+            const svg = document.getElementById('factorTreeSvg');
+            const root = buildFactorTreeData(state.number, state.treeMode);
+
+            // Filter tree depth based on currentStep in sequential mode
+            const maxDepth = state.currentStep === null ? Infinity : state.currentStep + 1;
+
+            // Compute tree layout coordinates
+            const levelHeight = 78;
+            let leafCounter = 0;
+            let maxTreeDepth = 0;
+
+            function assignCoordinates(node, depth) {
+                node.depth = depth;
+                if (depth > maxTreeDepth) maxTreeDepth = depth;
+
+                const shouldShowChildren = node.children && node.children.length > 0 && depth < maxDepth;
+
+                if (!shouldShowChildren) {
+                    node.xIndex = leafCounter++;
+                    node.visibleChildren = [];
+                    return;
+                }
+
+                node.visibleChildren = node.children;
+                node.visibleChildren.forEach(child => assignCoordinates(child, depth + 1));
+                const firstChild = node.visibleChildren[0];
+                const lastChild = node.visibleChildren[node.visibleChildren.length - 1];
+                node.xIndex = (firstChild.xIndex + lastChild.xIndex) / 2;
+            }
+
+            assignCoordinates(root, 0);
+
+            const leafSpacing = 86;
+            const totalLeaves = Math.max(1, leafCounter);
+            const svgWidth = Math.max(460, totalLeaves * leafSpacing + 80);
+            const svgHeight = Math.max(320, (maxTreeDepth + 1) * levelHeight + 80);
+
+            const xOffset = (svgWidth - (totalLeaves - 1) * leafSpacing) / 2;
+            const yOffset = 48;
+
+            const edges = [];
+            const nodes = [];
+
+            function collectRenderItems(node) {
+                const cx = xOffset + node.xIndex * leafSpacing;
+                const cy = yOffset + node.depth * levelHeight;
+                node.cx = cx;
+                node.cy = cy;
+                nodes.push(node);
+
+                if (node.visibleChildren && node.visibleChildren.length > 0) {
+                    node.visibleChildren.forEach(child => {
+                        collectRenderItems(child);
+                        edges.push({
+                            x1: cx,
+                            y1: cy,
+                            x2: child.cx,
+                            y2: child.cy,
+                            active: state.currentStep !== null && child.depth === state.currentStep + 1
+                        });
+                    });
+                }
+            }
+
+            collectRenderItems(root);
+
+            svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+
+            // Render Edges
+            const edgesSvg = edges.map(edge => `
+                <line
+                    x1="${edge.x1}" y1="${edge.y1}"
+                    x2="${edge.x2}" y2="${edge.y2}"
+                    stroke="${edge.active ? '#6366f1' : '#94a3b8'}"
+                    stroke-width="${edge.active ? '3.5' : '2.2'}"
+                    stroke-dasharray="${edge.active ? 'none' : 'none'}"
+                    class="transition-all duration-300"
+                />
+            `).join('');
+
+            // Render Nodes
+            const nodesSvg = nodes.map(node => {
+                const isLeafPrime = node.isPrime;
+                const isCurrentActive = state.currentStep !== null && node.depth === state.currentStep + 1;
+                const label = formatNumberTR(node.value);
+                const radius = Math.max(24, Math.min(36, 16 + label.length * 3.5));
+
+                let fillClass = isLeafPrime ? '#10b981' : '#4f46e5';
+                let strokeColor = isLeafPrime ? '#059669' : '#3730a3';
+
+                if (node.value === 1) {
+                    fillClass = '#f59e0b';
+                    strokeColor = '#d97706';
+                }
+
+                return `
+                    <g class="cursor-pointer transition-transform duration-300 ${isCurrentActive ? 'node-pulse' : ''}"
+                       transform="translate(${node.cx}, ${node.cy})"
+                       onclick="onTreeNodeClick(${node.depth})">
+                        <circle
+                            r="${radius}"
+                            fill="${fillClass}"
+                            stroke="${isCurrentActive ? '#fbbf24' : strokeColor}"
+                            stroke-width="${isCurrentActive ? '4' : '2.5'}"
+                        />
+                        <text
+                            text-anchor="middle"
+                            dominant-baseline="central"
+                            fill="#ffffff"
+                            font-family="JetBrains Mono, monospace"
+                            font-weight="700"
+                            font-size="${label.length > 5 ? '11' : '13'}"
+                        >${label}</text>
+                    </g>
+                `;
+            }).join('');
+
+            svg.innerHTML = `
+                <g>
+                    ${edgesSvg}
+                    ${nodesSvg}
+                </g>
+            `;
+        }
+
+        function setTreeMode(mode) {
+            state.treeMode = mode;
+            const seqBtn = document.getElementById('treeModeSequential');
+            const balBtn = document.getElementById('treeModeBalanced');
+
+            if (mode === 'sequential') {
+                seqBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm';
+                balBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+            } else {
+                balBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm';
+                seqBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+            }
+
+            renderFactorTree();
+        }
+
+        function zoomTree(factor) {
+            state.treeZoom = Math.min(2.2, Math.max(0.5, state.treeZoom * factor));
+            const svg = document.getElementById('factorTreeSvg');
+            svg.style.transform = `scale(${state.treeZoom})`;
+        }
+
+        function resetTreeZoom() {
+            state.treeZoom = 1;
+            const svg = document.getElementById('factorTreeSvg');
+            svg.style.transform = 'scale(1)';
+        }
+
+        function onTreeNodeClick(depth) {
+            if (state.steps.length === 0) return;
+            const targetStep = Math.min(state.steps.length - 1, Math.max(0, depth - 1));
+            selectStep(targetStep);
+        }
+
+        /**
+         * 4. Render Step-by-Step Algorithm Explanations
+         */
+        function renderAlgorithmSteps() {
+            const listEl = document.getElementById('algorithmStepsList');
+            const showSkipped = document.getElementById('showSkippedToggle').checked;
+
+            if (state.number === 1) {
+                listEl.innerHTML = `
+                    <div class="col-span-full p-5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-sm text-amber-800 dark:text-amber-300">
+                        <strong>1 Sayısı Özel Durumu:</strong> Asal sayılar 2'den başlar. 1 sayısının kendisi dışında böleni olmadığı için asal çarpan algoritması uygulanmaz.
+                    </div>
+                `;
+                return;
+            }
+
+            const maxVisibleStep = state.currentStep === null ? state.steps.length : state.currentStep + 1;
+            const visibleSteps = state.steps.slice(0, maxVisibleStep);
+
+            listEl.innerHTML = visibleSteps.map((step, idx) => {
+                const isActive = state.currentStep === idx;
+                const borderClass = isActive
+                    ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/40 dark:bg-indigo-950/30'
+                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:border-indigo-300 dark:hover:border-indigo-800';
+
+                let skippedHtml = '';
+                if (showSkipped && step.skippedPrimes && step.skippedPrimes.length > 0) {
+                    const skippedText = step.skippedPrimes.map(sp =>
+                        `${formatNumberTR(step.dividend)} ÷ ${sp.prime} işleminde kalan ${sp.remainder} olduğu için ${sp.prime} asal sayısına bölünmez`
+                    ).join('; ');
+                    skippedHtml = `
+                        <div class="mt-2 p-2.5 rounded-lg bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-800/60 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                            <i class="fa-solid fa-arrow-turn-up rotate-90 mt-0.5 text-amber-500"></i>
+                            <span><strong>Asal Bölen Geçişi:</strong> ${skippedText}. Bu nedenle bir sonraki asal bölen denendi.</span>
+                        </div>
+                    `;
+                }
+
+                const isLastStep = step.quotient === 1;
+
+                return `
+                    <div onclick="selectStep(${idx})" class="p-4 rounded-xl border transition cursor-pointer step-row-enter ${borderClass}">
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                                <span>Adım ${step.stepIndex}</span>
+                            </span>
+                            <span class="text-xs font-mono font-bold px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                Asal Bölen: ${formatNumberTR(step.divisor)}
+                            </span>
+                        </div>
+
+                        <div class="my-2 p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 font-mono text-sm sm:text-base font-bold flex items-center justify-between">
+                            <span>${formatNumberTR(step.dividend)} ÷ <span class="text-emerald-600 dark:text-emerald-400">${formatNumberTR(step.divisor)}</span> = <span class="text-indigo-600 dark:text-indigo-400">${formatNumberTR(step.quotient)}</span></span>
+                            <span class="text-[11px] font-normal px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">Kalan: 0</span>
+                        </div>
+
+                        <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                            <strong>${formatNumberTR(step.dividend)}</strong> sayısı en küçük asal böleni olan <strong>${formatNumberTR(step.divisor)}</strong> sayısına kalansız bölündü ve bölüm <strong>${formatNumberTR(step.quotient)}</strong> olarak bulundu.
+                            ${isLastStep ? '<span class="text-emerald-600 dark:text-emerald-400 font-semibold"> Bölüm 1 olduğu için algoritma tamamlandı!</span>' : ''}
+                        </p>
+
+                        ${skippedHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * 5. Render All Positive Divisors Section
+         */
+        function renderDivisorsSection() {
+            const divisors = state.divisors;
+            const primeSet = new Set(state.distinctPrimes);
+
+            // Metrics
+            const totalDivs = divisors.length;
+            const primeDivs = state.distinctPrimes.length;
+            const nonPrimeDivs = totalDivs - primeDivs;
+            const sumDivs = divisors.reduce((acc, val) => acc + val, 0);
+
+            document.getElementById('metricTotalDivisors').textContent = formatNumberTR(totalDivs);
+            document.getElementById('metricPrimeDivisors').textContent = formatNumberTR(primeDivs);
+            document.getElementById('metricNonPrimeDivisors').textContent = formatNumberTR(nonPrimeDivs);
+            document.getElementById('metricSumDivisors').textContent = formatNumberTR(sumDivs);
+
+            const container = document.getElementById('divisorsContainer');
+
+            if (state.divisorView === 'list') {
+                container.innerHTML = divisors.map(d => {
+                    const isP = primeSet.has(d);
+                    if (isP) {
+                        return `
+                            <div class="px-3.5 py-2 rounded-xl font-mono text-sm font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800 flex items-center gap-1.5 shadow-sm" title="Asal Bölen">
+                                <span>${formatNumberTR(d)}</span>
+                                <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-200/70 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 font-sans font-bold">Asal</span>
+                            </div>
+                        `;
+                    }
+                    return `
+                        <div class="px-3.5 py-2 rounded-xl font-mono text-sm font-semibold bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                            ${formatNumberTR(d)}
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                // Factor pairs view: 1 x 360, 2 x 180, ...
+                const pairs = [];
+                const halfLen = Math.ceil(divisors.length / 2);
+                for (let i = 0; i < halfLen; i++) {
+                    const d1 = divisors[i];
+                    const d2 = divisors[divisors.length - 1 - i];
+                    pairs.push([d1, d2]);
+                }
+
+                container.innerHTML = pairs.map(([d1, d2], idx) => `
+                    <div class="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 font-mono text-sm flex items-center gap-2">
+                        <span class="text-xs text-slate-400 font-sans">#${idx + 1}</span>
+                        <span class="font-bold ${primeSet.has(d1) ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}">${formatNumberTR(d1)}</span>
+                        <span class="text-slate-400">×</span>
+                        <span class="font-bold ${primeSet.has(d2) ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}">${formatNumberTR(d2)}</span>
+                        <span class="text-slate-400">=</span>
+                        <span class="font-bold text-indigo-600 dark:text-indigo-400">${formatNumberTR(state.number)}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function setDivisorView(view) {
+            state.divisorView = view;
+            const listBtn = document.getElementById('divViewListBtn');
+            const pairsBtn = document.getElementById('divViewPairsBtn');
+
+            if (view === 'list') {
+                listBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm';
+                pairsBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+            } else {
+                pairsBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm';
+                listBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+            }
+
+            renderDivisorsSection();
+        }
+
+        /**
+         * Step-by-Step Playback & Interactive Scrubbing Controls
+         */
+        function renderStepStatusBadge() {
+            const badge = document.getElementById('stepStatusBadge');
+            if (state.steps.length === 0) {
+                badge.textContent = 'Adım Yok';
+                return;
+            }
+            if (state.currentStep === null) {
+                badge.textContent = `Adım: Tümü Gösteriliyor (${state.steps.length} Adım)`;
+            } else {
+                badge.textContent = `Adım: ${state.currentStep + 1} / ${state.steps.length}`;
+            }
+        }
+
+        function selectStep(stepIdx) {
+            stopPlaySteps();
+            state.currentStep = stepIdx;
+            renderStepStatusBadge();
+            renderVerticalLineMethod();
+            renderFactorTree();
+            renderAlgorithmSteps();
+        }
+
+        function resetSteps() {
+            stopPlaySteps();
+            if (state.steps.length > 0) {
+                state.currentStep = 0;
+            } else {
+                state.currentStep = null;
+            }
+            renderStepStatusBadge();
+            renderVerticalLineMethod();
+            renderFactorTree();
+            renderAlgorithmSteps();
+        }
+
+        function showAllSteps() {
+            stopPlaySteps();
+            state.currentStep = null;
+            renderStepStatusBadge();
+            renderVerticalLineMethod();
+            renderFactorTree();
+            renderAlgorithmSteps();
+        }
+
+        function nextStep() {
+            stopPlaySteps();
+            advanceOneStep();
+        }
+
+        function advanceOneStep() {
+            if (state.steps.length === 0) return;
+
+            if (state.currentStep === null) {
+                state.currentStep = 0;
+            } else if (state.currentStep < state.steps.length - 1) {
+                state.currentStep++;
+            } else {
+                state.currentStep = null; // Reveal final completion state
+                stopPlaySteps();
+            }
+
+            renderStepStatusBadge();
+            renderVerticalLineMethod();
+            renderFactorTree();
+            renderAlgorithmSteps();
+        }
+
+        function prevStep() {
+            stopPlaySteps();
+            if (state.steps.length === 0) return;
+
+            if (state.currentStep === null) {
+                state.currentStep = state.steps.length - 1;
+            } else if (state.currentStep > 0) {
+                state.currentStep--;
+            }
+
+            renderStepStatusBadge();
+            renderVerticalLineMethod();
+            renderFactorTree();
+            renderAlgorithmSteps();
+        }
+
+        function togglePlaySteps() {
+            if (state.isPlaying) {
+                stopPlaySteps();
+            } else {
+                startPlaySteps();
+            }
+        }
+
+        function startPlaySteps() {
+            if (state.steps.length === 0) return;
+            state.isPlaying = true;
+
+            if (state.currentStep === null || state.currentStep >= state.steps.length - 1) {
+                state.currentStep = 0;
+            }
+
+            updatePlayButtonUI();
+            renderStepStatusBadge();
+            renderVerticalLineMethod();
+            renderFactorTree();
+            renderAlgorithmSteps();
+
+            state.playTimer = setInterval(() => {
+                if (state.currentStep !== null && state.currentStep < state.steps.length - 1) {
+                    state.currentStep++;
+                    renderStepStatusBadge();
+                    renderVerticalLineMethod();
+                    renderFactorTree();
+                    renderAlgorithmSteps();
+                } else {
+                    state.currentStep = null;
+                    renderStepStatusBadge();
+                    renderVerticalLineMethod();
+                    renderFactorTree();
+                    renderAlgorithmSteps();
+                    stopPlaySteps();
+                    showToast('Adım adım simülasyon tamamlandı.');
+                }
+            }, state.playSpeed);
+        }
+
+        function stopPlaySteps() {
+            state.isPlaying = false;
+            if (state.playTimer) {
+                clearInterval(state.playTimer);
+                state.playTimer = null;
+            }
+            updatePlayButtonUI();
+        }
+
+        function updatePlayButtonUI() {
+            const icon = document.getElementById('playPauseIcon');
+            const text = document.getElementById('playPauseText');
+            const btn = document.getElementById('playPauseBtn');
+
+            if (state.isPlaying) {
+                icon.className = 'fa-solid fa-pause';
+                text.textContent = 'Duraklat';
+                btn.classList.replace('bg-indigo-600', 'bg-amber-600');
+                btn.classList.replace('hover:bg-indigo-700', 'hover:bg-amber-700');
+            } else {
+                icon.className = 'fa-solid fa-play';
+                text.textContent = 'Adım Adım Oynat';
+                btn.classList.replace('bg-amber-600', 'bg-indigo-600');
+                btn.classList.replace('hover:bg-amber-700', 'hover:bg-indigo-700');
+            }
+        }
+
+        function updateSpeed() {
+            const select = document.getElementById('speedSelect');
+            state.playSpeed = Number(select.value);
+            if (state.isPlaying) {
+                stopPlaySteps();
+                startPlaySteps();
+            }
+        }
+
+        /**
+         * Clipboard & Toast Helpers
+         */
+        function copyFactorization() {
+            const expText = document.getElementById('exponentialDisplay').textContent.trim();
+            const expandedText = document.getElementById('expandedDisplay').textContent.trim();
+            const fullText = `${expText} (${expandedText})`;
+
+            const tempArea = document.createElement('textarea');
+            tempArea.value = fullText;
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Üslü gösterim panoya kopyalandı!');
+            } catch (err) {
+                showToast('Kopyalama başarısız oldu.');
+            }
+            document.body.removeChild(tempArea);
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold shadow-lg flex items-center gap-2 step-row-enter';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 dark:text-emerald-600"></i><span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.25s ease';
+                setTimeout(() => toast.remove(), 250);
+            }, 2400);
+        }
+
+        /**
+         * Theme Toggle (Light / Dark Mode)
+         */
+        function toggleTheme() {
+            const htmlEl = document.documentElement;
+            const iconEl = document.getElementById('themeIcon');
+            htmlEl.classList.toggle('dark');
+            const isDark = htmlEl.classList.contains('dark');
+            iconEl.className = isDark ? 'fa-solid fa-sun text-sm text-amber-400' : 'fa-solid fa-moon text-sm';
+        }
+
+        /**
+         * Initialize App & Event Listeners
+         */
+        window.addEventListener('DOMContentLoaded', () => {
+            const inputEl = document.getElementById('numberInput');
+            inputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handleAnalyze();
+                }
+            });
+
+            // Initial calculation for default value 360
+            handleAnalyze();
+        });
+    </script>
+</body>
+</html>

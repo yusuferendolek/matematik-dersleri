@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAT.6.4.2: Alan Bağıntıları Simülasyonu</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .tab-btn.active {
+            background-color: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+        .math-fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 0.35rem;
+            line-height: 1.2;
+        }
+        .math-fraction-top {
+            border-bottom: 2px solid currentColor;
+            padding: 0 0.4rem 0.15rem 0.4rem;
+            font-weight: 600;
+        }
+        .math-fraction-bottom {
+            padding-top: 0.15rem;
+            font-weight: 700;
+        }
+        canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Üst Bilgi Başlığı -->
+    <header class="bg-white shadow-sm border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                    📐
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded-full">MAT.6.4.2 Öğrenim Çıktısı</span>
+                        <span class="text-xs text-slate-500 hidden sm:inline">6. Sınıf Matematik</span>
+                    </div>
+                    <h1 class="text-lg sm:text-xl font-extrabold text-slate-900 mt-0.5">Dikdörtgenden Paralelkenar ve Üçgenin Alanına</h1>
+                </div>
+            </div>
+
+            <!-- Sekme Butonları -->
+            <div class="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 w-full md:w-auto">
+                <button id="btnTab1" onclick="switchTab(1)" class="tab-btn active flex-1 md:flex-initial py-2 px-4 rounded-lg text-slate-700 font-semibold transition flex items-center justify-center gap-2 text-sm">
+                    <span>✂️</span>
+                    <span>1. Paralelkenarın Alanı (Kes ve Taşı)</span>
+                </button>
+                <button id="btnTab2" onclick="switchTab(2)" class="tab-btn flex-1 md:flex-initial py-2 px-4 rounded-lg text-slate-700 font-semibold transition flex items-center justify-center gap-2 text-sm">
+                    <span>🔄</span>
+                    <span>2. Üçgenin Alanı (Eş Üçgenle Birleştir)</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Ana İçerik Alanı -->
+    <main class="max-w-7xl w-full mx-auto px-4 py-5 flex-grow flex flex-col gap-5">
+
+        <!-- Ortak Araç Çubuğu (Köşe Kontrolü ve Izgara Ayarları) -->
+        <div class="bg-white px-4 py-3 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-2.5 text-sm">
+                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-700 font-bold">👆</span>
+                <span class="text-slate-700 font-medium">
+                    <strong class="text-slate-900">Etkileşimli Köşeler:</strong> Şeklin üzerindeki <span class="text-amber-600 font-bold">turuncu</span> ve <span class="text-blue-600 font-bold">mavi</span> noktaları sürükleyerek boyutları ve eğimi değiştirin!
+                </span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-4 text-sm">
+                <label class="inline-flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 transition">
+                    <input type="checkbox" id="lockHeightToggle" class="w-4 h-4 accent-blue-600 rounded cursor-pointer">
+                    <span class="font-medium text-slate-700">Yüksekliği Sabitle (Sadece Eğimi Değiştir)</span>
+                </label>
+
+                <label class="inline-flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 transition">
+                    <input type="checkbox" id="snapGridToggle" checked class="w-4 h-4 accent-blue-600 rounded cursor-pointer">
+                    <span class="font-medium text-slate-700">Tam Sayılara Kenetle</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- ================= SEKME 1: PARALELKENAR ALANI ================= -->
+        <div id="tabContent1" class="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-grow">
+            
+            <!-- Sol Panel: Formül, Canlı Hesaplama ve Kontroller -->
+            <div class="lg:col-span-5 flex flex-col justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">1. Etkinlik: Dikdörtgene Dönüştürme</span>
+                        <h2 class="text-xl font-bold text-slate-900 mt-2">Paralelkenardan Üçgen Kesip Taşıma</h2>
+                        <p class="text-sm text-slate-600 leading-relaxed mt-1">
+                            Paralelkenarın köşesinden indirilen dikme (<strong class="text-rose-600">yükseklik - h</strong>) boyunca oluşan <strong class="text-amber-600">dik üçgeni</strong> kesip diğer tarafa taşıdığımızda tam bir <strong class="text-blue-700">dikdörtgen</strong> elde ederiz.
+                        </p>
+                    </div>
+
+                    <!-- Adım Adım Bağıntı Kutusu -->
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                        <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Alan Bağıntısının Çıkarımı</div>
+                        
+                        <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                            <div class="text-xs text-slate-500 mb-1">1. Oluşan Dikdörtgenin Alanı:</div>
+                            <div class="text-sm sm:text-base font-bold text-slate-800 flex items-center flex-wrap gap-1">
+                                <span>Alan</span>
+                                <span>=</span>
+                                <span class="text-blue-700">Uzun Kenar (a)</span>
+                                <span>×</span>
+                                <span class="text-rose-600">Kısa Kenar (h)</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-blue-50/80 rounded-lg border border-blue-200">
+                            <div class="text-xs text-blue-700 font-semibold mb-1">2. Paralelkenarın Alanı (Alan Korunur):</div>
+                            <div class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center flex-wrap gap-1">
+                                <span>Alan</span>
+                                <span>=</span>
+                                <span class="text-blue-700">Taban (a)</span>
+                                <span>×</span>
+                                <span class="text-rose-600">Yükseklik (h)</span>
+                            </div>
+                        </div>
+
+                        <!-- Canlı Sayısal Hesaplama -->
+                        <div class="p-3.5 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl shadow-sm">
+                            <div class="flex items-center justify-between text-xs text-slate-300 mb-1.5">
+                                <span>Canlı Ölçümler ve Alan Hesabı</span>
+                                <span id="pShapeStatusBadge" class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">Paralelkenar</span>
+                            </div>
+                            <div class="text-base sm:text-lg font-bold flex items-center flex-wrap gap-1.5">
+                                <span>Alan =</span>
+                                <span class="px-2 py-0.5 bg-blue-500/30 border border-blue-400/40 rounded text-blue-200" id="pFormulaA">8 br</span>
+                                <span>×</span>
+                                <span class="px-2 py-0.5 bg-rose-500/30 border border-rose-400/40 rounded text-rose-200" id="pFormulaH">5 br</span>
+                                <span>=</span>
+                                <span class="px-2.5 py-0.5 bg-emerald-500 text-slate-950 font-extrabold rounded-lg" id="pFormulaArea">40 birim²</span>
+                            </div>
+                            <div class="text-xs text-slate-300 mt-2 flex items-center gap-1.5">
+                                <span>💡</span>
+                                <span id="pSlantNote">Üst köşeyi yatay sürüklediğinizde eğim değişir ancak taban (a) ve yükseklik (h) değişmediği için <strong>alan sabit kalır!</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Animasyon Kontrolleri -->
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div class="flex justify-between items-center">
+                        <label for="pRange" class="text-xs font-bold text-slate-700 uppercase tracking-wider">✂️ Üçgeni Kes ve Diğer Tarafa Taşı</label>
+                        <span id="pPercentLabel" class="text-xs font-extrabold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">%0</span>
+                    </div>
+                    <input type="range" id="pRange" min="0" max="100" value="0" class="w-full h-2.5 bg-slate-200 rounded-lg accent-blue-600 cursor-pointer">
+                    
+                    <div class="flex gap-2 pt-1">
+                        <button onclick="toggleAnimation(1)" id="playBtn1" class="flex-1 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-semibold py-2.5 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-2 text-sm">
+                            <span id="playIcon1">▶</span>
+                            <span id="playText1">Üçgeni Kes ve Taşı</span>
+                        </button>
+                        <button onclick="resetAnimation(1)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2.5 px-4 rounded-xl transition text-sm">
+                            Sıfırla
+                        </button>
+                    </div>
+
+                    <!-- Hızlı Eğim Seçenekleri -->
+                    <div class="pt-2 border-t border-slate-200 flex items-center justify-between gap-2 flex-wrap">
+                        <span class="text-xs font-semibold text-slate-500">Hızlı Test:</span>
+                        <div class="flex gap-1.5">
+                            <button onclick="setParallelogramPreset(8, 5, 3)" class="text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg font-medium transition">Sağa Eğik</button>
+                            <button onclick="setParallelogramPreset(8, 5, 5)" class="text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg font-medium transition">Çok Eğik</button>
+                            <button onclick="setParallelogramPreset(8, 5, -3)" class="text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg font-medium transition">Sola Eğik</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ Panel: İnteraktif Canvas -->
+            <div class="lg:col-span-7 bg-slate-900 rounded-2xl overflow-hidden relative flex flex-col justify-between min-h-[440px] sm:min-h-[500px] shadow-md border border-slate-800">
+                <!-- Üst Canvas Bilgi Çubuğu -->
+                <div class="p-3 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 z-10">
+                    <div class="flex items-center gap-3 text-xs font-medium text-slate-300">
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-amber-500 inline-block"></span> Kesilen Dik Üçgen</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-blue-500 inline-block"></span> Kalan Gövde</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-rose-400 inline-block"></span> Yükseklik (h)</span>
+                    </div>
+                    <div id="pCanvasStatus" class="text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
+                        Köşe noktalarını sürükleyebilirsiniz
+                    </div>
+                </div>
+
+                <!-- Canvas -->
+                <div class="relative flex-grow w-full h-full flex items-center justify-center">
+                    <canvas id="canvas1" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SEKME 2: ÜÇGENİN ALANI ================= -->
+        <div id="tabContent2" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-5 flex-grow">
+            
+            <!-- Sol Panel: Formül, Canlı Hesaplama ve Kontroller -->
+            <div class="lg:col-span-5 flex flex-col justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">2. Etkinlik: İki Eş Üçgenden Paralelkenara</span>
+                        <h2 class="text-xl font-bold text-slate-900 mt-2">Her Üçgen Eş Kopyasıyla Paralelkenar Oluşturur</h2>
+                        <p class="text-sm text-slate-600 leading-relaxed mt-1">
+                            Herhangi bir üçgeni (dar, dik veya geniş açılı) kendisiyle tamamen aynı olan <strong class="text-emerald-600">eş kopyasıyla</strong> 180° döndürüp birleştirdiğimizde tabanı <strong>a</strong>, yüksekliği <strong>h</strong> olan bir <strong>paralelkenar</strong> oluşur.
+                        </p>
+                    </div>
+
+                    <!-- Adım Adım Bağıntı Kutusu -->
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                        <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Alan Bağıntısının Çıkarımı</div>
+                        
+                        <div class="p-3 bg-white rounded-lg border border-slate-200">
+                            <div class="text-xs text-slate-500 mb-1">1. İki Eş Üçgenin Oluşturduğu Paralelkenarın Alanı:</div>
+                            <div class="text-sm sm:text-base font-bold text-slate-800 flex items-center flex-wrap gap-1">
+                                <span>Paralelkenarın Alanı</span>
+                                <span>=</span>
+                                <span class="text-blue-700">Taban (a)</span>
+                                <span>×</span>
+                                <span class="text-rose-600">Yükseklik (h)</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-emerald-50/90 rounded-lg border border-emerald-200">
+                            <div class="text-xs text-emerald-800 font-semibold mb-1.5">2. Tek Bir Üçgenin Alanı (Paralelkenarın Yarısı):</div>
+                            <div class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center flex-wrap">
+                                <span>Üçgenin Alanı</span>
+                                <span class="mx-1.5">=</span>
+                                <div class="math-fraction text-slate-800">
+                                    <span class="math-fraction-top">Paralelkenarın Alanı</span>
+                                    <span class="math-fraction-bottom">2</span>
+                                </div>
+                                <span class="mx-1.5">=</span>
+                                <div class="math-fraction">
+                                    <span class="math-fraction-top"><span class="text-blue-700">Taban (a)</span> × <span class="text-rose-600">Yükseklik (h)</span></span>
+                                    <span class="math-fraction-bottom">2</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Canlı Sayısal Hesaplama -->
+                        <div class="p-3.5 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl shadow-sm">
+                            <div class="flex items-center justify-between text-xs text-slate-300 mb-2">
+                                <span>Canlı Ölçümler ve Alan Hesabı</span>
+                                <span id="tAngleTypeBadge" class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-semibold">Dar Açılı Üçgen</span>
+                            </div>
+                            <div class="text-sm sm:text-base font-bold flex items-center flex-wrap gap-1.5">
+                                <span>Üçgenin Alanı =</span>
+                                <div class="math-fraction text-white">
+                                    <span class="math-fraction-top">
+                                        <span class="text-blue-300" id="tFormulaA">8 br</span> × <span class="text-rose-300" id="tFormulaH">5 br</span>
+                                    </span>
+                                    <span class="math-fraction-bottom">2</span>
+                                </div>
+                                <span>=</span>
+                                <div class="math-fraction text-white">
+                                    <span class="math-fraction-top text-amber-300" id="tFormulaParaArea">40</span>
+                                    <span class="math-fraction-bottom">2</span>
+                                </div>
+                                <span>=</span>
+                                <span class="px-2.5 py-1 bg-emerald-500 text-slate-950 font-extrabold rounded-lg text-base" id="tFormulaArea">20 birim²</span>
+                            </div>
+                            <div class="text-xs text-slate-300 mt-2 flex items-center gap-1.5">
+                                <span>💡</span>
+                                <span>Tepe noktasını sürükleyerek üçgeni <strong>dar, dik veya geniş açılı</strong> yapsanız bile eşiyle her zaman paralelkenar oluşturur!</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Animasyon Kontrolleri -->
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div class="flex justify-between items-center">
+                        <label for="tRange" class="text-xs font-bold text-slate-700 uppercase tracking-wider">🔄 Eş Üçgeni Döndür ve Birleştir</label>
+                        <span id="tPercentLabel" class="text-xs font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">%0</span>
+                    </div>
+                    <input type="range" id="tRange" min="0" max="100" value="0" class="w-full h-2.5 bg-slate-200 rounded-lg accent-emerald-600 cursor-pointer">
+                    
+                    <div class="flex gap-2 pt-1">
+                        <button onclick="toggleAnimation(2)" id="playBtn2" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-semibold py-2.5 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-2 text-sm">
+                            <span id="playIcon2">▶</span>
+                            <span id="playText2">Eş Üçgenle Birleştir</span>
+                        </button>
+                        <button onclick="resetAnimation(2)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2.5 px-4 rounded-xl transition text-sm">
+                            Sıfırla
+                        </button>
+                    </div>
+
+                    <!-- Hızlı Üçgen Türü Seçenekleri -->
+                    <div class="pt-2 border-t border-slate-200 flex items-center justify-between gap-2 flex-wrap">
+                        <span class="text-xs font-semibold text-slate-500">Üçgen Türü Seç:</span>
+                        <div class="flex gap-1.5">
+                            <button onclick="setTrianglePreset(6, 5, 3)" class="text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg font-medium transition">Dar Açılı</button>
+                            <button onclick="setTrianglePreset(6, 5, 0)" class="text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg font-medium transition">Dik Üçgen</button>
+                            <button onclick="setTrianglePreset(6, 5, -2)" class="text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg font-medium transition">Geniş Açılı</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ Panel: İnteraktif Canvas -->
+            <div class="lg:col-span-7 bg-slate-900 rounded-2xl overflow-hidden relative flex flex-col justify-between min-h-[440px] sm:min-h-[500px] shadow-md border border-slate-800">
+                <!-- Üst Canvas Bilgi Çubuğu -->
+                <div class="p-3 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 z-10">
+                    <div class="flex items-center gap-3 text-xs font-medium text-slate-300">
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-blue-500 inline-block"></span> 1. Asıl Üçgen</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-emerald-500 inline-block"></span> 2. Eş Üçgen (180° Dönen Kopya)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-rose-400 inline-block"></span> Yükseklik (h)</span>
+                    </div>
+                    <div id="tCanvasStatus" class="text-xs font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
+                        Tepe ve taban köşelerini sürükleyebilirsiniz
+                    </div>
+                </div>
+
+                <!-- Canvas -->
+                <div class="relative flex-grow w-full h-full flex items-center justify-center">
+                    <canvas id="canvas2" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Alt Bilgi -->
+    <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-500">
+        MAT.6.4.2. Dikdörtgenin alan bağıntısına yönelik deneyimlerini paralelkenar ve üçgenin alan bağıntılarına yansıtabilme • Etkileşimli Geometri Laboratuvarı
+    </footer>
+
+    <script>
+        // ==========================================
+        // GENEL AYARLAR VE DURUM DEĞİŞKENLERİ
+        // ==========================================
+        let activeTab = 1;
+        const GRID_SIZE = 38; // 1 birim = 38 piksel
+
+        // 1. Sekme: Paralelkenar Durumu (Birim cinsinden)
+        const paraState = {
+            base: 8,       // Taban (a) [3 .. 11]
+            height: 5,     // Yükseklik (h) [2 .. 8]
+            skew: 3,       // Eğim (s) [-base .. base]
+            progress: 0,   // 0..100 (Kesip taşıma yüzdesi)
+            isPlaying: false,
+            draggingHandle: null // 'top' | 'base' | null
+        };
+
+        // 2. Sekme: Üçgen Durumu (Birim cinsinden)
+        const triState = {
+            base: 6,       // Taban (a) [3 .. 9]
+            height: 5,     // Yükseklik (h) [2 .. 8]
+            apexX: 2,      // Tepe noktasının sol alt köşeye göre yatay konumu [-3 .. base+3]
+            progress: 0,   // 0..100 (Eş üçgenin 180 derece dönüp birleşme yüzdesi)
+            isPlaying: false,
+            draggingHandle: null // 'apex' | 'base' | null
+        };
+
+        const canvas1 = document.getElementById('canvas1');
+        const ctx1 = canvas1.getContext('2d');
+        const canvas2 = document.getElementById('canvas2');
+        const ctx2 = canvas2.getContext('2d');
+
+        const pRange = document.getElementById('pRange');
+        const tRange = document.getElementById('tRange');
+        const lockHeightToggle = document.getElementById('lockHeightToggle');
+        const snapGridToggle = document.getElementById('snapGridToggle');
+
+        // ==========================================
+        // SEKME GEÇİŞİ VE BOYUTLANDIRMA
+        // ==========================================
+        function switchTab(tabNum) {
+            activeTab = tabNum;
+            const btn1 = document.getElementById('btnTab1');
+            const btn2 = document.getElementById('btnTab2');
+            const content1 = document.getElementById('tabContent1');
+            const content2 = document.getElementById('tabContent2');
+
+            if (tabNum === 1) {
+                btn1.classList.add('active');
+                btn2.classList.remove('active');
+                content1.classList.remove('hidden');
+                content2.classList.add('hidden');
+            } else {
+                btn2.classList.add('active');
+                btn1.classList.remove('active');
+                content2.classList.remove('hidden');
+                content1.classList.add('hidden');
+            }
+            resizeCanvases();
+        }
+
+        function resizeCanvases() {
+            [canvas1, canvas2].forEach(c => {
+                const parent = c.parentElement;
+                if (parent) {
+                    const rect = parent.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        c.width = rect.width;
+                        c.height = rect.height;
+                    }
+                }
+            });
+            updateFormulaUI();
+            drawScene1();
+            drawScene2();
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+
+        // ==========================================
+        // YARDIMCI ÇİZİM FONKSİYONLARI
+        // ==========================================
+        function drawGrid(ctx, width, height, originX, originY) {
+            ctx.save();
+            ctx.lineWidth = 1;
+
+            // İnce birim kare çizgileri
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+            for (let x = originX % GRID_SIZE; x < width; x += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = originY % GRID_SIZE; y < height; y += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            // Taban doğrusu vurgusu
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, originY);
+            ctx.lineTo(width, originY);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // Yuvarlatılmış etiket kutusu (Metinlerin çizgilerle üst üste binmesini önler)
+        function drawBadge(ctx, text, x, y, bgColor, textColor, borderColor = null, fontSize = 13) {
+            ctx.save();
+            ctx.font = `700 ${fontSize}px Inter, sans-serif`;
+            const metrics = ctx.measureText(text);
+            const padX = 10;
+            const padY = 6;
+            const w = metrics.width + padX * 2;
+            const h = fontSize + padY * 2;
+            const rx = x - w / 2;
+            const ry = y - h / 2;
+            const r = 8;
+
+            ctx.beginPath();
+            ctx.roundRect(rx, ry, w, h, r);
+            ctx.fillStyle = bgColor;
+            ctx.fill();
+
+            if (borderColor) {
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, x, y + 0.5);
+            ctx.restore();
+        }
+
+        // Diklik sembolü (90 derece kare ikonu)
+        function drawRightAngleSymbol(ctx, x, y, size, dirX = 1, dirY = -1, color = '#fb7185') {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x + dirX * size, y);
+            ctx.lineTo(x + dirX * size, y + dirY * size);
+            ctx.lineTo(x, y + dirY * size);
+            ctx.stroke();
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x + dirX * size * 0.45, y + dirY * size * 0.45, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Çift yönlü ölçü oku
+        function drawMeasureArrow(ctx, x1, y1, x2, y2, color) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            // Uç sınır çizgileri
+            ctx.beginPath();
+            ctx.moveTo(x1, y1 - 5);
+            ctx.lineTo(x1, y1 + 5);
+            ctx.moveTo(x2, y2 - 5);
+            ctx.lineTo(x2, y2 + 5);
+            ctx.stroke();
+
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const headLen = 7;
+
+            // Sağ ok başı
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+
+            // Sol ok başı
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x1 + headLen * Math.cos(angle - Math.PI / 6), y1 + headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x1 + headLen * Math.cos(angle + Math.PI / 6), y1 + headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // Sürüklenebilir Köşe Noktası Çizimi
+        function drawDraggableVertex(ctx, x, y, color, label, isHoveredOrDragged = false) {
+            ctx.save();
+            // Dış hale
+            ctx.beginPath();
+            ctx.arc(x, y, isHoveredOrDragged ? 16 : 12, 0, Math.PI * 2);
+            ctx.fillStyle = color + '33';
+            ctx.fill();
+
+            // Ana daire
+            ctx.beginPath();
+            ctx.arc(x, y, isHoveredOrDragged ? 9 : 7.5, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+
+            if (label) {
+                drawBadge(ctx, label, x, y - 26, 'rgba(15, 23, 42, 0.9)', '#f8fafc', color, 11);
+            }
+            ctx.restore();
+        }
+
+        function formatNum(n) {
+            return Number.isInteger(n) ? n.toString() : n.toFixed(1).replace('.', ',');
+        }
+
+        // ==========================================
+        // CANLI FORMÜL PANELİ GÜNCELLEME
+        // ==========================================
+        function updateFormulaUI() {
+            // 1. Sekme (Paralelkenar)
+            const pArea = paraState.base * paraState.height;
+            document.getElementById('pFormulaA').textContent = `${formatNum(paraState.base)} br`;
+            document.getElementById('pFormulaH').textContent = `${formatNum(paraState.height)} br`;
+            document.getElementById('pFormulaArea').textContent = `${formatNum(pArea)} birim²`;
+            document.getElementById('pPercentLabel').textContent = `%${Math.round(paraState.progress)}`;
+
+            const pBadge = document.getElementById('pShapeStatusBadge');
+            if (paraState.progress >= 99 || Math.abs(paraState.skew) < 0.05) {
+                pBadge.textContent = 'Tam Dikdörtgen Oluştu!';
+                pBadge.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold';
+            } else if (paraState.progress > 0) {
+                pBadge.textContent = 'Üçgen Taşınıyor...';
+                pBadge.className = 'px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-semibold';
+            } else {
+                pBadge.textContent = 'Paralelkenar';
+                pBadge.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold';
+            }
+
+            // 2. Sekme (Üçgen)
+            const tParaArea = triState.base * triState.height;
+            const tArea = tParaArea / 2;
+            document.getElementById('tFormulaA').textContent = `${formatNum(triState.base)} br`;
+            document.getElementById('tFormulaH').textContent = `${formatNum(triState.height)} br`;
+            document.getElementById('tFormulaParaArea').textContent = `${formatNum(tParaArea)}`;
+            document.getElementById('tFormulaArea').textContent = `${formatNum(tArea)} birim²`;
+            document.getElementById('tPercentLabel').textContent = `%${Math.round(triState.progress)}`;
+
+            // Üçgen açı türü belirleme
+            const tBadge = document.getElementById('tAngleTypeBadge');
+            const eps = 0.08;
+            if (Math.abs(triState.apexX) <= eps || Math.abs(triState.apexX - triState.base) <= eps) {
+                tBadge.textContent = 'Dik Açılı Üçgen';
+                tBadge.className = 'px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-semibold';
+            } else if (triState.apexX < 0 || triState.apexX > triState.base) {
+                tBadge.textContent = 'Geniş Açılı Üçgen';
+                tBadge.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold';
+            } else {
+                // Üst açının da geniş olup olmadığını kontrol et
+                const v1x = -triState.apexX;
+                const v1y = triState.height;
+                const v2x = triState.base - triState.apexX;
+                const v2y = triState.height;
+                const dot = v1x * v2x + v1y * v2y;
+                if (Math.abs(dot) <= 0.15) {
+                    tBadge.textContent = 'Dik Açılı Üçgen';
+                    tBadge.className = 'px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-semibold';
+                } else if (dot < 0) {
+                    tBadge.textContent = 'Geniş Açılı Üçgen';
+                    tBadge.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold';
+                } else {
+                    tBadge.textContent = 'Dar Açılı Üçgen';
+                    tBadge.className = 'px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-semibold';
+                }
+            }
+        }
+
+        // ==========================================
+        // 1. SAHNE ÇİZİMİ: PARALELKENARDA ÜÇGEN KES VE TAŞI
+        // ==========================================
+        function getScene1Origin() {
+            const w = canvas1.width;
+            const h = canvas1.height;
+            // Şekli yatay ve dikey olarak dengeli ortala
+            const totalW = (paraState.base + Math.abs(paraState.skew)) * GRID_SIZE;
+            const startX = Math.round(((w - totalW) / 2 - Math.min(0, paraState.skew * GRID_SIZE)) / GRID_SIZE) * GRID_SIZE;
+            const originY = Math.round((h * 0.72) / GRID_SIZE) * GRID_SIZE;
+            return { originX: startX, originY };
+        }
+
+        function drawScene1() {
+            const w = canvas1.width;
+            const h = canvas1.height;
+            ctx1.clearRect(0, 0, w, h);
+
+            const { originX, originY } = getScene1Origin();
+            drawGrid(ctx1, w, h, originX, originY);
+
+            const aPx = paraState.base * GRID_SIZE;
+            const hPx = paraState.height * GRID_SIZE;
+            const sPx = paraState.skew * GRID_SIZE;
+            const t = paraState.progress / 100; // 0 .. 1
+
+            ctx1.save();
+            ctx1.translate(originX, originY);
+
+            // Paralelkenarın 4 köşesi (Y ekseni aşağı doğru olduğu için üst kenar -hPx'te):
+            // Sol Alt: (0, 0), Sağ Alt: (aPx, 0)
+            // Sol Üst: (sPx, -hPx), Sağ Üst: (aPx + sPx, -hPx)
+
+            if (Math.abs(sPx) < 1) {
+                // Eğim 0 ise zaten dikdörtgendir
+                ctx1.fillStyle = 'rgba(59, 130, 246, 0.35)';
+                ctx1.strokeStyle = '#60a5fa';
+                ctx1.lineWidth = 3;
+                ctx1.beginPath();
+                ctx1.rect(0, -hPx, aPx, hPx);
+                ctx1.fill();
+                ctx1.stroke();
+
+                drawRightAngleSymbol(ctx1, 0, 0, 14, 1, -1, '#fb7185');
+            } else if (sPx > 0) {
+                // SAĞA EĞİK PARALELKENAR:
+                // Sol üst köşeden (sPx, -hPx) tabana (sPx, 0) dikme indirilir.
+                // Soldaki dik üçgen: (0,0) -> (sPx,0) -> (sPx,-hPx)
+                // Kalan yamuk/dikdörtgen gövde: (sPx,0) -> (aPx,0) -> (aPx+sPx,-hPx) -> (sPx,-hPx)
+                // Kesilen dik üçgen sağa doğru 'aPx' kadar kayar!
+
+                const shiftX = t * aPx;
+
+                // 1. Kesilen üçgenin ilk yerindeki hayalet izi (t > 0 iken)
+                if (t > 0.01) {
+                    ctx1.save();
+                    ctx1.fillStyle = 'rgba(245, 158, 11, 0.08)';
+                    ctx1.strokeStyle = 'rgba(245, 158, 11, 0.45)';
+                    ctx1.setLineDash([5, 5]);
+                    ctx1.lineWidth = 2;
+                    ctx1.beginPath();
+                    ctx1.moveTo(0, 0);
+                    ctx1.lineTo(sPx, 0);
+                    ctx1.lineTo(sPx, -hPx);
+                    ctx1.closePath();
+                    ctx1.fill();
+                    ctx1.stroke();
+                    ctx1.restore();
+                }
+
+                // 2. Kalan Mavi Ana Gövde
+                ctx1.fillStyle = 'rgba(59, 130, 246, 0.32)';
+                ctx1.strokeStyle = '#3b82f6';
+                ctx1.lineWidth = 3;
+                ctx1.beginPath();
+                ctx1.moveTo(sPx, 0);
+                ctx1.lineTo(aPx, 0);
+                ctx1.lineTo(aPx + sPx, -hPx);
+                ctx1.lineTo(sPx, -hPx);
+                ctx1.closePath();
+                ctx1.fill();
+                ctx1.stroke();
+
+                // 3. Kesilip Taşınan Dik Üçgen (Turuncu/Amber)
+                ctx1.save();
+                ctx1.translate(shiftX, 0);
+                ctx1.fillStyle = 'rgba(245, 158, 11, 0.48)';
+                ctx1.strokeStyle = '#f59e0b';
+                ctx1.lineWidth = 3;
+                ctx1.beginPath();
+                ctx1.moveTo(0, 0);
+                ctx1.lineTo(sPx, 0);
+                ctx1.lineTo(sPx, -hPx);
+                ctx1.closePath();
+                ctx1.fill();
+                ctx1.stroke();
+
+                // Taşınan üçgenin iç etiketi
+                if (sPx >= 45) {
+                    drawBadge(
+                        ctx1,
+                        t < 0.05 ? 'Kesilen Üçgen' : (t > 0.95 ? 'Eklenen Üçgen' : 'Taşınıyor ➔'),
+                        sPx * 0.62,
+                        -hPx * 0.35,
+                        'rgba(120, 53, 15, 0.88)',
+                        '#fde68a',
+                        '#f59e0b',
+                        11
+                    );
+                }
+                ctx1.restore();
+
+                // 4. Kesim / Yükseklik Dikmesi (h)
+                ctx1.save();
+                ctx1.strokeStyle = '#fb7185';
+                ctx1.lineWidth = 2.5;
+                ctx1.setLineDash([6, 4]);
+                ctx1.beginPath();
+                ctx1.moveTo(sPx, 0);
+                ctx1.lineTo(sPx, -hPx);
+                ctx1.stroke();
+                ctx1.restore();
+
+                drawRightAngleSymbol(ctx1, sPx, 0, 14, 1, -1, '#fb7185');
+
+                // Kesim makası ikonu (Başlangıçta)
+                if (t < 0.15) {
+                    drawBadge(ctx1, '✂️ Dikmeden Kes', sPx, -hPx * 0.5, 'rgba(15, 23, 42, 0.9)', '#fda4af', '#fb7185', 11);
+                } else {
+                    drawBadge(ctx1, `h = ${formatNum(paraState.height)} br`, sPx, -hPx * 0.5, 'rgba(136, 19, 55, 0.92)', '#ffe4e6', '#fb7185', 12);
+                }
+
+                // Taşıma Yönü Oku (t > 0 iken üstte göster)
+                if (t > 0.02 && t < 0.98) {
+                    drawMeasureArrow(ctx1, sPx / 2, -hPx - 22, sPx / 2 + shiftX, -hPx - 22, '#f59e0b');
+                }
+            } else {
+                // SOLA EĞİK PARALELKENAR (sPx < 0):
+                // Sağdaki dik üçgeni kesip sola taşıyalım
+                const absS = Math.abs(sPx);
+                const cutX = aPx - absS; // Sağ üst köşenin tabana izdüşümü
+                const shiftX = -t * aPx;
+
+                // 1. Hayalet iz
+                if (t > 0.01) {
+                    ctx1.save();
+                    ctx1.fillStyle = 'rgba(245, 158, 11, 0.08)';
+                    ctx1.strokeStyle = 'rgba(245, 158, 11, 0.45)';
+                    ctx1.setLineDash([5, 5]);
+                    ctx1.lineWidth = 2;
+                    ctx1.beginPath();
+                    ctx1.moveTo(cutX, 0);
+                    ctx1.lineTo(aPx, 0);
+                    ctx1.lineTo(cutX, -hPx);
+                    ctx1.closePath();
+                    ctx1.fill();
+                    ctx1.stroke();
+                    ctx1.restore();
+                }
+
+                // 2. Kalan Mavi Ana Gövde
+                ctx1.fillStyle = 'rgba(59, 130, 246, 0.32)';
+                ctx1.strokeStyle = '#3b82f6';
+                ctx1.lineWidth = 3;
+                ctx1.beginPath();
+                ctx1.moveTo(0, 0);
+                ctx1.lineTo(cutX, 0);
+                ctx1.lineTo(cutX, -hPx);
+                ctx1.lineTo(sPx, -hPx);
+                ctx1.closePath();
+                ctx1.fill();
+                ctx1.stroke();
+
+                // 3. Kesilip Sola Taşınan Dik Üçgen
+                ctx1.save();
+                ctx1.translate(shiftX, 0);
+                ctx1.fillStyle = 'rgba(245, 158, 11, 0.48)';
+                ctx1.strokeStyle = '#f59e0b';
+                ctx1.lineWidth = 3;
+                ctx1.beginPath();
+                ctx1.moveTo(cutX, 0);
+                ctx1.lineTo(aPx, 0);
+                ctx1.lineTo(cutX, -hPx);
+                ctx1.closePath();
+                ctx1.fill();
+                ctx1.stroke();
+
+                if (absS >= 45) {
+                    drawBadge(
+                        ctx1,
+                        t < 0.05 ? 'Kesilen Üçgen' : (t > 0.95 ? 'Eklenen Üçgen' : '⬅ Taşınıyor'),
+                        cutX + absS * 0.38,
+                        -hPx * 0.35,
+                        'rgba(120, 53, 15, 0.88)',
+                        '#fde68a',
+                        '#f59e0b',
+                        11
+                    );
+                }
+                ctx1.restore();
+
+                // 4. Kesim / Yükseklik Dikmesi (h)
+                ctx1.save();
+                ctx1.strokeStyle = '#fb7185';
+                ctx1.lineWidth = 2.5;
+                ctx1.setLineDash([6, 4]);
+                ctx1.beginPath();
+                ctx1.moveTo(cutX, 0);
+                ctx1.lineTo(cutX, -hPx);
+                ctx1.stroke();
+                ctx1.restore();
+
+                drawRightAngleSymbol(ctx1, cutX, 0, 14, -1, -1, '#fb7185');
+
+                if (t < 0.15) {
+                    drawBadge(ctx1, '✂️ Dikmeden Kes', cutX, -hPx * 0.5, 'rgba(15, 23, 42, 0.9)', '#fda4af', '#fb7185', 11);
+                } else {
+                    drawBadge(ctx1, `h = ${formatNum(paraState.height)} br`, cutX, -hPx * 0.5, 'rgba(136, 19, 55, 0.92)', '#ffe4e6', '#fb7185', 12);
+                }
+            }
+
+            // Taban (a) Ölçü Çizgisi ve Etiketi (Alt kısımda, şekille çakışmaz)
+            const currentStartX = sPx > 0 ? t * sPx : (sPx < 0 ? t * sPx : 0);
+            drawMeasureArrow(ctx1, currentStartX, 34, currentStartX + aPx, 34, '#60a5fa');
+            drawBadge(
+                ctx1,
+                t > 0.95 ? `Dikdörtgen Uzun Kenarı (a) = ${formatNum(paraState.base)} br` : `Taban (a) = ${formatNum(paraState.base)} br`,
+                currentStartX + aPx / 2,
+                34,
+                'rgba(30, 58, 138, 0.95)',
+                '#dbeafe',
+                '#60a5fa',
+                12
+            );
+
+            // Sol dikey yükseklik ölçüsü (Köşe sürüklenirken veya dikdörtgen olduğunda net görünür)
+            const hLineX = Math.min(0, sPx) - 36;
+            drawMeasureArrow(ctx1, hLineX, 0, hLineX, -hPx, '#fb7185');
+            drawBadge(
+                ctx1,
+                `h = ${formatNum(paraState.height)} br`,
+                hLineX,
+                -hPx / 2,
+                'rgba(136, 19, 55, 0.95)',
+                '#ffe4e6',
+                '#fb7185',
+                12
+            );
+
+            // Sürüklenebilir Köşe Noktaları (Sadece kesim başlamadığında veya her zaman aktif; sürükleyince t=0'a döner)
+            const topVertexX = sPx;
+            const topVertexY = -hPx;
+            const baseVertexX = aPx;
+            const baseVertexY = 0;
+
+            drawDraggableVertex(
+                ctx1,
+                topVertexX,
+                topVertexY,
+                '#f59e0b',
+                lockHeightToggle.checked ? '↔ Eğimi Sürükle' : '✥ Eğim ve Yükseklik',
+                paraState.draggingHandle === 'top'
+            );
+
+            drawDraggableVertex(
+                ctx1,
+                baseVertexX,
+                baseVertexY,
+                '#3b82f6',
+                '↔ Tabanı Sürükle',
+                paraState.draggingHandle === 'base'
+            );
+
+            ctx1.restore();
+        }
+
+        // ==========================================
+        // 2. SAHNE ÇİZİMİ: ÜÇGENİN EŞİYLE BİRLEŞEREK PARALELKENAR OLUŞTURMASI
+        // ==========================================
+        function getScene2Origin() {
+            const w = canvas2.width;
+            const h = canvas2.height;
+            // Oluşacak paralelkenarın toplam yatay genişliğini merkeze yerleştir
+            const minX = Math.min(0, triState.apexX);
+            const maxX = Math.max(triState.base, triState.base + triState.apexX);
+            const totalW = (maxX - minX) * GRID_SIZE;
+            const startX = Math.round(((w - totalW) / 2 - minX * GRID_SIZE) / GRID_SIZE) * GRID_SIZE;
+            const originY = Math.round((h * 0.74) / GRID_SIZE) * GRID_SIZE;
+            return { originX: startX, originY };
+        }
+
+        function drawScene2() {
+            const w = canvas2.width;
+            const h = canvas2.height;
+            ctx2.clearRect(0, 0, w, h);
+
+            const { originX, originY } = getScene2Origin();
+            drawGrid(ctx2, w, h, originX, originY);
+
+            const aPx = triState.base * GRID_SIZE;
+            const hPx = triState.height * GRID_SIZE;
+            const apexPx = triState.apexX * GRID_SIZE;
+            const t = triState.progress / 100; // 0 .. 1
+
+            ctx2.save();
+            ctx2.translate(originX, originY);
+
+            // Asıl Üçgen Köşeleri:
+            // B (Sol Alt): (0, 0)
+            // C (Sağ Alt): (aPx, 0)
+            // A (Tepe): (apexPx, -hPx)
+
+            // 1. Yükseklik (h) Dikmesi ve Taban Uzantısı (Geniş açılı üçgenlerde dışarıdan iner)
+            ctx2.save();
+            if (apexPx < 0 || apexPx > aPx) {
+                // Taban uzantısı kesikli çizgisi
+                ctx2.strokeStyle = 'rgba(148, 163, 184, 0.6)';
+                ctx2.lineWidth = 2;
+                ctx2.setLineDash([4, 4]);
+                ctx2.beginPath();
+                if (apexPx < 0) {
+                    ctx2.moveTo(0, 0);
+                    ctx2.lineTo(apexPx, 0);
+                } else {
+                    ctx2.moveTo(aPx, 0);
+                    ctx2.lineTo(apexPx, 0);
+                }
+                ctx2.stroke();
+            }
+
+            // Yükseklik çizgisi
+            ctx2.strokeStyle = '#fb7185';
+            ctx2.lineWidth = 2.5;
+            ctx2.setLineDash([6, 4]);
+            ctx2.beginPath();
+            ctx2.moveTo(apexPx, 0);
+            ctx2.lineTo(apexPx, -hPx);
+            ctx2.stroke();
+            ctx2.restore();
+
+            drawRightAngleSymbol(ctx2, apexPx, 0, 14, apexPx >= aPx ? -1 : 1, -1, '#fb7185');
+
+            // 2. Asıl Üçgen (1. Üçgen - Mavi)
+            ctx2.fillStyle = 'rgba(59, 130, 246, 0.36)';
+            ctx2.strokeStyle = '#3b82f6';
+            ctx2.lineWidth = 3;
+            ctx2.beginPath();
+            ctx2.moveTo(0, 0);
+            ctx2.lineTo(aPx, 0);
+            ctx2.lineTo(apexPx, -hPx);
+            ctx2.closePath();
+            ctx2.fill();
+            ctx2.stroke();
+
+            // 1. Üçgen Merkez Etiketi
+            const c1x = (0 + aPx + apexPx) / 3;
+            const c1y = -hPx / 3;
+            drawBadge(ctx2, '1. Üçgen', c1x, c1y, 'rgba(30, 58, 138, 0.88)', '#dbeafe', '#3b82f6', 12);
+
+            // 3. Eş Kopya Üçgen (2. Üçgen - Zümrüt Yeşili)
+            // Sağ kenarın (C noktası (aPx,0) ile A noktası (apexPx,-hPx)) orta noktası etrafında 180° (PI radyan) döner!
+            // Orta nokta M = ((aPx + apexPx)/2, -hPx/2).
+            // 180° döndüğünde:
+            // (aPx, 0) -> (apexPx, -hPx)
+            // (apexPx, -hPx) -> (aPx, 0)
+            // (0, 0) -> (aPx + apexPx, -hPx)
+            // Böylece (0,0) -> (aPx,0) -> (aPx+apexPx, -hPx) -> (apexPx, -hPx) tam bir PARALELKENAR oluşturur!
+            if (t > 0.005) {
+                const midX = (aPx + apexPx) / 2;
+                const midY = -hPx / 2;
+                const angle = t * Math.PI; // 0 -> 180 derece
+
+                ctx2.save();
+                ctx2.translate(midX, midY);
+                ctx2.rotate(angle);
+                ctx2.translate(-midX, -midY);
+
+                ctx2.fillStyle = `rgba(16, 185, 129, ${0.15 + 0.25 * t})`;
+                ctx2.strokeStyle = '#10b981';
+                ctx2.lineWidth = 3;
+                ctx2.beginPath();
+                ctx2.moveTo(0, 0);
+                ctx2.lineTo(aPx, 0);
+                ctx2.lineTo(apexPx, -hPx);
+                ctx2.closePath();
+                ctx2.fill();
+                ctx2.stroke();
+                ctx2.restore();
+
+                // Dönme merkezi noktası (Menteşe noktası)
+                ctx2.save();
+                ctx2.fillStyle = '#10b981';
+                ctx2.strokeStyle = '#ffffff';
+                ctx2.lineWidth = 2;
+                ctx2.beginPath();
+                ctx2.arc(midX, midY, 5, 0, Math.PI * 2);
+                ctx2.fill();
+                ctx2.stroke();
+                ctx2.restore();
+
+                // 2. Eş Üçgenin dönüş esnasındaki merkez konumu
+                const localCx = c1x - midX;
+                const localCy = c1y - midY;
+                const rotCx = midX + localCx * Math.cos(angle) - localCy * Math.sin(angle);
+                const rotCy = midY + localCx * Math.sin(angle) + localCy * Math.cos(angle);
+
+                drawBadge(
+                    ctx2,
+                    t > 0.96 ? '2. Eş Üçgen' : `Dönüyor (${Math.round(t * 180)}°)`,
+                    rotCx,
+                    rotCy,
+                    'rgba(6, 78, 59, 0.9)',
+                    '#d1fae5',
+                    '#10b981',
+                    12
+                );
+            }
+
+            // Tam birleştiğinde üst kenar ölçüsünü de göster
+            if (t > 0.96) {
+                drawMeasureArrow(ctx2, apexPx, -hPx - 28, apexPx + aPx, -hPx - 28, '#10b981');
+                drawBadge(
+                    ctx2,
+                    `Paralelkenar Üst Kenarı (a) = ${formatNum(triState.base)} br`,
+                    apexPx + aPx / 2,
+                    -hPx - 28,
+                    'rgba(6, 78, 59, 0.95)',
+                    '#a7f3d0',
+                    '#10b981',
+                    11
+                );
+            }
+
+            // Taban (a) Ölçü Çizgisi ve Etiketi
+            drawMeasureArrow(ctx2, 0, 34, aPx, 34, '#60a5fa');
+            drawBadge(
+                ctx2,
+                `Taban (a) = ${formatNum(triState.base)} br`,
+                aPx / 2,
+                34,
+                'rgba(30, 58, 138, 0.95)',
+                '#dbeafe',
+                '#60a5fa',
+                12
+            );
+
+            // Yükseklik (h) Etiketi
+            drawBadge(
+                ctx2,
+                `h = ${formatNum(triState.height)} br`,
+                apexPx,
+                -hPx * 0.55,
+                'rgba(136, 19, 55, 0.92)',
+                '#ffe4e6',
+                '#fb7185',
+                12
+            );
+
+            // Sürüklenebilir Köşeler: Tepe Noktası (A) ve Sağ Alt Köşe (C)
+            drawDraggableVertex(
+                ctx2,
+                apexPx,
+                -hPx,
+                '#f59e0b',
+                lockHeightToggle.checked ? '↔ Tepeyi Yatay Sürükle' : '✥ Tepe Noktası (A)',
+                triState.draggingHandle === 'apex'
+            );
+
+            drawDraggableVertex(
+                ctx2,
+                aPx,
+                0,
+                '#3b82f6',
+                '↔ Tabanı Sürükle (C)',
+                triState.draggingHandle === 'base'
+            );
+
+            ctx2.restore();
+        }
+
+        // ==========================================
+        // ANİMASYON VE SLIDER KONTROLLERİ
+        // ==========================================
+        pRange.addEventListener('input', (e) => {
+            paraState.isPlaying = false;
+            updatePlayButtonUI(1, false);
+            paraState.progress = parseFloat(e.target.value);
+            updateFormulaUI();
+            drawScene1();
+        });
+
+        tRange.addEventListener('input', (e) => {
+            triState.isPlaying = false;
+            updatePlayButtonUI(2, false);
+            triState.progress = parseFloat(e.target.value);
+            updateFormulaUI();
+            drawScene2();
+        });
+
+        function updatePlayButtonUI(sceneNum, isPlaying) {
+            const icon = document.getElementById(`playIcon${sceneNum}`);
+            const text = document.getElementById(`playText${sceneNum}`);
+            if (sceneNum === 1) {
+                icon.textContent = isPlaying ? '⏸' : '▶';
+                text.textContent = isPlaying ? 'Duraklat' : (paraState.progress >= 100 ? 'Tekrar Oynat' : 'Üçgeni Kes ve Taşı');
+            } else {
+                icon.textContent = isPlaying ? '⏸' : '▶';
+                text.textContent = isPlaying ? 'Duraklat' : (triState.progress >= 100 ? 'Tekrar Oynat' : 'Eş Üçgenle Birleştir');
+            }
+        }
+
+        function toggleAnimation(sceneNum) {
+            if (sceneNum === 1) {
+                if (paraState.progress >= 100) paraState.progress = 0;
+                paraState.isPlaying = !paraState.isPlaying;
+                updatePlayButtonUI(1, paraState.isPlaying);
+                if (paraState.isPlaying) requestAnimationFrame(animateLoop1);
+            } else {
+                if (triState.progress >= 100) triState.progress = 0;
+                triState.isPlaying = !triState.isPlaying;
+                updatePlayButtonUI(2, triState.isPlaying);
+                if (triState.isPlaying) requestAnimationFrame(animateLoop2);
+            }
+        }
+
+        function resetAnimation(sceneNum) {
+            if (sceneNum === 1) {
+                paraState.isPlaying = false;
+                paraState.progress = 0;
+                pRange.value = 0;
+                updatePlayButtonUI(1, false);
+                updateFormulaUI();
+                drawScene1();
+            } else {
+                triState.isPlaying = false;
+                triState.progress = 0;
+                tRange.value = 0;
+                updatePlayButtonUI(2, false);
+                updateFormulaUI();
+                drawScene2();
+            }
+        }
+
+        function animateLoop1() {
+            if (!paraState.isPlaying) return;
+            paraState.progress += 1.2;
+            if (paraState.progress >= 100) {
+                paraState.progress = 100;
+                paraState.isPlaying = false;
+                updatePlayButtonUI(1, false);
+            }
+            pRange.value = paraState.progress;
+            updateFormulaUI();
+            drawScene1();
+            if (paraState.isPlaying) requestAnimationFrame(animateLoop1);
+        }
+
+        function animateLoop2() {
+            if (!triState.isPlaying) return;
+            triState.progress += 1.2;
+            if (triState.progress >= 100) {
+                triState.progress = 100;
+                triState.isPlaying = false;
+                updatePlayButtonUI(2, false);
+            }
+            tRange.value = triState.progress;
+            updateFormulaUI();
+            drawScene2();
+            if (triState.isPlaying) requestAnimationFrame(animateLoop2);
+        }
+
+        // Hızlı Preset Butonları
+        function setParallelogramPreset(base, height, skew) {
+            paraState.base = base;
+            paraState.height = height;
+            paraState.skew = skew;
+            resetAnimation(1);
+        }
+
+        function setTrianglePreset(base, height, apexX) {
+            triState.base = base;
+            triState.height = height;
+            triState.apexX = apexX;
+            updateFormulaUI();
+            drawScene2();
+        }
+
+        // ==========================================
+        // FARE VE DOKUNMATİK İLE KÖŞE SÜRÜKLEME (DRAG & DROP)
+        // ==========================================
+        function getPointerPos(canvas, evt) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+            const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function snapValue(val) {
+            if (snapGridToggle.checked) {
+                return Math.round(val);
+            }
+            return Math.round(val * 2) / 2; // 0.5 hassasiyet
+        }
+
+        // --- CANVAS 1 (PARALELKENAR) ETKİLEŞİMİ ---
+        let dragOrigin1 = null;
+
+        function onDown1(evt) {
+            const pos = getPointerPos(canvas1, evt);
+            const { originX, originY } = getScene1Origin();
+            const localX = pos.x - originX;
+            const localY = pos.y - originY;
+
+            const topX = paraState.skew * GRID_SIZE;
+            const topY = -paraState.height * GRID_SIZE;
+            const baseX = paraState.base * GRID_SIZE;
+            const baseY = 0;
+
+            const distTop = Math.hypot(localX - topX, localY - topY);
+            const distBase = Math.hypot(localX - baseX, localY - baseY);
+
+            if (distTop < 28) {
+                paraState.draggingHandle = 'top';
+                dragOrigin1 = { originX, originY };
+                // Köşe sürüklenirken kesim animasyonunu sıfırla ki paralelkenar net görünsün
+                if (paraState.progress > 0) {
+                    paraState.progress = 0;
+                    pRange.value = 0;
+                }
+                evt.preventDefault();
+                drawScene1();
+            } else if (distBase < 28) {
+                paraState.draggingHandle = 'base';
+                dragOrigin1 = { originX, originY };
+                if (paraState.progress > 0) {
+                    paraState.progress = 0;
+                    pRange.value = 0;
+                }
+                evt.preventDefault();
+                drawScene1();
+            }
+        }
+
+        function onMove1(evt) {
+            const pos = getPointerPos(canvas1, evt);
+            if (!paraState.draggingHandle) {
+                // Cursor değişimi
+                const { originX, originY } = getScene1Origin();
+                const localX = pos.x - originX;
+                const localY = pos.y - originY;
+                const distTop = Math.hypot(localX - paraState.skew * GRID_SIZE, localY - (-paraState.height * GRID_SIZE));
+                const distBase = Math.hypot(localX - paraState.base * GRID_SIZE, localY);
+                canvas1.style.cursor = (distTop < 28 || distBase < 28) ? 'grab' : 'default';
+                return;
+            }
+
+            evt.preventDefault();
+            canvas1.style.cursor = 'grabbing';
+            const localX = pos.x - dragOrigin1.originX;
+            const localY = pos.y - dragOrigin1.originY;
+
+            if (paraState.draggingHandle === 'top') {
+                // Eğim (skew) [-base .. base] aralığında tutulur ki dikme her zaman tabanı kessin
+                let newSkew = snapValue(localX / GRID_SIZE);
+                newSkew = Math.max(-paraState.base, Math.min(paraState.base, newSkew));
+                paraState.skew = newSkew;
+
+                if (!lockHeightToggle.checked) {
+                    let newH = snapValue(-localY / GRID_SIZE);
+                    newH = Math.max(2, Math.min(7, newH));
+                    paraState.height = newH;
+                }
+            } else if (paraState.draggingHandle === 'base') {
+                let newBase = snapValue(localX / GRID_SIZE);
+                newBase = Math.max(3, Math.min(10, newBase));
+                paraState.base = newBase;
+                // Eğim tabandan büyükse sınırla
+                if (paraState.skew > paraState.base) paraState.skew = paraState.base;
+                if (paraState.skew < -paraState.base) paraState.skew = -paraState.base;
+            }
+
+            updateFormulaUI();
+            drawScene1();
+        }
+
+        function onUp1() {
+            if (paraState.draggingHandle) {
+                paraState.draggingHandle = null;
+                dragOrigin1 = null;
+                canvas1.style.cursor = 'default';
+                drawScene1();
+            }
+        }
+
+        canvas1.addEventListener('mousedown', onDown1);
+        window.addEventListener('mousemove', (e) => { if (activeTab === 1) onMove1(e); });
+        window.addEventListener('mouseup', onUp1);
+        canvas1.addEventListener('touchstart', onDown1, { passive: false });
+        window.addEventListener('touchmove', (e) => { if (activeTab === 1 && paraState.draggingHandle) onMove1(e); }, { passive: false });
+        window.addEventListener('touchend', onUp1);
+
+        // --- CANVAS 2 (ÜÇGEN) ETKİLEŞİMİ ---
+        let dragOrigin2 = null;
+
+        function onDown2(evt) {
+            const pos = getPointerPos(canvas2, evt);
+            const { originX, originY } = getScene2Origin();
+            const localX = pos.x - originX;
+            const localY = pos.y - originY;
+
+            const apexX = triState.apexX * GRID_SIZE;
+            const apexY = -triState.height * GRID_SIZE;
+            const baseX = triState.base * GRID_SIZE;
+            const baseY = 0;
+
+            const distApex = Math.hypot(localX - apexX, localY - apexY);
+            const distBase = Math.hypot(localX - baseX, localY - baseY);
+
+            if (distApex < 28) {
+                triState.draggingHandle = 'apex';
+                dragOrigin2 = { originX, originY };
+                evt.preventDefault();
+                drawScene2();
+            } else if (distBase < 28) {
+                triState.draggingHandle = 'base';
+                dragOrigin2 = { originX, originY };
+                evt.preventDefault();
+                drawScene2();
+            }
+        }
+
+        function onMove2(evt) {
+            const pos = getPointerPos(canvas2, evt);
+            if (!triState.draggingHandle) {
+                const { originX, originY } = getScene2Origin();
+                const localX = pos.x - originX;
+                const localY = pos.y - originY;
+                const distApex = Math.hypot(localX - triState.apexX * GRID_SIZE, localY - (-triState.height * GRID_SIZE));
+                const distBase = Math.hypot(localX - triState.base * GRID_SIZE, localY);
+                canvas2.style.cursor = (distApex < 28 || distBase < 28) ? 'grab' : 'default';
+                return;
+            }
+
+            evt.preventDefault();
+            canvas2.style.cursor = 'grabbing';
+            const localX = pos.x - dragOrigin2.originX;
+            const localY = pos.y - dragOrigin2.originY;
+
+            if (triState.draggingHandle === 'apex') {
+                let newApexX = snapValue(localX / GRID_SIZE);
+                newApexX = Math.max(-3, Math.min(triState.base + 3, newApexX));
+                triState.apexX = newApexX;
+
+                if (!lockHeightToggle.checked) {
+                    let newH = snapValue(-localY / GRID_SIZE);
+                    newH = Math.max(2, Math.min(7, newH));
+                    triState.height = newH;
+                }
+            } else if (triState.draggingHandle === 'base') {
+                let newBase = snapValue(localX / GRID_SIZE);
+                newBase = Math.max(3, Math.min(9, newBase));
+                triState.base = newBase;
+            }
+
+            updateFormulaUI();
+            drawScene2();
+        }
+
+        function onUp2() {
+            if (triState.draggingHandle) {
+                triState.draggingHandle = null;
+                dragOrigin2 = null;
+                canvas2.style.cursor = 'default';
+                drawScene2();
+            }
+        }
+
+        canvas2.addEventListener('mousedown', onDown2);
+        window.addEventListener('mousemove', (e) => { if (activeTab === 2) onMove2(e); });
+        window.addEventListener('mouseup', onUp2);
+        canvas2.addEventListener('touchstart', onDown2, { passive: false });
+        window.addEventListener('touchmove', (e) => { if (activeTab === 2 && triState.draggingHandle) onMove2(e); }, { passive: false });
+        window.addEventListener('touchend', onUp2);
+
+        // Sayfa yüklendiğinde başlat
+        window.onload = function() {
+            resizeCanvases();
+        };
+    </script>
+</body>
+</html>

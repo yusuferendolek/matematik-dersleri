@@ -1,0 +1,1197 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deneysel Olasılık Laboratuvarı – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    .oyun { padding: 20px 16px calc(var(--kare) * 2); }
+    .duzen {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        gap: 20px 28px;
+        align-items: start;
+    }
+    .sutun { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+    @media (max-width: 1000px) {
+        .duzen { grid-template-columns: minmax(0, 1fr); max-width: 760px; }
+        /* tek sütunda sayfa zaten kayar; listede ikinci bir kaydırma olmasın */
+        #wheel-segments-list { max-height: none; }
+    }
+
+    /* bilgi: deftere yazılmış not */
+    .bilgi { display: flex; align-items: flex-start; gap: 10px; color: var(--murekkep-2); font-size: 16px; }
+    .bilgi > .svg { color: var(--kalem); margin-top: 1px; }
+    .bilgi strong { color: var(--murekkep); }
+    .bilgi .fosfor { --fk: var(--k-veri); color: var(--murekkep); font-weight: 700; }
+
+    /* ---------- deney sahnesi: kâğıda / tahtaya çizilmiş ---------- */
+    .deney { display: flex; flex-direction: column; gap: 14px; }
+    .deney-ust { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+    .deney-ust h2 { font-size: 20px; font-weight: 800; }
+    #last-outcome-badge { --r: var(--murekkep-3); color: var(--murekkep); border-color: var(--r); background: color-mix(in srgb, var(--r) 14%, var(--yuzey)); max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+    .renk-nokta { width: 11px; height: 11px; border-radius: 50%; background: var(--r); border: 1.5px solid var(--murekkep); flex: none; display: inline-block; }
+
+    .sahne-alan { min-height: 270px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+    .sahne-alan > [hidden] { display: none; }
+    .asama { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
+    .sahne-not { font-size: 15px; color: var(--murekkep-2); text-align: center; }
+
+    /* madeni para */
+    .para-alan { perspective: 1000px; padding: 8px 0; }
+    .para {
+        width: 150px; height: 150px;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform .7s cubic-bezier(.25, 1, .5, 1);
+    }
+    .para-yuz {
+        position: absolute; inset: 0;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        border-radius: 50%;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+        border: 3px solid var(--murekkep);
+        color: var(--murekkep);
+        font-size: 22px; font-weight: 800;
+    }
+    .para-yuz .svg { width: 40px; height: 40px; }
+    .para-yazi { background: color-mix(in srgb, var(--sari) 32%, var(--yuzey)); box-shadow: inset 0 0 0 7px var(--yuzey), inset 0 0 0 9px color-mix(in srgb, var(--sari) 70%, transparent); }
+    .para-tura { background: color-mix(in srgb, var(--murekkep-3) 30%, var(--yuzey)); box-shadow: inset 0 0 0 7px var(--yuzey), inset 0 0 0 9px var(--murekkep-3); transform: rotateY(180deg); }
+
+    /* zar */
+    .zar {
+        width: 130px; height: 130px;
+        padding: 16px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        gap: 6px;
+        border: 3px solid var(--murekkep);
+        border-radius: 24px;
+        background: var(--yuzey);
+        margin: 10px 0;
+    }
+    .zar-donuyor { animation: zarSalla .5s ease-in-out; }
+    @keyframes zarSalla {
+        25% { transform: rotate(-25deg) scale(1.12); }
+        50% { transform: rotate(25deg) scale(.92); }
+        75% { transform: rotate(-15deg) scale(1.06); }
+    }
+    .dot {
+        width: 22px; height: 22px;
+        align-self: center; justify-self: center;
+        border-radius: 50%;
+        background: var(--murekkep);
+        opacity: 0;
+        transition: opacity .15s ease;
+    }
+    .dot.red-dot { background: var(--kirmizi); }
+    .dot.active { opacity: 1; }
+
+    /* çark */
+    #wheel-canvas { display: block; width: clamp(220px, 100%, 290px); aspect-ratio: 1; }
+
+    /* deneme düğmeleri */
+    .denemeler { display: grid; grid-template-columns: repeat(3, auto); justify-content: center; gap: 10px; }
+    .deney-alt { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; font-size: 14px; color: var(--murekkep-2); }
+    .deney-alt .dugme .svg { width: 16px; height: 16px; }
+
+    .panel-ust { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .panel-ust .panel-baslik { margin: 0; }
+    .panel-alt { font-size: 14px; color: var(--murekkep-2); }
+
+    /* ---------- çark ayarları ---------- */
+    .sablonlar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1.5px dashed var(--kenarlik); }
+    .sablonlar > span { font-size: 14px; font-weight: 700; color: var(--murekkep-2); }
+    #wheel-segments-list { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; }
+    .dilim-satir {
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px 10px;
+        padding: 8px 10px;
+        border: 1.5px solid var(--kenarlik);
+        border-radius: 10px;
+        background: var(--yuzey-2);
+    }
+    .dilim-satir input[type="color"] {
+        width: 36px; height: 36px; padding: 2px;
+        border: 1.5px solid var(--kenarlik); border-radius: 8px;
+        background: var(--yuzey); cursor: pointer;
+    }
+    .dilim-ad {
+        min-width: 0; height: 38px; padding: 0 10px;
+        border: 1.5px solid var(--kenarlik); border-radius: 8px;
+        background: var(--yuzey); color: var(--murekkep);
+        font-size: 16px; font-weight: 700;
+    }
+    .dilim-ad:focus { outline: none; border-color: var(--kalem); }
+    .dilim-ad::placeholder { color: var(--murekkep-3); font-weight: 400; }
+    .seviye { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--murekkep-2); }
+    .seviye label { font-weight: 700; white-space: nowrap; }
+    .seviye input[type="range"] { flex: 1; min-width: 80px; height: 32px; }
+    .seviye-deger { width: 22px; text-align: center; font-weight: 800; color: var(--murekkep); font-variant-numeric: tabular-nums; }
+    .seviye-yuzde { min-width: 58px; padding: 2px 6px; border-radius: 6px; background: var(--yuzey); text-align: center; font-weight: 800; color: var(--kalem); font-variant-numeric: tabular-nums; }
+    .sil-btn { width: 36px; height: 36px; border-radius: 8px; }
+    .sil-btn:disabled { opacity: .35; cursor: not-allowed; }
+    .sil-btn .svg { width: 18px; height: 18px; }
+
+    /* ---------- son çıktılar ---------- */
+    .gecmis-ust { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .gecmis-ust h3 { font-size: 16px; font-weight: 800; }
+    #history-count-label { font-size: 14px; color: var(--murekkep-2); }
+    #history-container { display: flex; flex-wrap: wrap; gap: 6px; min-height: 36px; align-items: center; }
+    .bos-not { font-size: 15px; color: var(--murekkep-3); }
+    .cip {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 2px 9px;
+        border: 1.5px solid color-mix(in srgb, var(--r) 70%, transparent);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--r) 12%, var(--yuzey));
+        font-size: 14px; font-weight: 700;
+    }
+    .cip.son { border-color: var(--murekkep); box-shadow: 0 0 0 1.5px var(--murekkep); }
+    .cip .renk-nokta { width: 9px; height: 9px; border-width: 1px; }
+
+    /* ---------- tablo ---------- */
+    .tablo-kutu { overflow-x: auto; margin: 0 -18px -16px; }
+    table.veri { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+    .veri th, .veri td { padding: 9px 10px; text-align: left; vertical-align: middle; }
+    .veri th:first-child, .veri td:first-child { padding-left: 18px; }
+    .veri th:last-child, .veri td:last-child { padding-right: 18px; text-align: right; }
+    .veri thead th { font-size: 13px; font-weight: 700; color: var(--murekkep-2); border-bottom: 1.5px solid var(--kenarlik); background: var(--yuzey-2); white-space: nowrap; }
+    .veri tbody td { border-bottom: 1.5px dashed var(--kenarlik); }
+    .veri tfoot td { font-weight: 800; background: var(--yuzey-2); font-size: 14px; white-space: nowrap; }
+    .veri .orta { text-align: center; }
+    .cikti { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; white-space: nowrap; }
+    .cikti .renk-nokta { width: 13px; height: 13px; }
+    .agirlik { font-size: 14px; color: var(--murekkep-2); white-space: nowrap; }
+    .agirlik span { color: var(--murekkep-3); }
+    .frekans { font-weight: 800; font-size: 17px; }
+    .oran { min-width: 110px; }
+    .oran-ust { display: flex; justify-content: space-between; gap: 6px; font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+    .oran-ust span { font-weight: 400; color: var(--murekkep-2); }
+    .oran-cubuk { height: 8px; border-radius: 99px; background: var(--yuzey-2); overflow: hidden; }
+    .oran-cubuk i { display: block; height: 100%; border-radius: 99px; background: var(--r); transition: width .3s; }
+    .teorik .oran-ust { font-weight: 700; color: var(--murekkep-2); }
+    .teorik .oran-cubuk i { background: var(--murekkep-3); }
+    .fark { font-weight: 700; font-size: 14px; color: var(--murekkep-2); white-space: nowrap; }
+    .fark.yakin { color: var(--dogru); }
+
+    /* ---------- grafikler ---------- */
+    .grafikler { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+    @media (max-width: 600px) { .grafikler { grid-template-columns: minmax(0, 1fr); } }
+    .grafik-panel { display: flex; flex-direction: column; min-width: 0; }
+    #bar-mode .sekme { height: 32px; padding: 0 12px; font-size: 14px; }
+    #bar-chart { display: block; width: 100%; height: 250px; overflow: visible; }
+    #bar-chart text { font-family: var(--yazi); fill: var(--murekkep-2); font-size: 12px; }
+    #bar-chart .x-yazi { fill: var(--murekkep); font-weight: 700; }
+    #bar-chart .deger-yazi { fill: var(--murekkep); font-weight: 800; font-size: 11px; }
+    #bar-chart .izgara { stroke: var(--kenarlik); stroke-width: 1; stroke-dasharray: 3 4; }
+    #bar-chart .eksen { stroke: var(--murekkep); stroke-width: 1.5; }
+    #bar-chart .deneysel { stroke: var(--murekkep); stroke-width: 1.5; stroke-linejoin: round; }
+    #bar-chart .teorik { fill: color-mix(in srgb, var(--murekkep-3) 22%, transparent); stroke: var(--murekkep-2); stroke-width: 1.5; stroke-dasharray: 4 3; stroke-linejoin: round; }
+
+    .pasta-kutu { position: relative; display: flex; justify-content: center; padding: 6px 0; }
+    #pie-chart { width: clamp(180px, 100%, 230px); aspect-ratio: 1; overflow: visible; }
+    #pie-chart .dilim { stroke: var(--murekkep); stroke-width: 1.5; stroke-linejoin: round; }
+    #pie-chart .dilim-yazi {
+        font: 800 12px var(--yazi);
+        fill: var(--murekkep);
+        paint-order: stroke; stroke: var(--yuzey); stroke-width: 3.5px; stroke-linejoin: round;
+        text-anchor: middle; dominant-baseline: central;
+    }
+    #pie-chart .orta-sayi { font: 800 24px var(--yazi); fill: var(--murekkep); text-anchor: middle; }
+    #pie-chart .orta-ad { font: 700 13px var(--yazi); fill: var(--murekkep-2); text-anchor: middle; }
+    #pie-chart .bos { fill: none; stroke: var(--kenarlik); stroke-width: 2; stroke-dasharray: 6 6; }
+    #pie-empty-overlay {
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        padding: 0 calc(50% - 70px);
+        text-align: center; font-size: 14px; font-weight: 700; color: var(--murekkep-2);
+    }
+    #pie-status-badge { color: var(--dogru); }
+
+    .lejant { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; margin-top: 8px; font-size: 14px; color: var(--murekkep-2); }
+    .lejant span { display: inline-flex; align-items: center; gap: 6px; }
+    .lejant i { width: 14px; height: 14px; border-radius: 3px; background: var(--r); border: 1.5px solid var(--murekkep); flex: none; }
+    .lejant i.teorik-ornek { background: color-mix(in srgb, var(--murekkep-3) 22%, transparent); border: 1.5px dashed var(--murekkep-2); }
+
+    /* kısa bildirim */
+    #toast-box {
+        position: fixed; right: 20px; bottom: 20px; z-index: 50;
+        max-width: calc(100vw - 32px);
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 16px;
+        border: 1.5px solid var(--dogru);
+        border-radius: 12px;
+        background: var(--yuzey);
+        box-shadow: var(--golge);
+        font-size: 15px; font-weight: 700;
+        animation: aniMesaj .2s ease-out;
+    }
+    #toast-box .svg { color: var(--dogru); }
+    @keyframes aniMesaj { from { opacity: 0; transform: translateY(8px); } }
+
+    /* başlık: 1280px'te tek satır; dar ekranda temanın kuralları */
+    @media (max-width: 560px) {
+        .oyun { padding-top: 16px; }
+        .denemeler { grid-template-columns: 1fr 1fr; width: 100%; }
+        .denemeler .dugme { padding: 0 10px; }
+        #btn-single { grid-column: 1 / -1; }
+        .sahne-alan { min-height: 230px; }
+        .para { width: 130px; height: 130px; }
+        .zar { width: 116px; height: 116px; padding: 14px; }
+        .dot { width: 20px; height: 20px; }
+        #toast-box { left: 16px; right: 16px; bottom: 16px; }
+    }
+    @media (max-height: 520px) and (orientation: landscape) {
+        /* sekmeler kesilmesin: yer daralınca oyunun adı kısalır */
+        .bar-orta, .bar-sag { flex: 0 0 auto; }
+        .yer { flex: 1 1 auto; min-width: 60px; }
+        .oyun { padding-top: 12px; }
+        .sahne-alan { min-height: 0; }
+        .para { width: 120px; height: 120px; }
+        .zar { width: 110px; height: 110px; padding: 12px; margin: 4px 0; }
+        .dot { width: 18px; height: 18px; }
+        #wheel-canvas { width: 220px; }
+    }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-orta">
+        <div class="sekmeler" role="tablist" aria-label="Deney">
+            <button class="sekme" role="tab" id="tab-coin" aria-selected="true" aria-controls="stage-coin" onclick="switchMode('coin')">Yazı tura</button>
+            <button class="sekme" role="tab" id="tab-dice" aria-selected="false" aria-controls="stage-dice" onclick="switchMode('dice')">Zar atma</button>
+            <button class="sekme" role="tab" id="tab-wheel" aria-selected="false" aria-controls="stage-wheel" onclick="switchMode('wheel')">Şans çarkı</button>
+        </div>
+    </div>
+    <div class="bar-sag">
+        <span class="durum"><span class="durum-ad">Toplam deneme</span><b class="durum-deger" id="total-trials-badge">0</b></span>
+    </div>
+</header>
+<script>Kabuk.bar('deneysel-olasilik');</script>
+
+<main class="oyun">
+<div class="duzen">
+
+
+    <!-- SOL: deney ve ayarlar -->
+    <div class="sutun">
+        <p class="bilgi">
+            <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></svg>
+            <span><strong>Deneysel olasılık nedir?</strong> Bir olayın yapılan denemeler sonucunda gerçekleşme sayısının (frekans), toplam deneme sayısına oranıdır. <span class="fosfor">Deneme sayısı arttıkça deneysel olasılık, teorik olasılığa yaklaşır!</span></span>
+        </p>
+
+        <section class="deney" aria-labelledby="sim-title">
+            <div class="deney-ust">
+                <h2 id="sim-title">Yazı tura simülasyonu</h2>
+                <span class="rozet" id="last-outcome-badge" role="status">Hazır</span>
+            </div>
+
+            <div class="sahne-alan">
+                <!-- 1. yazı tura -->
+                <div id="stage-coin" class="asama" role="tabpanel" aria-labelledby="tab-coin">
+                    <div class="para-alan">
+                        <div id="coin-element" class="para">
+                            <div class="para-yuz para-yazi">
+                                <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.2 12.2a6 6 0 0 0-8.5-8.5L5 10.5V19h8.5z"/><path d="M16 8L2 22M17.5 15H9"/></svg>
+                                <span>Yazı</span>
+                            </div>
+                            <div class="para-yuz para-tura">
+                                <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 10H5z"/><path d="M5 21h14"/></svg>
+                                <span>Tura</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="sahne-not">Madeni parayı havaya atmak için aşağıdaki düğmeleri kullanın.</p>
+                </div>
+
+                <!-- 2. zar -->
+                <div id="stage-dice" class="asama" role="tabpanel" aria-labelledby="tab-dice" hidden>
+                    <div id="dice-element" class="zar" role="img" aria-label="Zar">
+                        <div class="dot" id="dot-0"></div><div class="dot" id="dot-1"></div><div class="dot" id="dot-2"></div>
+                        <div class="dot" id="dot-3"></div><div class="dot" id="dot-4"></div><div class="dot" id="dot-5"></div>
+                        <div class="dot" id="dot-6"></div><div class="dot" id="dot-7"></div><div class="dot" id="dot-8"></div>
+                    </div>
+                    <p class="sahne-not">6 yüzlü standart zarı atmak için deneme düğmelerine tıklayın.</p>
+                </div>
+
+                <!-- 3. şans çarkı -->
+                <div id="stage-wheel" class="asama" role="tabpanel" aria-labelledby="tab-wheel" hidden>
+                    <canvas id="wheel-canvas" width="260" height="260" role="img" aria-label="Şans çarkı"></canvas>
+                    <p class="sahne-not">Dilimlerin büyüklüğünü (alan seviyesini) alt bölümden değiştirebilirsiniz.</p>
+                </div>
+            </div>
+
+            <div class="denemeler">
+                <button class="dugme ana" id="btn-single" onclick="runSingleTrial()">Tek deneme</button>
+                <button class="dugme" id="btn-ten" onclick="runBatchTrials(10)">+10 veri ekleyin</button>
+                <button class="dugme" id="btn-hundred" onclick="runBatchTrials(100)">+100 veri ekleyin</button>
+            </div>
+            <div class="deney-alt">
+                <span>100 veri tek seferde anında hesaplanır.</span>
+                <button class="dugme kucuk tehlike" onclick="resetCurrentData()">
+                    <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+                    Verileri sıfırlayın
+                </button>
+            </div>
+        </section>
+
+        <!-- şans çarkı ayarları (yalnızca çark modunda) -->
+        <section id="wheel-config-card" class="panel" hidden>
+            <div class="panel-ust">
+                <div>
+                    <h2 class="panel-baslik">Şans çarkı değişken &amp; alan ayarları</h2>
+                    <p class="panel-alt">Seçenek ekleyin ve her seçeneğin kapladığı alan seviyesini ayarlayın.</p>
+                </div>
+                <button class="dugme kucuk" onclick="addWheelSegment()">
+                    <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" style="width:16px;height:16px"><path d="M12 5v14M5 12h14"/></svg>
+                    Seçenek ekleyin
+                </button>
+            </div>
+            <div class="sablonlar">
+                <span>Hazır şablonlar:</span>
+                <button class="dugme kucuk" onclick="applyWheelPreset('equal4')">4 eşit dilim</button>
+                <button class="dugme kucuk" onclick="applyWheelPreset('unequal3')">Farklı alanlar (1-2-5)</button>
+                <button class="dugme kucuk" onclick="applyWheelPreset('colors5')">5 farklı seviye</button>
+            </div>
+            <div id="wheel-segments-list"></div>
+        </section>
+
+        <!-- son denemeler -->
+        <section class="panel">
+            <div class="gecmis-ust">
+                <h3>Son çıktılar (en son 25 deneme)</h3>
+                <span id="history-count-label">Henüz veri yok</span>
+            </div>
+            <div id="history-container"></div>
+        </section>
+    </div>
+
+    <!-- SAĞ: tablo ve grafikler -->
+    <div class="sutun">
+
+        <section class="panel">
+            <div class="panel-ust">
+                <h2 class="panel-baslik">Çıktı ve olasılık veri tablosu</h2>
+                <span class="panel-alt">Deneysel ve teorik olasılık karşılaştırması</span>
+            </div>
+            <div class="tablo-kutu">
+                <table class="veri">
+                    <thead>
+                        <tr>
+                            <th>Çıktı (değişken)</th>
+                            <th class="orta">Alan / ağırlık</th>
+                            <th class="orta">Tekrar (frekans)</th>
+                            <th>Deneysel olasılık</th>
+                            <th>Teorik olasılık</th>
+                            <th>Fark</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-table-body"></tbody>
+                    <tfoot id="results-table-foot"></tfoot>
+                </table>
+            </div>
+        </section>
+
+        <div class="grafikler">
+            <section class="panel grafik-panel">
+                <div class="panel-ust">
+                    <div>
+                        <h3 class="panel-baslik">Sütun grafiği</h3>
+                        <p class="panel-alt" id="bar-subtitle">Deneysel ve teorik yüzde (%)</p>
+                    </div>
+                    <div class="sekmeler" id="bar-mode" role="tablist" aria-label="Grafikte gösterilen">
+                        <button class="sekme" role="tab" data-mod="percent" aria-selected="true" onclick="setBarMode('percent')">Olasılık (%)</button>
+                        <button class="sekme" role="tab" data-mod="count" aria-selected="false" onclick="setBarMode('count')">Frekans (adet)</button>
+                    </div>
+                </div>
+                <svg id="bar-chart" role="img" aria-label="Sütun grafiği"></svg>
+                <div class="lejant" id="bar-legend"></div>
+            </section>
+
+            <section class="panel grafik-panel">
+                <div class="panel-ust">
+                    <div>
+                        <h3 class="panel-baslik">Daire grafiği</h3>
+                        <p class="panel-alt">Deneysel çıktıların dağılımı</p>
+                    </div>
+                    <span class="rozet" id="pie-status-badge">Canlı dağılım</span>
+                </div>
+                <div class="pasta-kutu">
+                    <svg id="pie-chart" viewBox="-110 -110 220 220" role="img" aria-label="Daire grafiği"></svg>
+                    <div id="pie-empty-overlay">Daire grafiğini görmek için en az 1 deneme yapın.</div>
+                </div>
+                <div class="lejant" id="pie-legend"></div>
+            </section>
+        </div>
+    </div>
+</div>
+</main>
+
+<!-- kısa bildirim -->
+<div id="toast-box" role="status" hidden>
+    <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg>
+    <span id="toast-message">İşlem tamamlandı</span>
+</div>
+
+<script>
+    // ==========================================
+    // UYGULAMA DURUMU VE VERİ YAPISI
+    // ==========================================
+    let currentMode = 'coin'; // 'coin', 'dice', 'wheel'
+    let isAnimating = false;
+    let coinRotation = 0;
+    let wheelRotationAngle = 0; // radyan cinsinden çark açısı
+    let barMode = 'percent';    // sütun grafiği: 'percent' ya da 'count'
+
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    // Renkler: tema rengi adı ('mavi') ya da kullanıcının seçtiği '#rrggbb'.
+    // Tema renkleri iki temada da kendine uyar; renk seçiciyle seçilen renk olduğu gibi kalır.
+    const PALETTE = ['mavi', 'kirmizi', 'yesil', 'turuncu', 'mor', 'sari', 'k-kesirler', 'k-acilar', 'k-alan', 'k-carpan'];
+    let renkOnbellek = {};
+    const renkHex = c => c.startsWith('#') ? c : (renkOnbellek[c] = renkOnbellek[c] || Kabuk.renk(c));
+    const renkCss = c => c.startsWith('#') ? c : `var(--${c})`;
+
+    // Her modun kendi seçenekleri, ağırlıkları (alan seviyesi) ve frekansları
+    const state = {
+        coin: {
+            title: 'Yazı tura simülasyonu',
+            items: [
+                { id: 'yazi', label: 'Yazı', weight: 1, count: 0, color: 'sari' },
+                { id: 'tura', label: 'Tura', weight: 1, count: 0, color: 'murekkep-3' }
+            ],
+            history: []
+        },
+        dice: {
+            title: 'Zar atma simülasyonu',
+            items: [
+                { id: 'z1', label: '1 nokta', weight: 1, count: 0, color: 'kirmizi' },
+                { id: 'z2', label: '2 nokta', weight: 1, count: 0, color: 'turuncu' },
+                { id: 'z3', label: '3 nokta', weight: 1, count: 0, color: 'sari' },
+                { id: 'z4', label: '4 nokta', weight: 1, count: 0, color: 'yesil' },
+                { id: 'z5', label: '5 nokta', weight: 1, count: 0, color: 'mavi' },
+                { id: 'z6', label: '6 nokta', weight: 1, count: 0, color: 'mor' }
+            ],
+            history: []
+        },
+        wheel: {
+            title: 'Özelleştirilebilir şans çarkı',
+            items: [
+                { id: 'w1', label: 'Mavi bölge', weight: 1, count: 0, color: 'mavi' },
+                { id: 'w2', label: 'Kırmızı bölge', weight: 2, count: 0, color: 'kirmizi' },
+                { id: 'w3', label: 'Yeşil bölge', weight: 3, count: 0, color: 'yesil' },
+                { id: 'w4', label: 'Sarı bölge', weight: 2, count: 0, color: 'sari' }
+            ],
+            history: []
+        }
+    };
+
+    // Türkçe sayı yazımı: %16,7
+    const yuzde1 = v => '%' + v.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const sayi = n => n.toLocaleString('tr-TR');
+
+    // Kısa bildirim
+    let toastTimer = null;
+    function showToast(msg) {
+        $('toast-message').textContent = msg;
+        const box = $('toast-box');
+        box.hidden = false;
+        // animasyon her bildirimde yeniden oynasın
+        box.style.animation = 'none'; void box.offsetWidth; box.style.animation = '';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { box.hidden = true; }, 2500);
+    }
+
+    // ==========================================
+    // MOD DEĞİŞTİRME (YAZI TURA / ZAR / ÇARK)
+    // ==========================================
+    function switchMode(mode) {
+        if (isAnimating) return;
+        currentMode = mode;
+
+        ['coin', 'dice', 'wheel'].forEach(m => {
+            $(`tab-${m}`).setAttribute('aria-selected', m === mode);
+            $(`stage-${m}`).hidden = m !== mode;
+        });
+
+        // şans çarkı ayar kartı yalnızca çark modunda
+        $('wheel-config-card').hidden = mode !== 'wheel';
+        if (mode === 'wheel') {
+            boyutlaCark();
+            renderWheelConfigList();
+        }
+
+        $('sim-title').textContent = state[mode].title;
+        rozetYaz('Hazır', null);
+
+        updateAllVisuals();
+    }
+
+    function rozetYaz(metin, renk) {
+        const badge = $('last-outcome-badge');
+        badge.innerHTML = (renk ? '<i class="renk-nokta"></i>' : '') + esc(metin);
+        badge.style.setProperty('--r', renk ? renkCss(renk) : 'var(--murekkep-3)');
+    }
+
+    // ==========================================
+    // AĞIRLIKLI RASTGELE SEÇİM
+    // ==========================================
+    function pickWeightedOutcome(items) {
+        const totalWeight = items.reduce((sum, item) => sum + Number(item.weight), 0);
+        let randomVal = Math.random() * totalWeight;
+        for (let i = 0; i < items.length; i++) {
+            randomVal -= Number(items[i].weight);
+            if (randomVal <= 0) {
+                return { item: items[i], index: i };
+            }
+        }
+        return { item: items[items.length - 1], index: items.length - 1 };
+    }
+
+    // ==========================================
+    // DENEME ÇALIŞTIRMA (TEK VE ÇOKLU VERİ)
+    // ==========================================
+    function runSingleTrial() {
+        if (isAnimating) return;
+        const currentData = state[currentMode];
+        if (currentData.items.length === 0) return;
+
+        const chosen = pickWeightedOutcome(currentData.items);
+        isAnimating = true;
+        setButtonsDisabled(true);
+        const bitti = () => {
+            recordOutcome(chosen.item);
+            isAnimating = false;
+            setButtonsDisabled(false);
+        };
+
+        if (currentMode === 'coin') animateCoin(chosen.index, bitti);
+        else if (currentMode === 'dice') animateDice(chosen.index + 1, bitti);
+        else if (currentMode === 'wheel') animateWheelToSegment(chosen.index, bitti);
+    }
+
+    function runBatchTrials(batchCount) {
+        if (isAnimating) return;
+        const currentData = state[currentMode];
+        if (currentData.items.length === 0) return;
+
+        let lastPicked = null;
+        for (let i = 0; i < batchCount; i++) {
+            const chosen = pickWeightedOutcome(currentData.items);
+            chosen.item.count += 1;
+            currentData.history.unshift({ label: chosen.item.label, color: chosen.item.color });
+            if (currentData.history.length > 25) currentData.history.pop();
+            lastPicked = chosen;
+        }
+
+        // son çıkan veriye göre görseli hızlıca güncelle
+        if (lastPicked) {
+            if (currentMode === 'coin') {
+                coinRotation += 360 * 2;
+                const targetMod = lastPicked.index === 0 ? 0 : 180;
+                coinRotation = Math.floor(coinRotation / 360) * 360 + targetMod;
+                $('coin-element').style.transform = `rotateY(${coinRotation}deg)`;
+            } else if (currentMode === 'dice') {
+                renderDiceFace(lastPicked.index + 1);
+            } else if (currentMode === 'wheel') {
+                pointWheelToSegmentInstant(lastPicked.index);
+            }
+            rozetYaz(`Son: ${lastPicked.item.label} (+${batchCount} eklendi)`, lastPicked.item.color);
+        }
+
+        updateAllVisuals();
+        showToast(`${batchCount} yeni deneme verisi başarıyla eklendi!`);
+    }
+
+    function recordOutcome(item) {
+        const currentData = state[currentMode];
+        item.count += 1;
+        currentData.history.unshift({ label: item.label, color: item.color });
+        if (currentData.history.length > 25) currentData.history.pop();
+
+        rozetYaz(`Son çıktı: ${item.label}`, item.color);
+        updateAllVisuals();
+    }
+
+    function resetCurrentData() {
+        if (isAnimating) return;
+        const currentData = state[currentMode];
+        currentData.items.forEach(item => item.count = 0);
+        currentData.history = [];
+
+        rozetYaz('Veriler sıfırlandı', null);
+        updateAllVisuals();
+        showToast('Mevcut modun tüm deneysel verileri sıfırlandı.');
+    }
+
+    // dönerken deneme düğmeleri gerçekten kapanır (orijinalde yalnızca soluklaşıyordu)
+    function setButtonsDisabled(disabled) {
+        ['btn-single', 'btn-ten', 'btn-hundred'].forEach(id => { $(id).disabled = disabled; });
+    }
+
+    // ==========================================
+    // ANİMASYONLAR (YAZI TURA, ZAR, ÇARK)
+    // ==========================================
+    function animateCoin(outcomeIndex, callback) {
+        // en az 3 tam tur + hedef yüz (0 = Yazı, 180 = Tura)
+        const extraSpins = 3 * 360;
+        const targetAngle = outcomeIndex === 0 ? 0 : 180;
+        const currentBase = Math.floor(coinRotation / 360) * 360;
+        coinRotation = currentBase + extraSpins + targetAngle;
+        $('coin-element').style.transform = `rotateY(${coinRotation}deg)`;
+        setTimeout(callback, 720);
+    }
+
+    // zar nokta konumları (3×3 ızgara: 0..8)
+    const DICE_PATTERNS = {
+        1: [4],
+        2: [0, 8],
+        3: [0, 4, 8],
+        4: [0, 2, 6, 8],
+        5: [0, 2, 4, 6, 8],
+        6: [0, 2, 3, 5, 6, 8]
+    };
+
+    function renderDiceFace(number) {
+        const pattern = DICE_PATTERNS[number] || [4];
+        for (let i = 0; i < 9; i++) {
+            const dot = $(`dot-${i}`);
+            dot.classList.remove('active', 'red-dot');
+            if (pattern.includes(i)) {
+                dot.classList.add('active');
+                if (number === 1 || number === 4) dot.classList.add('red-dot');
+            }
+        }
+        $('dice-element').setAttribute('aria-label', `Zar: ${number}`);
+    }
+
+    function animateDice(finalNumber, callback) {
+        const diceEl = $('dice-element');
+        diceEl.classList.add('zar-donuyor');
+        let ticks = 0;
+        const interval = setInterval(() => {
+            renderDiceFace(Math.floor(Math.random() * 6) + 1);
+            ticks++;
+            if (ticks >= 7) {
+                clearInterval(interval);
+                renderDiceFace(finalNumber);
+                diceEl.classList.remove('zar-donuyor');
+                callback();
+            }
+        }, 65);
+    }
+
+    // ==========================================
+    // ŞANS ÇARKI ÇİZİMİ VE ANİMASYONU
+    // (çizim 260×260 birimlik alanda yapılır, tuval ekrana göre ölçeklenir)
+    // ==========================================
+    const wheelCanvas = $('wheel-canvas');
+    const wctx = wheelCanvas.getContext('2d');
+    const WS = 260, WCX = 130, WCY = 138, WR = 116;
+    const YAZI_TIPI = '"Atkinson Hyperlegible Next", sans-serif';
+
+    function boyutlaCark() {
+        const olcu = Math.round(wheelCanvas.clientWidth * (window.devicePixelRatio || 1));
+        if (!olcu) return;
+        if (wheelCanvas.width !== olcu) { wheelCanvas.width = olcu; wheelCanvas.height = olcu; }
+        wctx.setTransform(olcu / WS, 0, 0, olcu / WS, 0, 0);
+        drawWheel();
+    }
+    new ResizeObserver(boyutlaCark).observe(wheelCanvas);
+    if (document.fonts) document.fonts.ready.then(drawWheel);
+
+    function drawWheel() {
+        const ctx = wctx;
+        const items = state.wheel.items;
+        const totalWeight = items.reduce((s, it) => s + Number(it.weight), 0);
+        const murekkep = Kabuk.renk('murekkep'), yuzey = Kabuk.renk('yuzey'), kagit = Kabuk.renk('kagit');
+
+        ctx.clearRect(0, 0, WS, WS);
+
+        // başlangıç açısı: üst nokta (-PI/2) + mevcut dönüş açısı
+        let startAngle = wheelRotationAngle - Math.PI / 2;
+
+        items.forEach(item => {
+            const sliceAngle = (Number(item.weight) / totalWeight) * (Math.PI * 2);
+            const endAngle = startAngle + sliceAngle;
+
+            ctx.beginPath();
+            ctx.moveTo(WCX, WCY);
+            ctx.arc(WCX, WCY, WR, startAngle, endAngle);
+            ctx.closePath();
+            ctx.fillStyle = renkHex(item.color);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = murekkep;
+            ctx.stroke();
+
+            // dilim adı ve alan yüzdesi: dik durur, dilimin ortasına yazılır
+            if (sliceAngle > 0.22) {
+                const orta = startAngle + sliceAngle / 2;
+                const x = WCX + WR * 0.64 * Math.cos(orta), y = WCY + WR * 0.64 * Math.sin(orta);
+                const pct = Math.round((Number(item.weight) / totalWeight) * 100);
+                const displayLabel = item.label.length > 12 ? item.label.slice(0, 11) + '…' : item.label;
+                const satirlar = sliceAngle > 0.85 ? [displayLabel, `%${pct}`] : [`%${pct}`];
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = `700 12px ${YAZI_TIPI}`;
+                ctx.lineWidth = 3.5;
+                ctx.lineJoin = 'round';
+                satirlar.forEach((metin, k) => {
+                    const yy = y + (k - (satirlar.length - 1) / 2) * 14;
+                    ctx.strokeStyle = yuzey;
+                    ctx.strokeText(metin, x, yy);
+                    ctx.fillStyle = murekkep;
+                    ctx.fillText(metin, x, yy);
+                });
+            }
+            startAngle = endAngle;
+        });
+
+        // dış çember ve göbek
+        ctx.beginPath();
+        ctx.arc(WCX, WCY, WR, 0, Math.PI * 2);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = murekkep;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(WCX, WCY, 14, 0, Math.PI * 2);
+        ctx.fillStyle = yuzey;
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // üstte ibre: ucu çarkın içine girer
+        ctx.beginPath();
+        ctx.moveTo(WCX, WCY - WR + 22);
+        ctx.lineTo(WCX - 13, 3);
+        ctx.lineTo(WCX + 13, 3);
+        ctx.closePath();
+        ctx.fillStyle = murekkep;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = kagit;
+        ctx.stroke();
+    }
+
+    function getTargetWheelAngleForSegment(segmentIndex) {
+        const items = state.wheel.items;
+        const totalWeight = items.reduce((s, it) => s + Number(it.weight), 0);
+
+        let cumulativeBefore = 0;
+        for (let i = 0; i < segmentIndex; i++) cumulativeBefore += Number(items[i].weight);
+        const segWeight = Number(items[segmentIndex].weight);
+        // dilimin içinde rastgele güvenli bir nokta (ortadaki %60'lık kısım)
+        const randomOffsetInSeg = (0.2 + Math.random() * 0.6) * segWeight;
+        const targetFraction = (cumulativeBefore + randomOffsetInSeg) / totalWeight;
+
+        // ibre üstte (-PI/2) olduğu için dilimin ibreye gelmesi gereken açı
+        return (Math.PI * 2) * (1 - targetFraction);
+    }
+
+    function animateWheelToSegment(segmentIndex, callback) {
+        const desiredMod = getTargetWheelAngleForSegment(segmentIndex);
+        const currentMod = ((wheelRotationAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        let diff = desiredMod - currentMod;
+        if (diff < 0) diff += Math.PI * 2;
+
+        const extraSpins = 4 * Math.PI * 2;
+        const startRotation = wheelRotationAngle;
+        const targetRotation = startRotation + extraSpins + diff;
+        const duration = 950;
+        const startTime = performance.now();
+
+        function frame(now) {
+            const progress = Math.min((now - startTime) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3); // kübik yavaşlama
+            wheelRotationAngle = startRotation + (targetRotation - startRotation) * eased;
+            drawWheel();
+            if (progress < 1) requestAnimationFrame(frame);
+            else callback();
+        }
+        requestAnimationFrame(frame);
+    }
+
+    function pointWheelToSegmentInstant(segmentIndex) {
+        wheelRotationAngle = getTargetWheelAngleForSegment(segmentIndex);
+        drawWheel();
+    }
+
+    // ==========================================
+    // ŞANS ÇARKI AYARLARI
+    // ==========================================
+    const IKON_SIL = '<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
+
+    function renderWheelConfigList() {
+        const items = state.wheel.items;
+        const totalWeight = items.reduce((s, it) => s + Number(it.weight), 0);
+        const silinmez = items.length <= 2;
+
+        $('wheel-segments-list').innerHTML = items.map((item, idx) => {
+            const pct = yuzde1((Number(item.weight) / totalWeight) * 100);
+            return `
+            <div class="dilim-satir">
+                <input type="color" value="${renkHex(item.color)}"
+                    onchange="updateWheelSegment(${idx}, 'color', this.value)"
+                    title="Renk seçin" aria-label="${esc(item.label)}: renk seçin">
+                <input type="text" class="dilim-ad" value="${esc(item.label)}"
+                    oninput="updateWheelSegment(${idx}, 'label', this.value)"
+                    placeholder="Değişken adı" aria-label="Değişken adı">
+                <button class="ikon-btn sil-btn" onclick="removeWheelSegment(${idx})" ${silinmez ? 'disabled' : ''}
+                    title="Seçeneği silin" aria-label="${esc(item.label)}: seçeneği silin">${IKON_SIL}</button>
+                <div class="seviye">
+                    <label for="seviye-${idx}">Alan seviyesi:</label>
+                    <input type="range" id="seviye-${idx}" min="1" max="10" value="${item.weight}"
+                        oninput="updateWheelSegment(${idx}, 'weight', this.value)">
+                    <span class="seviye-deger">${item.weight}</span>
+                    <span class="seviye-yuzde">${pct}</span>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // Kaydırıcı sürüklenirken listeyi baştan çizmek kaydırıcıyı elden kaçırıyordu; değerler yerinde güncellenir.
+    function seviyeleriYaz() {
+        const items = state.wheel.items;
+        const totalWeight = items.reduce((s, it) => s + Number(it.weight), 0);
+        document.querySelectorAll('#wheel-segments-list .dilim-satir').forEach((satir, i) => {
+            if (!items[i]) return;
+            satir.querySelector('.seviye-deger').textContent = items[i].weight;
+            satir.querySelector('.seviye-yuzde').textContent = yuzde1((Number(items[i].weight) / totalWeight) * 100);
+        });
+    }
+
+    function updateWheelSegment(index, field, value) {
+        const item = state.wheel.items[index];
+        if (!item) return;
+        // çark dönerken dilim büyüklüğü değişmesin: sonuç eski dilimlere göre hesaplanıyor
+        if (isAnimating && field === 'weight') {
+            const kaydirici = document.getElementById('seviye-' + index);
+            if (kaydirici) kaydirici.value = item.weight;
+            return;
+        }
+
+        if (field === 'weight') {
+            item.weight = Math.max(1, parseInt(value, 10) || 1);
+            seviyeleriYaz();
+        } else if (field === 'label') {
+            item.label = value || `Seçenek ${index + 1}`;
+        } else if (field === 'color') {
+            item.color = value;
+        }
+
+        drawWheel();
+        updateAllVisuals();
+    }
+
+    function addWheelSegment() {
+        if (isAnimating) return;
+        const items = state.wheel.items;
+        if (items.length >= 10) {
+            showToast('En fazla 10 farklı değişken ekleyebilirsiniz.');
+            return;
+        }
+        const nextIndex = items.length + 1;
+        // listede olmayan ilk tema rengi
+        const color = PALETTE.find(p => !items.some(it => it.color === p)) || PALETTE[(nextIndex - 1) % PALETTE.length];
+        items.push({ id: 'w_' + Date.now(), label: `Seçenek ${nextIndex}`, weight: 1, count: 0, color });
+        drawWheel();
+        renderWheelConfigList();
+        updateAllVisuals();
+    }
+
+    function removeWheelSegment(index) {
+        if (isAnimating) return;
+        const items = state.wheel.items;
+        if (items.length <= 2) {
+            showToast('Çarkta en az 2 değişken bulunmalıdır.');
+            return;
+        }
+        items.splice(index, 1);
+        drawWheel();
+        renderWheelConfigList();
+        updateAllVisuals();
+    }
+
+    function applyWheelPreset(presetName) {
+        if (isAnimating) return;
+        if (presetName === 'equal4') {
+            state.wheel.items = [
+                { id: 'p1', label: 'A bölgesi', weight: 2, count: 0, color: 'mavi' },
+                { id: 'p2', label: 'B bölgesi', weight: 2, count: 0, color: 'yesil' },
+                { id: 'p3', label: 'C bölgesi', weight: 2, count: 0, color: 'sari' },
+                { id: 'p4', label: 'D bölgesi', weight: 2, count: 0, color: 'k-kesirler' }
+            ];
+        } else if (presetName === 'unequal3') {
+            state.wheel.items = [
+                { id: 'p1', label: 'Dar alan (1B)', weight: 1, count: 0, color: 'kirmizi' },
+                { id: 'p2', label: 'Orta alan (2B)', weight: 2, count: 0, color: 'sari' },
+                { id: 'p3', label: 'Geniş alan (5B)', weight: 5, count: 0, color: 'yesil' }
+            ];
+        } else if (presetName === 'colors5') {
+            state.wheel.items = [
+                { id: 'p1', label: 'Mor (1B)', weight: 1, count: 0, color: 'mor' },
+                { id: 'p2', label: 'Mavi (2B)', weight: 2, count: 0, color: 'mavi' },
+                { id: 'p3', label: 'Yeşil (3B)', weight: 3, count: 0, color: 'yesil' },
+                { id: 'p4', label: 'Turuncu (4B)', weight: 4, count: 0, color: 'turuncu' },
+                { id: 'p5', label: 'Pembe (2B)', weight: 2, count: 0, color: 'k-kesirler' }
+            ];
+        }
+        state.wheel.history = [];
+        drawWheel();
+        renderWheelConfigList();
+        updateAllVisuals();
+        showToast('Şans çarkı şablonu uygulandı ve veriler sıfırlandı.');
+    }
+
+    // ==========================================
+    // TABLO VE GRAFİKLERİ GÜNCELLEME
+    // ==========================================
+    function updateAllVisuals() {
+        const currentData = state[currentMode];
+        const items = currentData.items;
+        const totalTrials = items.reduce((sum, item) => sum + item.count, 0);
+        const totalWeight = items.reduce((sum, item) => sum + Number(item.weight), 0);
+
+        $('total-trials-badge').textContent = sayi(totalTrials);
+
+        // 1. tablo
+        $('results-table-body').innerHTML = items.map(item => {
+            const expPct = totalTrials > 0 ? ((item.count / totalTrials) * 100) : 0;
+            const theoPct = totalWeight > 0 ? ((Number(item.weight) / totalWeight) * 100) : 0;
+            const diff = totalTrials > 0 ? Math.abs(expPct - theoPct) : null;
+            return `
+            <tr style="--r: ${renkCss(item.color)}">
+                <td><span class="cikti"><i class="renk-nokta"></i>${esc(item.label)}</span></td>
+                <td class="orta agirlik">${item.weight} birim <span>(${item.weight}/${totalWeight})</span></td>
+                <td class="orta frekans">${sayi(item.count)}</td>
+                <td class="oran">
+                    <div class="oran-ust">${yuzde1(expPct)}<span>${item.count}/${totalTrials}</span></div>
+                    <div class="oran-cubuk"><i style="width: ${expPct}%"></i></div>
+                </td>
+                <td class="oran teorik">
+                    <div class="oran-ust">${yuzde1(theoPct)}</div>
+                    <div class="oran-cubuk"><i style="width: ${theoPct}%"></i></div>
+                </td>
+                <td class="fark ${diff !== null && Number(diff.toFixed(1)) < 3 ? 'yakin' : ''}">${diff === null ? '–' : yuzde1(diff)}</td>
+            </tr>`;
+        }).join('');
+
+        $('results-table-foot').innerHTML = `
+            <tr>
+                <td>Toplam</td>
+                <td class="orta">${totalWeight} birim</td>
+                <td class="orta">${sayi(totalTrials)} deneme</td>
+                <td>${totalTrials > 0 ? '%100,0' : '%0,0'}</td>
+                <td>%100,0</td>
+                <td>–</td>
+            </tr>`;
+
+        // 2. son çıktılar
+        const histContainer = $('history-container');
+        if (currentData.history.length === 0) {
+            $('history-count-label').textContent = 'Henüz veri yok';
+            histContainer.innerHTML = '<span class="bos-not">Deneme yaptıkça sonuçlar burada listelenir…</span>';
+        } else {
+            $('history-count-label').textContent = `Son ${currentData.history.length} sonuç gösteriliyor`;
+            histContainer.innerHTML = currentData.history.map((h, i) =>
+                `<span class="cip${i === 0 ? ' son' : ''}" style="--r: ${renkCss(h.color)}"><i class="renk-nokta"></i>${esc(h.label)}</span>`
+            ).join('');
+        }
+
+        // 3. grafikler
+        updateCharts(items, totalTrials, totalWeight);
+    }
+
+    // ==========================================
+    // SÜTUN VE DAİRE GRAFİKLERİ (SVG)
+    // ==========================================
+    const olcuCtx = document.createElement('canvas').getContext('2d');
+    function metinGenisligi(metin, kalinlik = 700, boy = 12) {
+        olcuCtx.font = `${kalinlik} ${boy}px ${YAZI_TIPI}`;
+        return olcuCtx.measureText(metin).width;
+    }
+    function guzelAdim(ham) {
+        const us = Math.pow(10, Math.floor(Math.log10(ham)));
+        const n = ham / us;
+        return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * us;
+    }
+    // üst köşeleri yuvarlatılmış sütun
+    function sutunYolu(x, y0, w, h) {
+        const r = Math.min(5, w / 3, h);
+        const y = y0 - h;
+        return `M${x} ${y0}V${y + r}Q${x} ${y} ${x + r} ${y}H${x + w - r}Q${x + w} ${y} ${x + w} ${y + r}V${y0}Z`;
+    }
+
+    function setBarMode(mod) {
+        barMode = mod;
+        document.querySelectorAll('#bar-mode .sekme').forEach(b => b.setAttribute('aria-selected', b.dataset.mod === mod));
+        $('bar-subtitle').textContent = mod === 'percent' ? 'Deneysel ve teorik yüzde (%)' : 'Deneysel frekans (tekrar sayısı)';
+        updateAllVisuals();
+    }
+
+    let sonGrafik = null; // yeniden boyutlanınca ve tema değişince aynı veriyle yeniden çizilir
+
+    function updateCharts(items, totalTrials, totalWeight) {
+        sonGrafik = [items, totalTrials, totalWeight];
+        cizSutun(items, totalTrials, totalWeight);
+        cizPasta(items, totalTrials);
+    }
+
+    function cizSutun(items, totalTrials, totalWeight) {
+        const svg = $('bar-chart');
+        const W = svg.clientWidth;
+        if (!W) return;
+        const H = 250;
+        const yuzdeModu = barMode === 'percent';
+        const deney = items.map(it => yuzdeModu ? (totalTrials > 0 ? it.count / totalTrials * 100 : 0) : it.count);
+        const teori = items.map(it => totalWeight > 0 ? Number(it.weight) / totalWeight * 100 : 0);
+        const counts = items.map(it => it.count);
+
+        let ust, adim;
+        if (yuzdeModu) { ust = 100; adim = 20; }
+        else { ust = Math.ceil(Math.max(...counts, 5) * 1.15); adim = guzelAdim(ust / 5); }
+
+        const n = items.length;
+        const sol = yuzdeModu ? 40 : Math.max(28, metinGenisligi(sayi(ust), 400) + 12), sag = 4, tepe = 16;
+        const plotW = W - sol - sag;
+        const slot = plotW / n;
+        // sığmayan ad önce iki satıra bölünür, yine sığmazsa eğik yazılır
+        const satirla = s => {
+            if (metinGenisligi(s) <= slot - 6) return [s];
+            const bosluklar = [...s.matchAll(/ /g)].map(m => m.index);
+            if (!bosluklar.length) return null;
+            const i = bosluklar.reduce((a, b) => Math.abs(b - s.length / 2) < Math.abs(a - s.length / 2) ? b : a);
+            const parca = [s.slice(0, i), s.slice(i + 1)];
+            return parca.every(p => metinGenisligi(p) <= slot - 6) ? parca : null;
+        };
+        const satirlar = items.map(it => satirla(it.label));
+        const egik = satirlar.some(x => !x);
+        const ikiSatir = !egik && satirlar.some(x => x.length > 1);
+        const kisalt = s => egik && s.length > 14 ? s.slice(0, 13) + '…' : s;
+        const alt = egik ? Math.min(78, 20 + Math.max(...items.map(it => metinGenisligi(kisalt(it.label)))) * 0.64) : ikiSatir ? 40 : 26;
+        const y0 = H - alt, plotH = y0 - tepe;
+        const yOf = v => y0 - (v / ust) * plotH;
+
+        let h = '';
+        // yatay ızgara ve değerler
+        for (let v = 0; v <= ust + 1e-9; v += adim) {
+            const y = yOf(v);
+            if (v > 0) h += `<line class="izgara" x1="${sol}" x2="${W - sag}" y1="${y}" y2="${y}"/>`;
+            h += `<text x="${sol - 6}" y="${y}" text-anchor="end" dominant-baseline="central">${yuzdeModu ? '%' + v : sayi(v)}</text>`;
+        }
+
+        items.forEach((it, i) => {
+            const gx = sol + slot * i + slot / 2;
+            const grupW = Math.min(slot * 0.72, yuzdeModu ? 96 : 56);
+            const bw = yuzdeModu ? grupW / 2 : grupW;
+            const x1 = gx - grupW / 2;
+            const dh = Math.max(0, y0 - yOf(deney[i]));
+            const ad = esc(it.label);
+            const baslikD = yuzdeModu
+                ? `${ad}: deneysel olasılık ${yuzde1(deney[i])} (${it.count}/${totalTrials})`
+                : `${ad}: ${sayi(it.count)} kez`;
+            if (dh > 0) h += `<path class="deneysel" style="fill: ${renkCss(it.color)}" d="${sutunYolu(x1, y0, bw, dh)}"><title>${baslikD}</title></path>`;
+            if (bw >= 26 && (dh > 0 || !yuzdeModu || totalTrials > 0)) {
+                h += `<text class="deger-yazi" x="${x1 + bw / 2}" y="${y0 - dh - 5}" text-anchor="middle">${yuzdeModu ? '%' + Math.round(deney[i]) : sayi(it.count)}</text>`;
+            }
+            if (yuzdeModu) {
+                const th = y0 - yOf(teori[i]);
+                h += `<path class="teorik" d="${sutunYolu(gx, y0, bw, th)}"><title>${ad}: teorik olasılık ${yuzde1(teori[i])}</title></path>`;
+                if (bw >= 26) h += `<text x="${gx + bw / 2}" y="${y0 - th - 5}" text-anchor="middle" style="font-size: 11px; font-weight: 700">%${Math.round(teori[i])}</text>`;
+            }
+            // x etiketi
+            if (egik) {
+                h += `<text class="x-yazi" transform="translate(${gx + 4} ${y0 + 10}) rotate(-40)" text-anchor="end" dominant-baseline="central">${esc(kisalt(it.label))}</text>`;
+            } else {
+                satirlar[i].forEach((p, k) => {
+                    h += `<text class="x-yazi" x="${gx}" y="${y0 + 15 + k * 14}" text-anchor="middle" dominant-baseline="central">${esc(p)}</text>`;
+                });
+            }
+        });
+        // eksenler
+        h += `<line class="eksen" x1="${sol}" x2="${W - sag}" y1="${y0}" y2="${y0}"/><line class="eksen" x1="${sol}" x2="${sol}" y1="${tepe - 6}" y2="${y0}"/>`;
+
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        svg.innerHTML = h;
+        svg.setAttribute('aria-label', 'Sütun grafiği: ' + items.map((it, i) => yuzdeModu
+            ? `${it.label} deneysel ${yuzde1(deney[i])}, teorik ${yuzde1(teori[i])}`
+            : `${it.label} ${sayi(it.count)} kez`).join('; '));
+
+        // lejant: deneysel sütunlar çıktının renginde
+        const ornek = items.slice(0, 3).map(it => renkCss(it.color));
+        const serit = `linear-gradient(90deg, ${ornek.map((c, i) => `${c} ${i * 100 / ornek.length}% ${(i + 1) * 100 / ornek.length}%`).join(', ')})`;
+        $('bar-legend').innerHTML = yuzdeModu
+            ? `<span><i style="background: ${serit}"></i>Deneysel olasılık (%)</span><span><i class="teorik-ornek"></i>Teorik olasılık (%)</span>`
+            : `<span><i style="background: ${serit}"></i>Deneysel frekans (tekrar sayısı)</span>`;
+    }
+
+    const nokta = (aci, r) => [r * Math.cos(aci), r * Math.sin(aci)].map(v => +v.toFixed(2));
+
+    function cizPasta(items, totalTrials) {
+        const svg = $('pie-chart');
+        const R = 100, r = 45; // halka: içi %45 boş
+        $('pie-empty-overlay').hidden = totalTrials > 0;
+        let h = '';
+        if (totalTrials === 0) {
+            h = `<circle class="bos" r="${R}"/><circle class="bos" r="${r}"/>`;
+        } else {
+            let bas = -Math.PI / 2; // en üstten başlar, saat yönünde
+            let yazilar = '';
+            items.forEach(it => {
+                if (!it.count) return;
+                const aci = it.count / totalTrials * Math.PI * 2;
+                const baslik = `<title>${esc(it.label)}: ${sayi(it.count)} kez (${yuzde1(it.count / totalTrials * 100)})</title>`;
+                const stil = `style="fill: ${renkCss(it.color)}"`;
+                if (it.count === totalTrials) {
+                    h += `<path class="dilim" ${stil} fill-rule="evenodd" d="M${R} 0A${R} ${R} 0 1 1 ${-R} 0A${R} ${R} 0 1 1 ${R} 0ZM${r} 0A${r} ${r} 0 1 0 ${-r} 0A${r} ${r} 0 1 0 ${r} 0Z">${baslik}</path>`;
+                } else {
+                    const buyuk = aci > Math.PI ? 1 : 0;
+                    const [a1, b1] = nokta(bas, R), [a2, b2] = nokta(bas + aci, R);
+                    const [c2, d2] = nokta(bas + aci, r), [c1, d1] = nokta(bas, r);
+                    h += `<path class="dilim" ${stil} d="M${a1} ${b1}A${R} ${R} 0 ${buyuk} 1 ${a2} ${b2}L${c2} ${d2}A${r} ${r} 0 ${buyuk} 0 ${c1} ${d1}Z">${baslik}</path>`;
+                }
+                if (aci >= 0.45) {
+                    const [x, y] = nokta(bas + aci / 2, (R + r) / 2);
+                    yazilar += `<text class="dilim-yazi" x="${x}" y="${y}">%${Math.round(it.count / totalTrials * 100)}</text>`;
+                }
+                bas += aci;
+            });
+            h += yazilar;
+            h += `<text class="orta-sayi" y="4">${sayi(totalTrials)}</text><text class="orta-ad" y="22">deneme</text>`;
+        }
+        svg.innerHTML = h;
+        svg.setAttribute('aria-label', 'Daire grafiği: ' + (totalTrials
+            ? items.map(it => `${it.label} ${sayi(it.count)}`).join(', ')
+            : 'henüz veri yok'));
+
+        $('pie-legend').innerHTML = items.map(it =>
+            `<span style="--r: ${renkCss(it.color)}"><i></i>${esc(it.label)}</span>`).join('');
+    }
+
+    new ResizeObserver(() => { if (sonGrafik) cizSutun(...sonGrafik); }).observe($('bar-chart'));
+    Kabuk.temaDegisince(() => {
+        renkOnbellek = {};
+        drawWheel();
+        if (currentMode === 'wheel') renderWheelConfigList(); // renk seçicilerin değeri temaya göre
+    });
+    if (document.fonts) document.fonts.ready.then(() => { if (sonGrafik) cizSutun(...sonGrafik); });
+
+    // başlangıç
+    renderDiceFace(1);
+    renderWheelConfigList();
+    updateAllVisuals();
+</script>
+</body>
+</html>

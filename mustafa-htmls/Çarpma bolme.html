@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matematik Atölyesi: Eldeli Çarpma ve Adım Adım Bölme</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+            --border: #cbd5e1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 14px;
+        }
+
+        /* Üst Bilgi ve Sekmeler */
+        .header-container {
+            width: 100%;
+            max-width: 980px;
+            background: var(--card);
+            border-radius: 16px;
+            padding: 14px 22px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab-btn {
+            padding: 10px 18px;
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 0.98rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .hearts {
+            font-size: 1.45rem;
+            letter-spacing: 3px;
+        }
+
+        .score-box {
+            background: #eff6ff;
+            color: var(--primary-dark);
+            padding: 7px 15px;
+            border-radius: 10px;
+            border: 1px solid #bfdbfe;
+        }
+
+        /* Ana Gövde */
+        .main-card {
+            width: 100%;
+            max-width: 980px;
+            background: var(--card);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 1.35fr 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 820px) {
+            .main-card {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .page {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .page.active {
+            display: flex;
+        }
+
+        /* Kutucuk Ortak Stilleri */
+        .digit-cell {
+            width: 44px;
+            height: 50px;
+            text-align: center;
+            font-size: 1.55rem;
+            font-weight: 800;
+            border: 2.5px solid #94a3b8;
+            border-radius: 10px;
+            background: #ffffff;
+            color: var(--text);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .digit-cell.carry-cell {
+            background: #fef3c7;
+            border: 2.5px dashed #f59e0b;
+            color: #b45309;
+            height: 44px;
+            font-size: 1.35rem;
+        }
+
+        .digit-cell.bringdown-cell {
+            background: #ecfdf5;
+            border-color: #10b981;
+            color: #047857;
+        }
+
+        .digit-cell.quot-cell {
+            background: #eff6ff;
+            border-color: #60a5fa;
+            color: #1e40af;
+        }
+
+        .digit-cell.selected {
+            border-color: var(--primary) !important;
+            border-style: solid !important;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+            background: #dbeafe !important;
+            transform: scale(1.05);
+            z-index: 2;
+        }
+
+        .digit-cell.correct-cell {
+            background: #dcfce7 !important;
+            border-color: #16a34a !important;
+            color: #15803d !important;
+        }
+
+        .digit-cell.wrong-cell {
+            background: #fee2e2 !important;
+            border-color: #dc2626 !important;
+            color: #b91c1c !important;
+        }
+
+        /* 1. SAYFA: ÇARPMA DÜZENİ */
+        .mult-container {
+            background: #f8fafc;
+            padding: 28px 36px;
+            border-radius: 18px;
+            border: 2px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .mult-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 48px);
+            gap: 8px;
+            align-items: center;
+            justify-items: center;
+        }
+
+        .static-digit {
+            font-size: 2.2rem;
+            font-weight: 800;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mult-divider {
+            grid-column: 1 / -1;
+            width: 100%;
+            height: 4px;
+            background: var(--text);
+            border-radius: 2px;
+            margin: 4px 0;
+        }
+
+        /* 2. SAYFA: ADIM ADIM UZUN BÖLME DÜZENİ */
+        .long-div-wrapper {
+            background: #f8fafc;
+            padding: 22px 26px;
+            border-radius: 18px;
+            border: 2px solid #e2e8f0;
+            display: inline-grid;
+            grid-template-columns: auto auto;
+            align-items: start;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        /* Sol Taraf: Bölünen ve Çıkarma Basamakları */
+        .div-steps-col {
+            padding-right: 18px;
+            border-right: 4px solid var(--text);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .step-row {
+            display: grid;
+            gap: 6px;
+            align-items: center;
+            justify-items: center;
+        }
+
+        .sub-line-row {
+            display: grid;
+            gap: 6px;
+            margin: 2px 0;
+        }
+
+        .sub-line-bar {
+            height: 3.5px;
+            background: var(--text);
+            width: 100%;
+            border-radius: 2px;
+        }
+
+        .minus-sign {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--danger);
+            justify-self: end;
+            padding-right: 4px;
+        }
+
+        .arrow-down {
+            font-size: 1rem;
+            color: #059669;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: -4px;
+        }
+
+        /* Sağ Taraf: Bölen ve Bölüm */
+        .div-right-col {
+            padding-left: 18px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .divisor-header {
+            font-size: 2.2rem;
+            font-weight: 800;
+            border-bottom: 4px solid var(--text);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            min-width: 120px;
+            letter-spacing: 4px;
+        }
+
+        .quotient-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .legend-bar {
+            display: flex;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #475569;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+
+        /* Sağ Kontrol Paneli */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .btn-hint-toggle {
+            padding: 10px 14px;
+            background: #fef3c7;
+            color: #b45309;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-hint-toggle.active {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .step-guide-box {
+            background: #fffbeb;
+            border-left: 5px solid var(--secondary);
+            padding: 12px 15px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            line-height: 1.45;
+            color: #92400e;
+            display: none;
+        }
+
+        .step-guide-box.visible {
+            display: block;
+        }
+
+        .feedback-box {
+            padding: 12px 15px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            line-height: 1.4;
+            display: none;
+        }
+
+        .feedback-box.correct {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+
+        .feedback-box.wrong {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 9px;
+        }
+
+        .num-btn {
+            padding: 13px;
+            font-size: 1.35rem;
+            font-weight: 800;
+            background: #f8fafc;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.1s;
+            color: var(--text);
+        }
+
+        .num-btn:active {
+            transform: scale(0.95);
+            background: #e2e8f0;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-check {
+            flex: 2;
+            padding: 14px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-next {
+            flex: 1;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* Oyun Sonu Modalı */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background: white;
+            padding: 32px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal h2 {
+            font-size: 1.9rem;
+            color: var(--danger);
+            margin-bottom: 10px;
+        }
+
+        .modal p {
+            font-size: 1.15rem;
+            margin-bottom: 22px;
+        }
+
+        .btn-restart {
+            padding: 13px 26px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Üst Bilgi Barı -->
+    <div class="header-container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('mult')">1. Sayfa: Eldeli Çarpma</button>
+            <button class="tab-btn" onclick="switchTab('div')">2. Sayfa: Adım Adım Bölme</button>
+        </div>
+        <div class="status-bar">
+            <div class="hearts" id="heartsDisplay">❤️❤️❤️</div>
+            <div class="score-box">Puan: <span id="scoreDisplay">0</span></div>
+        </div>
+    </div>
+
+    <!-- Ana Oyun Alanı -->
+    <div class="main-card">
+
+        <!-- 1. SAYFA: ELDELİ ÇARPMA -->
+        <div id="multPage" class="page active">
+            <div class="mult-container">
+                <div style="font-size: 0.85rem; font-weight: 700; color: #b45309; margin-bottom: 6px; align-self: center;">
+                    Sarı kutuya "Elde" değerini yazmayı unutma!
+                </div>
+                <div class="mult-grid" id="multGrid">
+                    <!-- JS ile dinamik doldurulur -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. SAYFA: ADIM ADIM UZUN BÖLME -->
+        <div id="divPage" class="page">
+            <div class="long-div-wrapper" id="longDivBoard">
+                <!-- JS ile adım adım merdiven şeması oluşturulur -->
+            </div>
+
+            <div class="legend-bar">
+                <span><i class="legend-dot" style="background:#eff6ff; border:1.5px solid #60a5fa;"></i>Bölüm Basamakları</span>
+                <span><i class="legend-dot" style="background:#ffffff; border:1.5px solid #94a3b8;"></i>Çıkarılan / Kalan</span>
+                <span><i class="legend-dot" style="background:#ecfdf5; border:1.5px solid #10b981;"></i>Yukarıdan İndirilen Rakam</span>
+            </div>
+        </div>
+
+        <!-- Sağ Kontrol ve Tuş Takımı -->
+        <div class="control-panel">
+            <button class="btn-hint-toggle" id="hintToggleBtn" onclick="toggleHint()">
+                💡 İpucu Göster (Adımları Aç)
+            </button>
+
+            <div class="step-guide-box" id="stepGuideBox">
+                Birler basamağını çarparak başla!
+            </div>
+
+            <div class="feedback-box" id="feedbackBox"></div>
+
+            <div class="numpad">
+                <button class="num-btn" onclick="pressKey('1')">1</button>
+                <button class="num-btn" onclick="pressKey('2')">2</button>
+                <button class="num-btn" onclick="pressKey('3')">3</button>
+                <button class="num-btn" onclick="pressKey('4')">4</button>
+                <button class="num-btn" onclick="pressKey('5')">5</button>
+                <button class="num-btn" onclick="pressKey('6')">6</button>
+                <button class="num-btn" onclick="pressKey('7')">7</button>
+                <button class="num-btn" onclick="pressKey('8')">8</button>
+                <button class="num-btn" onclick="pressKey('9')">9</button>
+                <button class="num-btn" style="background:#fee2e2; color:#991b1b;" onclick="pressKey('C')">Sil ⌫</button>
+                <button class="num-btn" onclick="pressKey('0')">0</button>
+                <button class="num-btn" style="background:#e0e7ff; color:#1e40af;" onclick="focusNextInput(1)">Sonraki ➔</button>
+            </div>
+
+            <div class="action-row">
+                <button class="btn-check" id="checkBtn" onclick="checkCurrentPage()">Kontrol Et</button>
+                <button class="btn-next" onclick="generateCurrentPageQuestion()">Yeni Soru</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Oyun Bitti Modalı -->
+    <div class="modal-overlay" id="gameOverModal">
+        <div class="modal">
+            <h2>Oyun Bitti!</h2>
+            <p>3 canını da kullandın.<br>Toplam Puanın: <strong id="finalScore">0</strong></p>
+            <button class="btn-restart" onclick="restartGame()">Yeniden Başla</button>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'mult';
+        let score = 0;
+        let lives = 3;
+        let showHint = false;
+
+        // Her iki sayfanın aktif kutu listesi ve durumları
+        let multInputs = []; // { id, expected, hint, val }
+        let divInputs = [];  // { id, expected, hint, val }
+        let activeInputIndex = 0;
+        let multSolved = false;
+        let divSolved = false;
+
+        // Çarpma soru bilgisi
+        let mTop = 0, mBot = 0, mCarry = 0, mProd = 0;
+        // Bölme soru bilgisi
+        let dDividend = 0, dDivisor = 0;
+
+        let tempRegistry = {};
+
+        window.onload = () => {
+            generateMultQuestion();
+            generateDivQuestion();
+            refreshFocus();
+        };
+
+        // Klavye Desteği
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') {
+                pressKey(e.key);
+            } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                pressKey('C');
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                checkCurrentPage();
+            } else if (e.key === 'Tab' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                focusNextInput(1);
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                focusNextInput(-1);
+            }
+        });
+
+        function toggleHint() {
+            showHint = !showHint;
+            const btn = document.getElementById('hintToggleBtn');
+            const box = document.getElementById('stepGuideBox');
+
+            btn.classList.toggle('active', showHint);
+            btn.innerHTML = showHint ? '💡 İpucunu Gizle (Adımları Kapat)' : '💡 İpucu Göster (Adımları Aç)';
+            box.classList.toggle('visible', showHint);
+        }
+
+        function getActiveList() {
+            return currentTab === 'mult' ? multInputs : divInputs;
+        }
+
+        function isCurrentSolved() {
+            return currentTab === 'mult' ? multSolved : divSolved;
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', (tab === 'mult' && idx === 0) || (tab === 'div' && idx === 1));
+            });
+
+            document.getElementById('multPage').classList.toggle('active', tab === 'mult');
+            document.getElementById('divPage').classList.toggle('active', tab === 'div');
+            document.getElementById('feedbackBox').className = 'feedback-box';
+
+            activeInputIndex = 0;
+            refreshFocus();
+        }
+
+        function selectBoxById(id) {
+            const list = getActiveList();
+            const idx = list.findIndex(item => item.id === id);
+            if (idx !== -1) {
+                activeInputIndex = idx;
+                refreshFocus();
+            }
+        }
+
+        function focusNextInput(step) {
+            const list = getActiveList();
+            if (list.length === 0) return;
+            activeInputIndex = (activeInputIndex + step + list.length) % list.length;
+            refreshFocus();
+        }
+
+        function refreshFocus() {
+            document.querySelectorAll('.digit-cell').forEach(el => el.classList.remove('selected'));
+            const list = getActiveList();
+            if (list.length === 0) return;
+
+            if (activeInputIndex >= list.length) activeInputIndex = 0;
+            const currentItem = list[activeInputIndex];
+            const domEl = document.getElementById(currentItem.id);
+            if (domEl) domEl.classList.add('selected');
+
+            document.getElementById('stepGuideBox').innerHTML = currentItem.hint;
+        }
+
+        function pressKey(key) {
+            if (isCurrentSolved()) return;
+            const list = getActiveList();
+            if (list.length === 0) return;
+
+            const currentItem = list[activeInputIndex];
+            const domEl = document.getElementById(currentItem.id);
+
+            if (key === 'C') {
+                currentItem.val = '';
+                if (domEl) {
+                    domEl.innerText = '';
+                    domEl.classList.remove('wrong-cell', 'correct-cell');
+                }
+                return;
+            }
+
+            currentItem.val = key;
+            if (domEl) {
+                domEl.innerText = key;
+                domEl.classList.remove('wrong-cell', 'correct-cell');
+            }
+
+            // Otomatik bir sonraki kutuya ilerle
+            if (activeInputIndex < list.length - 1) {
+                activeInputIndex++;
+                refreshFocus();
+            }
+        }
+
+        function generateCurrentPageQuestion() {
+            document.getElementById('feedbackBox').className = 'feedback-box';
+            if (currentTab === 'mult') {
+                generateMultQuestion();
+            } else {
+                generateDivQuestion();
+            }
+            activeInputIndex = 0;
+            refreshFocus();
+        }
+
+        /* =========================================================
+           1. SAYFA: ELDELİ ÇARPMA SORU ÜRETİMİ VE ŞEMASI
+           ========================================================= */
+        function generateMultQuestion() {
+            multSolved = false;
+            multInputs = [];
+            tempRegistry = {};
+
+            // Garantili eldeli çarpma üret (birler basamağı çarpımı >= 10 olsun)
+            do {
+                mTop = Math.floor(Math.random() * 88) + 12; // 12 - 99
+                mBot = Math.floor(Math.random() * 8) + 2;   // 2 - 9
+            } while ((mTop % 10) * mBot < 10);
+
+            const ones = mTop % 10;
+            const tens = Math.floor(mTop / 10);
+            const firstMult = ones * mBot;
+            mCarry = Math.floor(firstMult / 10);
+
+            const secondMult = tens * mBot + mCarry;
+            mProd = mTop * mBot;
+
+            const grid = document.getElementById('multGrid');
+            grid.innerHTML = '';
+
+            // 1. Satır: Elde Kutusu (Onlar basamağı sütununda: 2. sütun)
+            grid.appendChild(createEmptyCell());
+            grid.appendChild(createInteractiveCell('m_carry', String(mCarry), 'carry-cell',
+                `<b>2. Adım (Elde):</b> ${ones} × ${mBot} = ${firstMult} işleminden gelen eldeyi (<b>onlar basamağını</b>) sarı kutuya yaz.`));
+            grid.appendChild(createEmptyCell());
+
+            // 2. Satır: Üstteki 2 basamaklı çarpan
+            grid.appendChild(createEmptyCell());
+            grid.appendChild(createStaticDigit(tens));
+            grid.appendChild(createStaticDigit(ones));
+
+            // 3. Satır: Çarpı işareti ve 1 basamaklı çarpan
+            grid.appendChild(createStaticDigit('×'));
+            grid.appendChild(createEmptyCell());
+            grid.appendChild(createStaticDigit(mBot));
+
+            // Çizgi
+            const line = document.createElement('div');
+            line.className = 'mult-divider';
+            grid.appendChild(line);
+
+            // 4. Satır: Sonuç Kutuları (2 veya 3 basamaklı)
+            const prodStr = String(mProd);
+            if (prodStr.length === 3) {
+                grid.appendChild(createInteractiveCell('m_ans_h', prodStr[0], '',
+                    `<b>4. Adım (Yüzler Basamağı):</b> ${tens} × ${mBot} + ${mCarry} (elde) = ${secondMult} işleminin yüzler basamağını yaz.`));
+                grid.appendChild(createInteractiveCell('m_ans_t', prodStr[1], '',
+                    `<b>3. Adım (Onlar Basamağı):</b> ${tens} × ${mBot} + ${mCarry} (elde) = ${secondMult} işleminin onlar basamağını yaz.`));
+                grid.appendChild(createInteractiveCell('m_ans_o', prodStr[2], '',
+                    `<b>1. Adım (Birler Basamağı):</b> Önce ${ones} ile ${mBot} rakamını çarp (${ones} × ${mBot} = ${firstMult}). Birler basamağını buraya yaz.`));
+
+                multInputs = [
+                    findTempCell('m_ans_o'),
+                    findTempCell('m_carry'),
+                    findTempCell('m_ans_t'),
+                    findTempCell('m_ans_h')
+                ];
+            } else {
+                grid.appendChild(createEmptyCell());
+                grid.appendChild(createInteractiveCell('m_ans_t', prodStr[0], '',
+                    `<b>3. Adım (Onlar Basamağı):</b> ${tens} × ${mBot} + ${mCarry} (elde) = ${secondMult} sonucunu onlar basamağına yaz.`));
+                grid.appendChild(createInteractiveCell('m_ans_o', prodStr[1], '',
+                    `<b>1. Adım (Birler Basamağı):</b> Önce ${ones} ile ${mBot} rakamını çarp (${ones} × ${mBot} = ${firstMult}). Birler basamağını buraya yaz.`));
+
+                multInputs = [
+                    findTempCell('m_ans_o'),
+                    findTempCell('m_carry'),
+                    findTempCell('m_ans_t')
+                ];
+            }
+        }
+
+        function createInteractiveCell(id, expected, extraClass, hint) {
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = `digit-cell ${extraClass}`.trim();
+            div.onclick = () => selectBoxById(id);
+            tempRegistry[id] = { id, expected: String(expected), hint, val: '' };
+            return div;
+        }
+
+        function findTempCell(id) {
+            return tempRegistry[id];
+        }
+
+        function createStaticDigit(ch) {
+            const div = document.createElement('div');
+            div.className = 'static-digit';
+            div.innerText = ch;
+            return div;
+        }
+
+        function createEmptyCell() {
+            return document.createElement('div');
+        }
+
+        /* =========================================================
+           2. SAYFA: ADIM ADIM UZUN BÖLME SORU ÜRETİMİ VE ŞEMASI
+           ========================================================= */
+        function generateDivQuestion() {
+            divSolved = false;
+            divInputs = [];
+            tempRegistry = {};
+
+            // 2, 3 veya 4 basamaklı tamamen karışık seçim
+            const choices = [2, 3, 4];
+            const numDigits = choices[Math.floor(Math.random() * choices.length)];
+
+            dDivisor = Math.floor(Math.random() * 8) + 2; // 2 - 9
+
+            do {
+                if (numDigits === 2) dDividend = Math.floor(Math.random() * 88) + 12;
+                else if (numDigits === 3) dDividend = Math.floor(Math.random() * 900) + 100;
+                else dDividend = Math.floor(Math.random() * 9000) + 1000;
+            } while (dDividend < dDivisor);
+
+            buildLongDivisionDOM(dDividend, dDivisor);
+        }
+
+        function buildLongDivisionDOM(dividend, divisor) {
+            const board = document.getElementById('longDivBoard');
+            board.innerHTML = '';
+
+            const divStr = String(dividend);
+            const n = divStr.length;
+
+            // Sol Sütun (Bölünen + Çıkarma Satırları)
+            const leftCol = document.createElement('div');
+            leftCol.className = 'div-steps-col';
+
+            const gridTemplate = `32px repeat(${n}, 46px)`;
+
+            // En Üst Satır: Bölünen Rakamları
+            const topRow = document.createElement('div');
+            topRow.className = 'step-row';
+            topRow.style.gridTemplateColumns = gridTemplate;
+            topRow.appendChild(createEmptyCell());
+            for (let i = 0; i < n; i++) {
+                topRow.appendChild(createStaticDigit(divStr[i]));
+            }
+            leftCol.appendChild(topRow);
+
+            // Sağ Sütun (Bölen + Bölüm Kutuları)
+            const rightCol = document.createElement('div');
+            rightCol.className = 'div-right-col';
+
+            const divisorHeader = document.createElement('div');
+            divisorHeader.className = 'divisor-header';
+            divisorHeader.innerText = divisor;
+            rightCol.appendChild(divisorHeader);
+
+            const quotRow = document.createElement('div');
+            quotRow.className = 'quotient-row';
+            rightCol.appendChild(quotRow);
+
+            // İlk basamak bölenden küçükse ilk 2 basamağı birleştirerek başla
+            let pos = 0;
+            let currentVal = parseInt(divStr[0], 10);
+            if (currentVal < divisor && n > 1) {
+                pos = 1;
+                currentVal = parseInt(divStr.slice(0, 2), 10);
+            }
+
+            let stepCount = 1;
+            while (pos < n) {
+                const qDigit = Math.floor(currentVal / divisor);
+                const subVal = qDigit * divisor;
+                const remVal = currentVal - subVal;
+
+                // 1) Bölüm Kutusu
+                const qId = `d_q_${stepCount}`;
+                const qCell = createInteractiveCell(
+                    qId,
+                    qDigit,
+                    'quot-cell',
+                    `<b>Adım ${stepCount} (Bölüm):</b> <b>${currentVal}</b> içinde <b>${divisor}</b> kaç kere var? Bölüm kutusuna yaz.`
+                );
+                quotRow.appendChild(qCell);
+                divInputs.push(findTempCell(qId));
+
+                // 2) Çıkarılan Sayı Satırı (subVal)
+                const subStr = String(subVal);
+                const subRow = document.createElement('div');
+                subRow.className = 'step-row';
+                subRow.style.gridTemplateColumns = gridTemplate;
+
+                const endCol = pos + 1;
+                const startCol = endCol - subStr.length + 1;
+
+                for (let col = 0; col <= n; col++) {
+                    if (col === startCol - 1) {
+                        const minus = document.createElement('div');
+                        minus.className = 'minus-sign';
+                        minus.innerText = '−';
+                        subRow.appendChild(minus);
+                    } else if (col >= startCol && col <= endCol) {
+                        const charIdx = col - startCol;
+                        const sId = `d_sub_${stepCount}_${charIdx}`;
+                        const sCell = createInteractiveCell(
+                            sId,
+                            subStr[charIdx],
+                            '',
+                            `<b>Adım ${stepCount} (Çarp ve Yaz):</b> ${qDigit} × ${divisor} = <b>${subVal}</b> sayısını basamakların altına yaz.`
+                        );
+                        subRow.appendChild(sCell);
+                        divInputs.push(findTempCell(sId));
+                    } else {
+                        subRow.appendChild(createEmptyCell());
+                    }
+                }
+                leftCol.appendChild(subRow);
+
+                // Çıkarma Çizgisi
+                const lineRow = document.createElement('div');
+                lineRow.className = 'sub-line-row';
+                lineRow.style.gridTemplateColumns = gridTemplate;
+                for (let col = 0; col <= n; col++) {
+                    if (col >= startCol - 1 && col <= Math.min(n, endCol + 1)) {
+                        const bar = document.createElement('div');
+                        bar.className = 'sub-line-bar';
+                        lineRow.appendChild(bar);
+                    } else {
+                        lineRow.appendChild(createEmptyCell());
+                    }
+                }
+                leftCol.appendChild(lineRow);
+
+                // 3) Kalan ve (Varsa) Aşağı İndirilen Yeni Basamak Satırı
+                const hasNextDigit = (pos + 1) < n;
+                const nextDigitChar = hasNextDigit ? divStr[pos + 1] : null;
+                const remStr = String(remVal);
+
+                const remRow = document.createElement('div');
+                remRow.className = 'step-row';
+                remRow.style.gridTemplateColumns = gridTemplate;
+
+                const remStartCol = endCol - remStr.length + 1;
+
+                for (let col = 0; col <= n; col++) {
+                    if (col >= remStartCol && col <= endCol) {
+                        const rIdx = col - remStartCol;
+                        const rId = `d_rem_${stepCount}_${rIdx}`;
+                        const rCell = createInteractiveCell(
+                            rId,
+                            remStr[rIdx],
+                            '',
+                            `<b>Adım ${stepCount} (Çıkarma):</b> ${currentVal} − ${subVal} = <b>${remVal}</b> farkını yaz.`
+                        );
+                        remRow.appendChild(rCell);
+                        divInputs.push(findTempCell(rId));
+                    } else if (hasNextDigit && col === endCol + 1) {
+                        const wrap = document.createElement('div');
+                        wrap.style.display = 'flex';
+                        wrap.style.flexDirection = 'column';
+                        wrap.style.alignItems = 'center';
+
+                        const arrow = document.createElement('div');
+                        arrow.className = 'arrow-down';
+                        arrow.innerText = '↓';
+                        wrap.appendChild(arrow);
+
+                        const bId = `d_bd_${stepCount}`;
+                        const bCell = createInteractiveCell(
+                            bId,
+                            nextDigitChar,
+                            'bringdown-cell',
+                            `<b>Adım ${stepCount} (Basamak İndir):</b> Yukarıdaki <b>${nextDigitChar}</b> rakamını yeşil kutuya indir.`
+                        );
+                        wrap.appendChild(bCell);
+                        remRow.appendChild(wrap);
+                        divInputs.push(findTempCell(bId));
+                    } else {
+                        remRow.appendChild(createEmptyCell());
+                    }
+                }
+                leftCol.appendChild(remRow);
+
+                if (hasNextDigit) {
+                    currentVal = remVal * 10 + parseInt(nextDigitChar, 10);
+                    pos++;
+                    stepCount++;
+                } else {
+                    break;
+                }
+            }
+
+            board.appendChild(leftCol);
+            board.appendChild(rightCol);
+        }
+
+        /* =========================================================
+           CEVAP KONTROLÜ, PUAN VE CAN YÖNETİMİ
+           ========================================================= */
+        function checkCurrentPage() {
+            if (isCurrentSolved()) return;
+
+            const list = getActiveList();
+            const fb = document.getElementById('feedbackBox');
+
+            // Boş kutu var mı kontrol et
+            const emptyIdx = list.findIndex(item => item.val === '');
+            if (emptyIdx !== -1) {
+                activeInputIndex = emptyIdx;
+                refreshFocus();
+                fb.className = 'feedback-box wrong';
+                fb.innerHTML = 'Lütfen işlemdeki <b>tüm adım kutularını</b> eksiksiz doldurun! Boş kutuya odaklandım.';
+                return;
+            }
+
+            // Tüm kutuları doğrula
+            let allCorrect = true;
+            let firstWrongIdx = -1;
+
+            list.forEach((item, idx) => {
+                const domEl = document.getElementById(item.id);
+                if (item.val === item.expected) {
+                    domEl.classList.add('correct-cell');
+                    domEl.classList.remove('wrong-cell');
+                } else {
+                    allCorrect = false;
+                    domEl.classList.add('wrong-cell');
+                    domEl.classList.remove('correct-cell');
+                    if (firstWrongIdx === -1) firstWrongIdx = idx;
+                }
+            });
+
+            if (allCorrect) {
+                if (currentTab === 'mult') multSolved = true;
+                else divSolved = true;
+
+                score += 50;
+                updateHeaderUI();
+                fb.className = 'feedback-box correct';
+                fb.innerHTML = `Tebrikler! Tüm basamakları ve adımları doğru tamamladın. <b>+50 Puan!</b>`;
+            } else {
+                lives--;
+                updateHeaderUI();
+
+                activeInputIndex = firstWrongIdx;
+                refreshFocus();
+
+                const wrongItem = list[firstWrongIdx];
+                fb.className = 'feedback-box wrong';
+                fb.innerHTML = `Kırmızı işaretli kutularda hata var! <b>1 Can Kaybettin.</b>` + 
+                    (showHint ? `<br>${wrongItem.hint}` : `<br>Yardım almak için yukarıdaki <b>💡 İpucu Göster</b> butonuna basabilirsin.`);
+
+                if (lives <= 0) {
+                    setTimeout(() => {
+                        document.getElementById('finalScore').innerText = score;
+                        document.getElementById('gameOverModal').style.display = 'flex';
+                    }, 1300);
+                }
+            }
+        }
+
+        function updateHeaderUI() {
+            document.getElementById('scoreDisplay').innerText = score;
+            const fullHearts = Math.max(0, lives);
+            const emptyHearts = 3 - fullHearts;
+            document.getElementById('heartsDisplay').innerText = '❤️'.repeat(fullHearts) + '🖤'.repeat(emptyHearts);
+        }
+
+        function restartGame() {
+            score = 0;
+            lives = 3;
+            updateHeaderUI();
+            document.getElementById('gameOverModal').style.display = 'none';
+            document.getElementById('feedbackBox').className = 'feedback-box';
+            generateMultQuestion();
+            generateDivQuestion();
+            activeInputIndex = 0;
+            refreshFocus();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>6. Sınıf Bölünebilme Sepeti Oyunu</title>
+    <style>
+        :root {
+            --bg-top: #1e1b4b;
+            --bg-mid: #312e81;
+            --bg-court: #f8fafc;
+            --primary: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-dark: #0f172a;
+            --text-muted: #475569;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 38%, #e2e8f0 38.5%, #cbd5e1 100%);
+            color: var(--text-dark);
+        }
+
+        /* MAIN COURT LAYOUT: Strict 4-Row Grid that NEVER hides baskets */
+        .game-shell {
+            display: grid;
+            grid-template-rows: auto auto 1fr auto;
+            width: 100%;
+            max-width: 1280px;
+            height: 100%;
+            margin: 0 auto;
+            padding: 8px 12px 12px;
+            gap: 8px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 1. TOP HUD BAR */
+        .hud-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 16px;
+            padding: 8px 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .brand-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 10px rgba(234, 88, 12, 0.35);
+        }
+
+        .brand-title {
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: #1e293b;
+            line-height: 1.1;
+        }
+
+        .brand-sub {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #4f46e5;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .stats-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .stat-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.92rem;
+        }
+
+        .pill-lives {
+            background: #fff1f2;
+            border: 2px solid #fecdd3;
+            color: #e11d48;
+        }
+
+        .hearts-row {
+            display: flex;
+            gap: 3px;
+            font-size: 1.15rem;
+        }
+
+        .pill-score {
+            background: #ecfdf5;
+            border: 2px solid #a7f3d0;
+            color: #047857;
+        }
+
+        .pill-record {
+            background: #fffbeb;
+            border: 2px solid #fde68a;
+            color: #b45309;
+        }
+
+        .pill-question {
+            background: #eef2ff;
+            border: 2px solid #c7d2fe;
+            color: #4338ca;
+        }
+
+        .tools-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tool-btn {
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 800;
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            border-radius: 11px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: transform 0.15s ease, filter 0.15s ease;
+        }
+
+        .tool-btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-rules {
+            background: #e0e7ff;
+            color: #3730a3;
+            border: 2px solid #a5b4fc;
+        }
+
+        .btn-hint {
+            background: #f3e8ff;
+            color: #6b21a8;
+            border: 2px solid #d8b4fe;
+        }
+
+        .btn-sound {
+            background: #f1f5f9;
+            color: #334155;
+            border: 2px solid #cbd5e1;
+        }
+
+        /* 2. FEEDBACK BANNER */
+        .feedback-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 14px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #c7d2fe;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            transition: all 0.25s ease;
+        }
+
+        .feedback-banner.state-success {
+            background: #ecfdf5;
+            border-color: #34d399;
+        }
+
+        .feedback-banner.state-error {
+            background: #fff1f2;
+            border-color: #fb7185;
+        }
+
+        .feedback-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .feedback-badge-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: #e0e7ff;
+            color: #4338ca;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            flex-shrink: 0;
+        }
+
+        .feedback-text-wrap {
+            min-width: 0;
+        }
+
+        .feedback-title {
+            font-weight: 900;
+            font-size: 0.92rem;
+            color: #0f172a;
+        }
+
+        .feedback-sub {
+            font-size: 0.8rem;
+            color: #334155;
+            line-height: 1.25;
+        }
+
+        .thrown-counter {
+            flex-shrink: 0;
+            background: #312e81;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        /* 3. BASKETS ROW (THE 7 HOOPS - GUARANTEED VISIBLE) */
+        .baskets-court {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 0;
+            width: 100%;
+        }
+
+        .baskets-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            width: 100%;
+            align-items: stretch;
+        }
+
+        .basket-hoop-card {
+            position: relative;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 3px solid #cbd5e1;
+            border-radius: 18px;
+            padding: 10px 6px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s, box-shadow 0.2s;
+            overflow: visible;
+        }
+
+        .basket-hoop-card:hover,
+        .basket-hoop-card.aim-target {
+            transform: translateY(-7px) scale(1.03);
+            border-color: #6366f1;
+            box-shadow: 0 16px 28px rgba(79, 70, 229, 0.28);
+        }
+
+        .basket-hoop-card:active {
+            transform: scale(0.96);
+        }
+
+        /* Scored Basket State */
+        .basket-hoop-card.scored {
+            background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+            border-color: #10b981;
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
+        }
+
+        .scored-check-badge {
+            position: absolute;
+            top: -10px;
+            right: -8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #10b981;
+            color: white;
+            font-weight: 900;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 5;
+        }
+
+        /* Backboard */
+        .backboard {
+            width: 92%;
+            background: var(--hoop-bg, #eff6ff);
+            border: 3px solid var(--hoop-color, #2563eb);
+            border-radius: 12px;
+            padding: 6px 4px 10px;
+            text-align: center;
+            position: relative;
+            box-shadow: inset 0 2px 6px rgba(255,255,255,0.8);
+        }
+
+        .backboard-number {
+            font-size: 2.1rem;
+            font-weight: 900;
+            color: var(--hoop-color, #1d4ed8);
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+
+        .backboard-square {
+            width: 36px;
+            height: 20px;
+            border: 2px solid var(--hoop-color, #2563eb);
+            border-bottom: none;
+            margin: 3px auto -10px;
+            opacity: 0.55;
+        }
+
+        /* Rim and Net SVG Container */
+        .hoop-rim-wrap {
+            width: 86px;
+            height: 54px;
+            margin-top: -4px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hoop-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            transform-origin: top center;
+            transition: transform 0.25s ease;
+        }
+
+        .basket-hoop-card.swish-anim .hoop-svg {
+            animation: netSwish 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes netSwish {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.16, 0.78) translateY(3px); }
+            65% { transform: scale(0.93, 1.14); }
+            100% { transform: scale(1, 1); }
+        }
+
+        .hoop-label {
+            font-weight: 900;
+            font-size: 0.9rem;
+            color: #0f172a;
+            margin-top: 2px;
+            text-align: center;
+        }
+
+        .hoop-rule-hint {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #475569;
+            text-align: center;
+            line-height: 1.15;
+            margin: 2px 0 6px;
+            min-height: 2.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hoop-action-pill {
+            width: 100%;
+            padding: 5px 6px;
+            border-radius: 9px;
+            font-size: 0.74rem;
+            font-weight: 900;
+            text-align: center;
+            background: var(--hoop-color, #2563eb);
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .basket-hoop-card.scored .hoop-action-pill {
+            background: #059669;
+        }
+
+        /* Animations on Baskets */
+        @keyframes shakeWrong {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px) rotate(-2deg); }
+            40%, 80% { transform: translateX(8px) rotate(2deg); }
+        }
+
+        .shake-wrong {
+            animation: shakeWrong 0.45s ease-in-out;
+        }
+
+        @keyframes pulseMissedHoop {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.85); border-color: #f59e0b; }
+            50% { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(245, 158, 11, 0); border-color: #ef4444; }
+        }
+
+        .pulse-missed {
+            animation: pulseMissedHoop 0.65s ease-in-out 3;
+        }
+
+        /* 4. BOTTOM LAUNCHER DOCK (BALL + TAMAM BUTTON + HINT CARD) */
+        .launcher-dock {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 16px;
+            background: rgba(255, 255, 255, 0.92);
+            border: 2px solid #cbd5e1;
+            border-radius: 22px;
+            padding: 10px 20px;
+            box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.1);
+        }
+
+        .dock-left {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .analysis-box {
+            background: #f3e8ff;
+            border: 2px solid #c084fc;
+            border-radius: 14px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            color: #3b0764;
+            width: 100%;
+            max-width: 310px;
+        }
+
+        .analysis-title {
+            font-weight: 900;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #7e22ce;
+            margin-bottom: 3px;
+        }
+
+        .guide-tip {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #334155;
+            background: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* THE BASKETBALL LAUNCHER */
+        .ball-stage {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ball-shadow {
+            position: absolute;
+            bottom: -6px;
+            width: 96px;
+            height: 16px;
+            background: rgba(15, 23, 42, 0.22);
+            border-radius: 50%;
+            filter: blur(4px);
+        }
+
+        .basketball {
+            width: 128px;
+            height: 128px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 32% 28%, #fbbf24 0%, #f97316 48%, #c2410c 88%, #7c2d12 100%);
+            border: 4px solid #fff7ed;
+            box-shadow:
+                0 12px 25px rgba(234, 88, 12, 0.45),
+                inset 0 -8px 14px rgba(0, 0, 0, 0.35),
+                inset 0 8px 14px rgba(255, 255, 255, 0.45);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            cursor: grab;
+            position: relative;
+            touch-action: none;
+            animation: floatBall 2.8s ease-in-out infinite;
+            transition: transform 0.18s ease;
+            overflow: hidden;
+        }
+
+        /* Basketball seam lines overlay */
+        .basketball::before {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            border-radius: 50%;
+            border: 2px solid rgba(67, 20, 7, 0.22);
+            pointer-events: none;
+        }
+
+        .basketball.dragging {
+            animation: none;
+            cursor: grabbing;
+            z-index: 60;
+            box-shadow: 0 22px 38px rgba(0, 0, 0, 0.4);
+        }
+
+        @keyframes floatBall {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .ball-tag {
+            font-size: 0.62rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: rgba(0, 0, 0, 0.28);
+            padding: 2px 8px;
+            border-radius: 99px;
+            margin-bottom: 2px;
+        }
+
+        .ball-number {
+            font-size: 2.35rem;
+            font-weight: 900;
+            line-height: 1.05;
+            text-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+            letter-spacing: -0.02em;
+        }
+
+        .ball-digits-pill {
+            font-size: 0.65rem;
+            font-weight: 800;
+            background: rgba(255, 255, 255, 0.22);
+            padding: 1px 8px;
+            border-radius: 99px;
+            margin-top: 2px;
+        }
+
+        /* Right Side: TAMAM Button */
+        .dock-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .done-button {
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            padding: 14px 22px;
+            border-radius: 18px;
+            border-bottom: 5px solid #047857;
+            box-shadow: 0 10px 22px rgba(16, 185, 129, 0.35);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: transform 0.15s ease, filter 0.15s ease;
+        }
+
+        .done-button:hover {
+            filter: brightness(1.05);
+            transform: translateY(-2px);
+        }
+
+        .done-button:active {
+            transform: translateY(2px);
+            border-bottom-width: 2px;
+        }
+
+        .done-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 900;
+        }
+
+        .done-main-txt {
+            font-size: 1.15rem;
+            font-weight: 900;
+            text-align: left;
+            line-height: 1.1;
+        }
+
+        .done-sub-txt {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #d1fae5;
+            text-align: left;
+        }
+
+        /* TRANSPARENT OVERLAY CANVAS FOR CURVED SHOTS & TRAILS */
+        #throwCanvas {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 45;
+            background: transparent;
+        }
+
+        /* FLOATING SCORE POPUP */
+        @keyframes floatPointAnim {
+            0% { opacity: 1; transform: translateY(0) scale(0.85); }
+            50% { opacity: 1; transform: translateY(-26px) scale(1.1); }
+            100% { opacity: 0; transform: translateY(-48px) scale(1); }
+        }
+
+        .floating-point {
+            position: fixed;
+            z-index: 70;
+            pointer-events: none;
+            font-weight: 900;
+            font-size: 1.25rem;
+            padding: 4px 12px;
+            border-radius: 99px;
+            background: #ffffff;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+            animation: floatPointAnim 0.95s ease-out forwards;
+        }
+
+        /* MODALS */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(4px);
+            z-index: 80;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-backdrop.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            border-radius: 24px;
+            max-width: 680px;
+            width: 100%;
+            max-height: 88vh;
+            overflow-y: auto;
+            padding: 22px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 3px solid #e2e8f0;
+        }
+
+        .rules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 10px;
+            margin: 14px 0;
+        }
+
+        .rule-item {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 10px;
+            border-radius: 14px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+        }
+
+        .rule-badge {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            color: #fff;
+            font-weight: 900;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .primary-modal-btn {
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            background: #4f46e5;
+            color: white;
+            font-weight: 900;
+            font-size: 1.05rem;
+            padding: 13px;
+            border-radius: 14px;
+            margin-top: 10px;
+        }
+
+        /* RESPONSIVE BREAKPOINTS FOR TABLETS & MOBILE */
+        @media (max-width: 980px) {
+            html, body {
+                overflow-y: auto;
+                height: auto;
+                min-height: 100vh;
+            }
+            .game-shell {
+                height: auto;
+                min-height: 100vh;
+            }
+            .baskets-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            .launcher-dock {
+                grid-template-columns: 1fr;
+                justify-items: center;
+                text-align: center;
+                gap: 10px;
+            }
+            .dock-left, .dock-right {
+                width: 100%;
+                justify-content: center;
+                align-items: center;
+            }
+            .done-button {
+                width: 100%;
+                max-width: 340px;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .baskets-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            .backboard-number {
+                font-size: 1.7rem;
+            }
+            .hoop-rim-wrap {
+                width: 72px;
+                height: 44px;
+            }
+            .basketball {
+                width: 108px;
+                height: 108px;
+            }
+            .ball-number {
+                font-size: 1.95rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-shell">
+        <!-- 1. TOP HUD BAR -->
+        <header class="hud-bar">
+            <div class="brand-box">
+                <div class="brand-icon">🏀</div>
+                <div>
+                    <div class="brand-sub">6. Sınıf Matematik</div>
+                    <h1 class="brand-title">Bölünebilme Sepeti</h1>
+                </div>
+            </div>
+
+            <div class="stats-group">
+                <div class="stat-pill pill-question" id="questionBadge">Soru #1</div>
+                <div class="stat-pill pill-lives" title="Kalan Can">
+                    <span>Can:</span>
+                    <div class="hearts-row" id="livesContainer">❤️❤️❤️</div>
+                </div>
+                <div class="stat-pill pill-score">
+                    <span>⭐ Puan:</span>
+                    <span id="scoreDisplay">0</span>
+                </div>
+                <div class="stat-pill pill-record">
+                    <span>🏆 Rekor:</span>
+                    <span id="highScoreDisplay">0</span>
+                </div>
+            </div>
+
+            <div class="tools-group">
+                <button type="button" class="tool-btn btn-rules" onclick="toggleRulesModal(true)">📖 Kurallar</button>
+                <button type="button" class="tool-btn btn-hint" onclick="toggleHintPanel()">✨ İpucu</button>
+                <button type="button" class="tool-btn btn-sound" id="soundBtn" onclick="toggleSound()">🔊 Ses</button>
+            </div>
+        </header>
+
+        <!-- 2. FEEDBACK BANNER -->
+        <div id="feedbackBanner" class="feedback-banner">
+            <div class="feedback-left">
+                <div id="feedbackIcon" class="feedback-badge-icon">👆</div>
+                <div class="feedback-text-wrap">
+                    <div id="feedbackTitle" class="feedback-title">Topu tam bölünebildiği tüm basket sepetlerine at!</div>
+                    <div id="feedbackSub" class="feedback-sub">Sepetlere doğrudan tıklayabilir veya topu sürükleyip bırakabilirsin. Başka böleni kalmadığında <b>"TAMAM"</b> butonuna bas.</div>
+                </div>
+            </div>
+            <div class="thrown-counter">
+                İsabetli Sepet: <span id="thrownCount">0</span>
+            </div>
+        </div>
+
+        <!-- 3. THE 7 BASKETS COURT (2, 3, 4, 5, 6, 9, 10) -->
+        <section class="baskets-court" aria-label="Bölünebilme Sepetleri">
+            <div id="basketsContainer" class="baskets-grid">
+                <!-- Populated immediately by JS -->
+            </div>
+        </section>
+
+        <!-- 4. BOTTOM BALL LAUNCHER & "TAMAM" BUTTON -->
+        <section class="launcher-dock">
+            <div class="dock-left">
+                <div id="hintPanel" class="analysis-box" style="display: none;">
+                    <div class="analysis-title">✨ Pratik Bölünebilme Analizi</div>
+                    <div>• <b>Birler Basamağı:</b> <span id="hintLastDigit">-</span></div>
+                    <div>• <b>Son 2 Basamak:</b> <span id="hintLastTwo">-</span></div>
+                    <div>• <b>Rakamları Toplamı:</b> <span id="hintDigitSum">-</span></div>
+                </div>
+                <div id="defaultPrompt" class="guide-tip">
+                    🎯 <b>Nasıl Oynanır?</b> Yukarıdaki 7 sepetten bu sayıyı tam bölenlerin üzerine tıkla veya topu fırlat!
+                </div>
+            </div>
+
+            <div class="ball-stage">
+                <div class="ball-shadow"></div>
+                <div id="numberBall" class="basketball">
+                    <span class="ball-tag">SAYI TOPU</span>
+                    <span id="ballNumberText" class="ball-number">360</span>
+                    <span id="ballDigitsBadge" class="ball-digits-pill">3 Basamaklı</span>
+                </div>
+            </div>
+
+            <div class="dock-right">
+                <button type="button" id="doneBtn" class="done-button" onclick="handleDoneClick()">
+                    <div class="done-icon">✓</div>
+                    <div>
+                        <div class="done-main-txt">TAMAM</div>
+                        <div class="done-sub-txt">Başka Böleni Yok (+10 Puan)</div>
+                    </div>
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <!-- TRANSPARENT PARABOLIC SHOT & TRAIL CANVAS -->
+    <canvas id="throwCanvas"></canvas>
+
+    <!-- MODAL 1: DIVISIBILITY RULES -->
+    <div id="rulesModal" class="modal-backdrop">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="font-size:1.35rem; font-weight:900;">📖 6. Sınıf Bölünebilme Kuralları</h2>
+                <button type="button" onclick="toggleRulesModal(false)" style="border:none; background:#e2e8f0; width:36px; height:36px; border-radius:10px; font-weight:900; cursor:pointer;">✕</button>
+            </div>
+            <div class="rules-grid">
+                <div class="rule-item">
+                    <div class="rule-badge" style="background:#0284c7;">2</div>
+                    <div><b>2 ile Bölünebilme:</b><br><span style="font-size:0.85rem;">Birler basamağı <b>çift</b> (0, 2, 4, 6, 8) olan sayılar tam bölünür.</span></div>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-badge" style="background:#059669;">3</div>
+                    <div><b>3 ile Bölünebilme:</b><br><span style="font-size:0.85rem;"><b>Rakamları toplamı</b> 3 veya 3'ün katı olan sayılar tam bölünür.</span></div>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-badge" style="background:#7c3aed;">4</div>
+                    <div><b>4 ile Bölünebilme:</b><br><span style="font-size:0.85rem;"><b>Son iki basamağı</b> 00 veya 4'ün katı olan sayılar tam bölünür.</span></div>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-badge" style="background:#d97706;">5</div>
+                    <div><b>5 ile Bölünebilme:</b><br><span style="font-size:0.85rem;">Birler basamağı <b>0 veya 5</b> olan sayılar tam bölünür.</span></div>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-badge" style="background:#e11d48;">6</div>
+                    <div><b>6 ile Bölünebilme:</b><br><span style="font-size:0.85rem;">Hem <b>2'ye</b> hem de <b>3'e</b> aynı anda bölünen sayılar 6'ya tam bölünür.</span></div>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-badge" style="background:#c026d3;">9</div>
+                    <div><b>9 ile Bölünebilme:</b><br><span style="font-size:0.85rem;"><b>Rakamları toplamı</b> 9 veya 9'un katı olan sayılar tam bölünür.</span></div>
+                </div>
+                <div class="rule-item" style="grid-column: 1 / -1;">
+                    <div class="rule-badge" style="background:#0891b2;">10</div>
+                    <div><b>10 ile Bölünebilme:</b><br><span style="font-size:0.85rem;">Birler basamağı <b>0</b> olan sayılar 10'a tam bölünür. (Sonu 0 olan sayılar 2 ve 5'e de bölünür!)</span></div>
+                </div>
+            </div>
+            <button type="button" class="primary-modal-btn" onclick="toggleRulesModal(false)">Anladım, Oyuna Dön</button>
+        </div>
+    </div>
+
+    <!-- MODAL 2: MISSED BASKETS ALERT -->
+    <div id="missedModal" class="modal-backdrop">
+        <div class="modal-card" style="max-width:440px; text-align:center;">
+            <div style="font-size:3rem;">⚠️</div>
+            <h3 style="font-size:1.4rem; font-weight:900; margin-top:4px;">Eksik Sepet Bıraktın!</h3>
+            <p id="missedModalText" style="margin:10px 0; color:#334155; font-size:0.95rem;"></p>
+            <div id="missedBadgesWrap" style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:12px 0;"></div>
+            <div style="background:#fff1f2; color:#e11d48; border:1px solid #fecdd3; padding:8px; border-radius:10px; font-weight:800; font-size:0.85rem; margin-bottom:10px;">
+                💔 1 Can Kaybettin
+            </div>
+            <button type="button" class="primary-modal-btn" onclick="closeMissedModalAndContinue()">Sıradaki Topa Geç ➔</button>
+        </div>
+    </div>
+
+    <!-- MODAL 3: GAME OVER -->
+    <div id="gameOverModal" class="modal-backdrop">
+        <div class="modal-card" style="max-width:440px; text-align:center;">
+            <div style="font-size:3.4rem;">🏅</div>
+            <h2 style="font-size:1.6rem; font-weight:900; margin-top:4px;">Oyun Bitti!</h2>
+            <p id="gameOverMsg" style="color:#475569; margin:6px 0 14px; font-size:0.95rem;"></p>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; background:#f8fafc; padding:12px; border-radius:16px; border:2px solid #e2e8f0; margin-bottom:14px;">
+                <div>
+                    <div style="font-size:0.7rem; font-weight:800; color:#64748b;">PUAN</div>
+                    <div id="finalScoreText" style="font-size:1.45rem; font-weight:900; color:#059669;">0</div>
+                </div>
+                <div>
+                    <div style="font-size:0.7rem; font-weight:800; color:#64748b;">REKOR</div>
+                    <div id="finalHighScoreText" style="font-size:1.45rem; font-weight:900; color:#d97706;">0</div>
+                </div>
+                <div>
+                    <div style="font-size:0.7rem; font-weight:800; color:#64748b;">TAMAMLANAN</div>
+                    <div id="finalBallsText" style="font-size:1.45rem; font-weight:900; color:#4f46e5;">0</div>
+                </div>
+            </div>
+            <button type="button" class="primary-modal-btn" onclick="startNewGame()">🔄 Tekrar Oyna</button>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================================
+           1. THE 7 BASKETS CONFIGURATION (2, 3, 4, 5, 6, 9, 10)
+           ========================================================= */
+        const BASKETS = [
+            { divisor: 2,  label: "2'ye Bölünür",  shortRule: "Sonu çift (0,2,4,6,8)", color: "#0284c7", bg: "#e0f2fe" },
+            { divisor: 3,  label: "3'e Bölünür",   shortRule: "Rakam toplamı 3'ün katı", color: "#059669", bg: "#d1fae5" },
+            { divisor: 4,  label: "4'e Bölünür",   shortRule: "Son 2 basamak 00 / 4k", color: "#7c3aed", bg: "#ede9fe" },
+            { divisor: 5,  label: "5'e Bölünür",   shortRule: "Son basamak 0 veya 5", color: "#d97706", bg: "#fef3c7" },
+            { divisor: 6,  label: "6'ya Bölünür",  shortRule: "Hem 2'ye hem 3'e bölünür", color: "#e11d48", bg: "#ffe4e6" },
+            { divisor: 9,  label: "9'a Bölünür",   shortRule: "Rakam toplamı 9'un katı", color: "#c026d3", bg: "#fae8ff" },
+            { divisor: 10, label: "10'a Bölünür",  shortRule: "Birler basamağı 0", color: "#0891b2", bg: "#cffafe" }
+        ];
+
+        const state = {
+            score: 0,
+            highScore: 0,
+            lives: 3,
+            maxLives: 3,
+            questionIndex: 1,
+            completedBalls: 0,
+            currentNumber: 360,
+            validDivisors: [],
+            foundDivisors: new Set(),
+            inFlightDivisors: new Set(),
+            isLocked: false,
+            soundEnabled: true,
+            hintVisible: false
+        };
+
+        /* =========================================================
+           2. RENDER THE 7 BASKETBALL HOOPS
+           ========================================================= */
+        function renderBaskets() {
+            const container = document.getElementById('basketsContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            BASKETS.forEach(basket => {
+                const isScored = state.foundDivisors.has(basket.divisor);
+                const card = document.createElement('div');
+                card.id = `basket-${basket.divisor}`;
+                card.dataset.divisor = basket.divisor;
+                card.className = `basket-hoop-card ${isScored ? 'scored' : ''}`;
+                card.style.setProperty('--hoop-color', basket.color);
+                card.style.setProperty('--hoop-bg', basket.bg);
+
+                card.onclick = () => evaluateBasketThrow(basket.divisor);
+                card.onpointerenter = () => { hoveredBasketDivisor = basket.divisor; };
+                card.onpointerleave = () => {
+                    if (hoveredBasketDivisor === basket.divisor) hoveredBasketDivisor = null;
+                };
+
+                card.innerHTML = `
+                    ${isScored ? `<div class="scored-check-badge">✓</div>` : ''}
+                    <div class="backboard">
+                        <div class="backboard-number">${basket.divisor}</div>
+                        <div class="backboard-square"></div>
+                    </div>
+                    <div class="hoop-rim-wrap" id="rim-${basket.divisor}">
+                        <svg class="hoop-svg" viewBox="0 0 100 62" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Net cords -->
+                            <path d="M16 10 L26 56 L50 59 L74 56 L84 10" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M18 10 L38 57 M34 10 L55 58 M50 10 L70 56 M66 10 L76 42" stroke="#e2e8f0" stroke-width="2.2"/>
+                            <path d="M82 10 L62 57 M66 10 L45 58 M50 10 L30 56 M34 10 L24 42" stroke="#cbd5e1" stroke-width="2.2"/>
+                            <path d="M21 26 H79 M24 41 H76" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4 4"/>
+                            <!-- Orange Metallic Basketball Rim -->
+                            <rect x="8" y="4" width="84" height="9" rx="4.5" fill="#ea580c" stroke="#9a3412" stroke-width="2"/>
+                            <line x1="18" y1="7" x2="82" y2="7" stroke="#fdba74" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="hoop-label">${basket.label}</div>
+                    <div class="hoop-rule-hint">${basket.shortRule}</div>
+                    <div class="hoop-action-pill">${isScored ? 'ATILDI ✓' : 'SEPETE AT'}</div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        /* =========================================================
+           3. PARABOLIC SHOT & CURVED TRAIL ENGINE (CANVAS)
+           ========================================================= */
+        const throwCanvas = document.getElementById('throwCanvas');
+        const throwCtx = throwCanvas.getContext('2d');
+        let activeProjectiles = [];
+        let trailParticles = [];
+        let fadingArcs = [];
+        let impactParticles = [];
+        let hoveredBasketDivisor = null;
+
+        function resizeThrowCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            throwCanvas.width = window.innerWidth * dpr;
+            throwCanvas.height = window.innerHeight * dpr;
+            throwCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener('resize', resizeThrowCanvas);
+
+        function getQuadraticBezierPoint(t, p0, p1, p2) {
+            const u = 1 - t;
+            return {
+                x: u * u * p0.x + 2 * u * t * p1.x + t * t * p2.x,
+                y: u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y
+            };
+        }
+
+        function computeArcControlPoint(start, end) {
+            const midX = (start.x + end.x) * 0.5;
+            const highestY = Math.min(start.y, end.y);
+            const horizontalDist = Math.abs(end.x - start.x);
+            const arcLift = Math.max(120, Math.min(240, 100 + horizontalDist * 0.25));
+            return {
+                x: midX,
+                y: Math.max(24, highestY - arcLift)
+            };
+        }
+
+        function getElementCenter(el) {
+            if (!el) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+            const r = el.getBoundingClientRect();
+            return {
+                x: r.left + r.width / 2,
+                y: r.top + r.height / 2
+            };
+        }
+
+        function spawnImpactBurst(x, y, isSuccess) {
+            const palette = isSuccess
+                ? ['#10b981', '#34d399', '#fbbf24', '#38bdf8', '#a78bfa']
+                : ['#ef4444', '#fb7185', '#f59e0b'];
+            const count = isSuccess ? 28 : 18;
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.35;
+                const speed = (isSuccess ? 3.2 : 2.6) + Math.random() * 5;
+                impactParticles.push({
+                    x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 2,
+                    radius: 3.5 + Math.random() * 4,
+                    color: palette[Math.floor(Math.random() * palette.length)],
+                    alpha: 1,
+                    decay: 0.025 + Math.random() * 0.015
+                });
+            }
+        }
+
+        function launchParabolicBall(divisor, startCoords, onImpactCallback) {
+            const ballEl = document.getElementById('numberBall');
+            const rimEl = document.getElementById(`rim-${divisor}`) || document.getElementById(`basket-${divisor}`);
+            const start = startCoords || getElementCenter(ballEl);
+            const end = getElementCenter(rimEl);
+            const control = computeArcControlPoint(start, end);
+            const isDivisible = state.currentNumber % divisor === 0;
+
+            playSound('whoosh');
+
+            activeProjectiles.push({
+                divisor,
+                numberText: String(state.currentNumber),
+                p0: start,
+                p1: control,
+                p2: end,
+                startTime: performance.now(),
+                duration: 540,
+                isDivisible,
+                sampledPath: [{ x: start.x, y: start.y }],
+                lastParticleTime: 0,
+                phase: 'flight',
+                onImpactCallback
+            });
+        }
+
+        function drawCurvedRibbonTrail(points, baseAlpha, isSuccess) {
+            if (!points || points.length < 2) return;
+            throwCtx.save();
+
+            // Glowing outer comet ribbon
+            for (let i = 1; i < points.length; i++) {
+                const progress = i / points.length;
+                const prev = points[i - 1];
+                const curr = points[i];
+                throwCtx.beginPath();
+                throwCtx.moveTo(prev.x, prev.y);
+                throwCtx.lineTo(curr.x, curr.y);
+                throwCtx.lineCap = 'round';
+                throwCtx.lineWidth = 3 + progress * 14;
+                throwCtx.strokeStyle = isSuccess
+                    ? `rgba(251, 191, 36, ${baseAlpha * progress * 0.55})`
+                    : `rgba(244, 63, 94, ${baseAlpha * progress * 0.55})`;
+                throwCtx.stroke();
+            }
+
+            // Inner bright dashed curve ("bombeli iz")
+            throwCtx.beginPath();
+            throwCtx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                throwCtx.lineTo(points[i].x, points[i].y);
+            }
+            throwCtx.setLineDash([7, 8]);
+            throwCtx.lineCap = 'round';
+            throwCtx.lineWidth = 3.5;
+            throwCtx.strokeStyle = `rgba(255, 255, 255, ${baseAlpha * 0.9})`;
+            throwCtx.stroke();
+            throwCtx.restore();
+        }
+
+        function drawFlyingBasketball(x, y, radius, rotation, numberText, isErrorTint = false) {
+            throwCtx.save();
+            throwCtx.translate(x, y);
+            throwCtx.rotate(rotation);
+
+            const grad = throwCtx.createRadialGradient(-radius * 0.3, -radius * 0.3, radius * 0.1, 0, 0, radius);
+            if (isErrorTint) {
+                grad.addColorStop(0, '#fda4af');
+                grad.addColorStop(0.55, '#ef4444');
+                grad.addColorStop(1, '#991b1b');
+            } else {
+                grad.addColorStop(0, '#fde68a');
+                grad.addColorStop(0.5, '#f97316');
+                grad.addColorStop(1, '#9a3412');
+            }
+
+            throwCtx.beginPath();
+            throwCtx.arc(0, 0, radius, 0, Math.PI * 2);
+            throwCtx.fillStyle = grad;
+            throwCtx.fill();
+
+            throwCtx.lineWidth = 2.5;
+            throwCtx.strokeStyle = '#ffffff';
+            throwCtx.stroke();
+
+            throwCtx.fillStyle = '#ffffff';
+            throwCtx.font = `900 ${Math.max(11, Math.round(radius * 0.55))}px system-ui, sans-serif`;
+            throwCtx.textAlign = 'center';
+            throwCtx.textBaseline = 'middle';
+            throwCtx.fillText(numberText, 0, 1);
+
+            throwCtx.restore();
+        }
+
+        function updateAndRenderThrowCanvas(now) {
+            throwCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+            // 1. Dotted aiming arc preview when pointing at a basket
+            if (hoveredBasketDivisor !== null && !state.isLocked && !state.foundDivisors.has(hoveredBasketDivisor)) {
+                const ballEl = document.getElementById('numberBall');
+                const rimEl = document.getElementById(`rim-${hoveredBasketDivisor}`) || document.getElementById(`basket-${hoveredBasketDivisor}`);
+                if (ballEl && rimEl) {
+                    const p0 = getElementCenter(ballEl);
+                    const p2 = getElementCenter(rimEl);
+                    const p1 = computeArcControlPoint(p0, p2);
+
+                    throwCtx.save();
+                    throwCtx.beginPath();
+                    throwCtx.moveTo(p0.x, p0.y);
+                    throwCtx.quadraticCurveTo(p1.x, p1.y, p2.x, p2.y);
+                    throwCtx.setLineDash([8, 8]);
+                    throwCtx.lineDashOffset = -(now * 0.04) % 16;
+                    throwCtx.lineWidth = 3.5;
+                    throwCtx.strokeStyle = 'rgba(249, 115, 22, 0.65)';
+                    throwCtx.stroke();
+                    throwCtx.restore();
+                }
+            }
+
+            // 2. Lingering curved shot traces
+            for (let i = fadingArcs.length - 1; i >= 0; i--) {
+                const arc = fadingArcs[i];
+                arc.alpha -= 0.022;
+                if (arc.alpha <= 0) {
+                    fadingArcs.splice(i, 1);
+                    continue;
+                }
+                drawCurvedRibbonTrail(arc.points, arc.alpha, arc.isSuccess);
+            }
+
+            // 3. Sparkling comet trail particles
+            for (let i = trailParticles.length - 1; i >= 0; i--) {
+                const pt = trailParticles[i];
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.alpha -= pt.decay;
+                pt.radius *= 0.985;
+                if (pt.alpha <= 0.02) {
+                    trailParticles.splice(i, 1);
+                    continue;
+                }
+                throwCtx.save();
+                throwCtx.globalAlpha = pt.alpha;
+                throwCtx.beginPath();
+                throwCtx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+                throwCtx.fillStyle = pt.color;
+                throwCtx.fill();
+                throwCtx.restore();
+            }
+
+            // 4. Active flying basketballs
+            for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+                const proj = activeProjectiles[i];
+                if (proj.phase === 'flight') {
+                    const elapsed = now - proj.startTime;
+                    const rawT = Math.min(1, elapsed / proj.duration);
+                    const t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
+
+                    const pos = getQuadraticBezierPoint(t, proj.p0, proj.p1, proj.p2);
+                    proj.sampledPath.push({ x: pos.x, y: pos.y });
+
+                    drawCurvedRibbonTrail(proj.sampledPath, 0.95, true);
+
+                    if (now - proj.lastParticleTime > 16) {
+                        proj.lastParticleTime = now;
+                        trailParticles.push({
+                            x: pos.x + (Math.random() - 0.5) * 10,
+                            y: pos.y + (Math.random() - 0.5) * 10,
+                            vx: (Math.random() - 0.5) * 0.9,
+                            vy: (Math.random() - 0.5) * 0.9 + 0.3,
+                            radius: 4 + Math.random() * 4,
+                            color: Math.random() > 0.4 ? '#fbbf24' : '#ffffff',
+                            alpha: 0.9,
+                            decay: 0.03
+                        });
+                    }
+
+                    const arcScale = (1 - t * 0.38) + Math.sin(t * Math.PI) * 0.22;
+                    const rot = t * Math.PI * 2.2 * (proj.p2.x >= proj.p0.x ? 1 : -1);
+                    drawFlyingBasketball(pos.x, pos.y, 34 * arcScale, rot, proj.numberText);
+
+                    if (rawT >= 1) {
+                        fadingArcs.push({
+                            points: proj.sampledPath.slice(),
+                            alpha: 0.85,
+                            isSuccess: proj.isDivisible
+                        });
+                        spawnImpactBurst(proj.p2.x, proj.p2.y, proj.isDivisible);
+
+                        if (proj.onImpactCallback) proj.onImpactCallback();
+
+                        if (proj.isDivisible) {
+                            activeProjectiles.splice(i, 1);
+                        } else {
+                            proj.phase = 'rimBounce';
+                            proj.bounceX = proj.p2.x;
+                            proj.bounceY = proj.p2.y;
+                            proj.vx = (proj.p2.x >= proj.p0.x ? 1 : -1) * 5;
+                            proj.vy = -6;
+                            proj.alpha = 1;
+                            proj.rotation = rot;
+                        }
+                    }
+                } else if (proj.phase === 'rimBounce') {
+                    proj.bounceX += proj.vx;
+                    proj.bounceY += proj.vy;
+                    proj.vy += 0.55;
+                    proj.rotation += 0.2;
+                    proj.alpha -= 0.045;
+                    if (proj.alpha <= 0) {
+                        activeProjectiles.splice(i, 1);
+                        continue;
+                    }
+                    throwCtx.save();
+                    throwCtx.globalAlpha = Math.max(0, proj.alpha);
+                    drawFlyingBasketball(proj.bounceX, proj.bounceY, 24, proj.rotation, proj.numberText, true);
+                    throwCtx.restore();
+                }
+            }
+
+            // 5. Impact confetti / sparks
+            for (let i = impactParticles.length - 1; i >= 0; i--) {
+                const p = impactParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) {
+                    impactParticles.splice(i, 1);
+                    continue;
+                }
+                throwCtx.save();
+                throwCtx.globalAlpha = p.alpha;
+                throwCtx.beginPath();
+                throwCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                throwCtx.fillStyle = p.color;
+                throwCtx.fill();
+                throwCtx.restore();
+            }
+
+            requestAnimationFrame(updateAndRenderThrowCanvas);
+        }
+
+        /* =========================================================
+           4. SOUND SYNTHESIS (WEB AUDIO API)
+           ========================================================= */
+        let audioCtx = null;
+        function playSound(type) {
+            if (!state.soundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) audioCtx = new AudioContext();
+                }
+                if (!audioCtx) return;
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+
+                if (type === 'whoosh') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(210, now);
+                    osc.frequency.exponentialRampToValueAtTime(440, now + 0.16);
+                    osc.frequency.exponentialRampToValueAtTime(170, now + 0.4);
+                    gain.gain.setValueAtTime(0.01, now);
+                    gain.gain.linearRampToValueAtTime(0.12, now + 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.42);
+                } else if (type === 'correct') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.12);
+                    gain.gain.setValueAtTime(0.22, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'wrong') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.linearRampToValueAtTime(110, now + 0.26);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'complete') {
+                    [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+                        gain.gain.setValueAtTime(0.18, now + idx * 0.07);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.24);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + idx * 0.07);
+                        osc.stop(now + idx * 0.07 + 0.24);
+                    });
+                }
+            } catch (e) {}
+        }
+
+        function toggleSound() {
+            state.soundEnabled = !state.soundEnabled;
+            document.getElementById('soundBtn').textContent = state.soundEnabled ? '🔊 Ses' : '🔇 Sessiz';
+        }
+
+        /* =========================================================
+           5. NUMBER GENERATOR & EXPLANATIONS
+           ========================================================= */
+        function generateSmartNumber() {
+            const isFourDigit = Math.random() < 0.25;
+            const min = isFourDigit ? 1000 : 100;
+            const max = isFourDigit ? 4999 : 999;
+            const roll = Math.random();
+            let candidate = 360;
+
+            if (roll < 0.15) {
+                do {
+                    candidate = Math.floor(Math.random() * (max - min + 1)) + min;
+                } while (candidate % 2 === 0 || candidate % 3 === 0 || candidate % 5 === 0);
+            } else if (roll < 0.45) {
+                const mults = [18, 36, 45, 60, 72, 90];
+                const m = mults[Math.floor(Math.random() * mults.length)];
+                const minF = Math.ceil(min / m);
+                const maxF = Math.floor(max / m);
+                candidate = m * (Math.floor(Math.random() * (maxF - minF + 1)) + minF);
+            } else {
+                candidate = Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+            return candidate;
+        }
+
+        function getDigitsBreakdownString(num) {
+            const digits = String(num).split('');
+            const sum = digits.reduce((acc, d) => acc + parseInt(d, 10), 0);
+            return `${digits.join(' + ')} = ${sum}`;
+        }
+
+        function getWhyNotDivisibleExplanation(num, divisor) {
+            const lastDigit = num % 10;
+            const lastTwo = String(num).slice(-2);
+            const sumStr = getDigitsBreakdownString(num);
+            switch (divisor) {
+                case 2: return `${num} sayısının birler basamağı (${lastDigit}) çift olmadığı için 2'ye tam bölünmez.`;
+                case 3: return `${num} sayısının rakamları toplamı (${sumStr}) 3'ün katı olmadığı için 3'e tam bölünmez.`;
+                case 4: return `${num} sayısının son iki basamağı (${lastTwo}) 4'ün katı olmadığı için 4'e tam bölünmez.`;
+                case 5: return `${num} sayısının birler basamağı (${lastDigit}) 0 veya 5 olmadığı için 5'e tam bölünmez.`;
+                case 6: return `${num} sayısı hem 2'ye hem 3'e aynı anda bölünemediği için 6'ya tam bölünmez.`;
+                case 9: return `${num} sayısının rakamları toplamı (${sumStr}) 9'un katı olmadığı için 9'a tam bölünmez.`;
+                case 10: return `${num} sayısının birler basamağı (${lastDigit}) 0 olmadığı için 10'a tam bölünmez.`;
+                default: return `${num} sayısı ${divisor} ile tam bölünmez.`;
+            }
+        }
+
+        /* =========================================================
+           6. GAMEPLAY & FEEDBACK UPDATES
+           ========================================================= */
+        function updateHUD() {
+            document.getElementById('scoreDisplay').textContent = state.score;
+            if (state.score > state.highScore) {
+                state.highScore = state.score;
+                try { localStorage.setItem('bolunebilme_rekor', String(state.highScore)); } catch (e) {}
+            }
+            document.getElementById('highScoreDisplay').textContent = state.highScore;
+            document.getElementById('questionBadge').textContent = `Soru #${state.questionIndex}`;
+            document.getElementById('thrownCount').textContent = state.foundDivisors.size;
+
+            let heartsHTML = '';
+            for (let i = 0; i < state.maxLives; i++) {
+                heartsHTML += i < state.lives ? '❤️' : '🖤';
+            }
+            document.getElementById('livesContainer').textContent = heartsHTML;
+
+            const n = state.currentNumber;
+            document.getElementById('hintLastDigit').textContent = n % 10;
+            document.getElementById('hintLastTwo').textContent = String(n).slice(-2);
+            document.getElementById('hintDigitSum').textContent = getDigitsBreakdownString(n);
+        }
+
+        function setFeedback(type, title, subtitle) {
+            const banner = document.getElementById('feedbackBanner');
+            const icon = document.getElementById('feedbackIcon');
+            document.getElementById('feedbackTitle').textContent = title;
+            document.getElementById('feedbackSub').innerHTML = subtitle;
+
+            banner.className = 'feedback-banner';
+            if (type === 'success') {
+                banner.classList.add('state-success');
+                icon.textContent = '🏀';
+            } else if (type === 'error') {
+                banner.classList.add('state-error');
+                icon.textContent = '⚠️';
+            } else {
+                icon.textContent = '👆';
+            }
+        }
+
+        function spawnFloatingPoints(targetEl, text, isPositive) {
+            if (!targetEl) return;
+            const r = targetEl.getBoundingClientRect();
+            const el = document.createElement('div');
+            el.className = 'floating-point';
+            el.style.color = isPositive ? '#059669' : '#e11d48';
+            el.style.border = `2px solid ${isPositive ? '#10b981' : '#f43f5e'}`;
+            el.style.left = `${r.left + r.width / 2 - 30}px`;
+            el.style.top = `${r.top + 10}px`;
+            el.textContent = text;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 950);
+        }
+
+        function loadNewBall() {
+            state.isLocked = false;
+            state.foundDivisors.clear();
+            state.inFlightDivisors.clear();
+            state.currentNumber = generateSmartNumber();
+            state.validDivisors = BASKETS.map(b => b.divisor).filter(d => state.currentNumber % d === 0);
+
+            document.getElementById('ballNumberText').textContent = state.currentNumber;
+            document.getElementById('ballDigitsBadge').textContent = `${String(state.currentNumber).length} Basamaklı`;
+
+            renderBaskets();
+            updateHUD();
+        }
+
+        function evaluateBasketThrow(divisor, customStartCoords = null) {
+            if (state.isLocked) return;
+            if (state.foundDivisors.has(divisor) || state.inFlightDivisors.has(divisor)) {
+                setFeedback('neutral', `${divisor} sepetine zaten basket attın!`, `Başka böleni varsa diğer sepetlere at, yoksa <b>"TAMAM"</b> butonuna bas.`);
+                return;
+            }
+
+            state.inFlightDivisors.add(divisor);
+            const isDivisible = state.currentNumber % divisor === 0;
+
+            launchParabolicBall(divisor, customStartCoords, () => {
+                state.inFlightDivisors.delete(divisor);
+                if (state.isLocked) return;
+
+                if (isDivisible) {
+                    state.foundDivisors.add(divisor);
+                    state.score += 10;
+                    playSound('correct');
+                    renderBaskets();
+                    updateHUD();
+
+                    const updatedCard = document.getElementById(`basket-${divisor}`);
+                    if (updatedCard) {
+                        updatedCard.classList.add('swish-anim');
+                        spawnFloatingPoints(updatedCard, '+10', true);
+                    }
+
+                    setFeedback(
+                        'success',
+                        `Harika Basket! ${state.currentNumber} sayısı ${divisor} ile tam bölünür! (+10 Puan)`,
+                        `Başka böleni varsa diğer sepetlere de at, kalmadıysa <b>"TAMAM"</b> butonuna bas.`
+                    );
+                } else {
+                    state.lives -= 1;
+                    playSound('wrong');
+                    updateHUD();
+
+                    const card = document.getElementById(`basket-${divisor}`);
+                    if (card) {
+                        card.classList.remove('shake-wrong');
+                        void card.offsetWidth;
+                        card.classList.add('shake-wrong');
+                        spawnFloatingPoints(card, '-1 ❤️', false);
+                    }
+
+                    setFeedback('error', `Çemberden Döndü! (-1 Can)`, getWhyNotDivisibleExplanation(state.currentNumber, divisor));
+
+                    if (state.lives <= 0) {
+                        state.isLocked = true;
+                        setTimeout(triggerGameOver, 900);
+                    }
+                }
+            });
+        }
+
+        function handleDoneClick() {
+            if (state.isLocked || state.inFlightDivisors.size > 0) return;
+
+            const missed = state.validDivisors.filter(d => !state.foundDivisors.has(d));
+            if (missed.length === 0) {
+                state.isLocked = true;
+                state.score += 10;
+                state.completedBalls += 1;
+                state.questionIndex += 1;
+                playSound('complete');
+                updateHUD();
+
+                spawnFloatingPoints(document.getElementById('doneBtn'), '+10', true);
+
+                if (state.validDivisors.length === 0) {
+                    setFeedback('success', `Tebrikler! ${state.currentNumber} sayısının bu sepetlerde hiç böleni yoktu! (+10 Puan)`, `Yeni sayı topu geliyor...`);
+                } else {
+                    setFeedback('success', `Mükemmel! ${state.currentNumber} sayısının tüm bölenlerini (${state.validDivisors.join(', ')}) buldun! (+10 Puan)`, `Yeni sayı topu geliyor...`);
+                }
+
+                setTimeout(loadNewBall, 1050);
+            } else {
+                state.isLocked = true;
+                state.lives -= 1;
+                playSound('wrong');
+                updateHUD();
+
+                missed.forEach(d => {
+                    const el = document.getElementById(`basket-${d}`);
+                    if (el) el.classList.add('pulse-missed');
+                });
+
+                setFeedback('error', `Eksik Sepet Bıraktın! (-1 Can)`, `${state.currentNumber} sayısı <b>${missed.join(', ')}</b> ile de tam bölünüyordu.`);
+
+                if (state.lives <= 0) {
+                    setTimeout(triggerGameOver, 1100);
+                } else {
+                    showMissedModal(state.currentNumber, missed);
+                }
+            }
+        }
+
+        function showMissedModal(num, missedList) {
+            document.getElementById('missedModalText').innerHTML = `<b>${num}</b> sayısını aşağıdaki sepetlere atmayı unuttun:`;
+            const wrap = document.getElementById('missedBadgesWrap');
+            wrap.innerHTML = '';
+            missedList.forEach(d => {
+                const b = BASKETS.find(x => x.divisor === d);
+                const pill = document.createElement('div');
+                pill.style.cssText = `background:${b.color}; color:#fff; font-weight:900; padding:8px 14px; border-radius:12px;`;
+                pill.textContent = `${d}'ye Bölünür`;
+                wrap.appendChild(pill);
+            });
+            document.getElementById('missedModal').classList.add('active');
+        }
+
+        function closeMissedModalAndContinue() {
+            document.getElementById('missedModal').classList.remove('active');
+            state.questionIndex += 1;
+            loadNewBall();
+        }
+
+        function triggerGameOver() {
+            document.getElementById('finalScoreText').textContent = state.score;
+            document.getElementById('finalHighScoreText').textContent = state.highScore;
+            document.getElementById('finalBallsText').textContent = `${state.completedBalls} Top`;
+            document.getElementById('gameOverMsg').textContent =
+                state.score >= 120
+                    ? 'Harika bir performans! Bölünebilme kurallarını çok iyi kavramışsın!'
+                    : 'Kuralları tekrar gözden geçirip rekorunu kırmaya hazır mısın?';
+            document.getElementById('gameOverModal').classList.add('active');
+        }
+
+        function startNewGame() {
+            document.getElementById('gameOverModal').classList.remove('active');
+            state.score = 0;
+            state.lives = 3;
+            state.questionIndex = 1;
+            state.completedBalls = 0;
+            state.isLocked = false;
+            setFeedback('neutral', 'Yeni oyun başladı! Topu tam bölünebildiği tüm sepetlere at!', 'Sepetlere doğrudan tıklayabilir veya topu sürükleyip bırakabilirsin.');
+            loadNewBall();
+        }
+
+        function toggleRulesModal(show) {
+            document.getElementById('rulesModal').classList.toggle('active', show);
+        }
+
+        function toggleHintPanel() {
+            state.hintVisible = !state.hintVisible;
+            document.getElementById('hintPanel').style.display = state.hintVisible ? 'block' : 'none';
+            document.getElementById('defaultPrompt').style.display = state.hintVisible ? 'none' : 'block';
+        }
+
+        /* =========================================================
+           7. DRAG AND DROP LAUNCHER
+           ========================================================= */
+        function setupDragAndDrop() {
+            const ball = document.getElementById('numberBall');
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let targetDivisor = null;
+
+            ball.addEventListener('pointerdown', (e) => {
+                if (state.isLocked) return;
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                ball.setPointerCapture(e.pointerId);
+                ball.classList.add('dragging');
+            });
+
+            ball.addEventListener('pointermove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                ball.style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
+
+                const elBelow = document.elementFromPoint(e.clientX, e.clientY);
+                const basketCard = elBelow ? elBelow.closest('.basket-hoop-card') : null;
+
+                document.querySelectorAll('.basket-hoop-card').forEach(c => c.classList.remove('aim-target'));
+                if (basketCard && basketCard.dataset.divisor) {
+                    basketCard.classList.add('aim-target');
+                    targetDivisor = parseInt(basketCard.dataset.divisor, 10);
+                    hoveredBasketDivisor = targetDivisor;
+                } else {
+                    targetDivisor = null;
+                    hoveredBasketDivisor = null;
+                }
+            });
+
+            const finishDrag = (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                const releasePos = { x: e.clientX, y: e.clientY };
+                ball.classList.remove('dragging');
+                ball.style.transform = '';
+                document.querySelectorAll('.basket-hoop-card').forEach(c => c.classList.remove('aim-target'));
+                hoveredBasketDivisor = null;
+
+                if (targetDivisor !== null) {
+                    evaluateBasketThrow(targetDivisor, releasePos);
+                    targetDivisor = null;
+                }
+            };
+
+            ball.addEventListener('pointerup', finishDrag);
+            ball.addEventListener('pointercancel', finishDrag);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                const saved = localStorage.getItem('bolunebilme_rekor');
+                if (saved) state.highScore = parseInt(saved, 10) || 0;
+            } catch (e) {}
+
+            resizeThrowCanvas();
+            requestAnimationFrame(updateAndRenderThrowCanvas);
+            setupDragAndDrop();
+            startNewGame();
+        });
+    </script>
+</body>
+</html>

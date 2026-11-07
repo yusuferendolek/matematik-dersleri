@@ -1,0 +1,1197 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bölünebilme Sepeti – Oyun Defteri</title>
+<link rel="stylesheet" href="../ortak/tema.css">
+<script src="../ortak/kabuk.js"></script>
+<style>
+    .oyun { padding: 16px clamp(12px, 2vw, 24px); user-select: none; -webkit-user-select: none; }
+
+    /* başlıktaki Kurallar / İpucu düğmeleri sayaçlarla aynı boyda */
+    .bar-sag .arac { min-height: 40px; padding: 0 12px; gap: 6px; }
+    .bar-sag .arac .svg { width: 20px; height: 20px; }
+    #hintBtn[aria-pressed="true"] { border-color: var(--kalem); color: var(--kalem); }
+
+    /* oyun alanı: bildirim, sepetler, atış yeri */
+    .saha {
+        max-width: 1280px;
+        min-height: 100%;
+        margin: 0 auto;
+        display: grid;
+        grid-template-rows: auto auto;
+        align-content: center;
+        gap: clamp(16px, 6vh, 64px);
+    }
+
+    /* ---------- geri bildirim: deftere kalemle yazılmış not ---------- */
+    .bildirim {
+        padding: 2px 0 2px 12px;
+        border-left: 3px solid currentColor;
+        color: var(--kalem);
+    }
+    .bildirim.dogru { color: var(--dogru); }
+    .bildirim.yanlis { color: var(--yanlis); }
+    .bildirim-baslik { display: block; font-weight: 800; line-height: 1.3; }
+    .bildirim-alt { display: block; color: var(--murekkep); font-size: 15px; line-height: 1.35; margin-top: 2px; }
+    .isabet { flex: none; color: var(--murekkep-2); background: var(--yuzey); }
+    .isabet b { color: var(--murekkep); font-variant-numeric: tabular-nums; }
+
+    /* ---------- yedi sepet ---------- */
+    .sepetler {
+        --ara: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-content: center;
+        gap: var(--ara);
+        padding-top: 12px;
+    }
+    .sepet {
+        --hy: var(--kagit); /* renkli şeritteki yazı */
+        flex: 0 0 calc((100% - 6 * var(--ara)) / 7);
+        min-width: 0;
+        container-type: inline-size;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 10px 6px;
+        border: 1.5px solid var(--kenarlik);
+        border-radius: var(--kose);
+        background: var(--yuzey);
+        color: var(--murekkep);
+        cursor: pointer;
+        transition: transform .2s cubic-bezier(.34, 1.56, .64, 1), border-color .2s, box-shadow .2s;
+    }
+    /* sarı tebeşir/kalem üstünde koyu yazı okunur */
+    .sepet[data-d="9"] { --hy: var(--murekkep); }
+    [data-tema="tahta"] .sepet[data-d="9"] { --hy: var(--kagit); }
+    @media (hover: hover) {
+        .sepet:hover { transform: translateY(-6px); border-color: var(--hc); box-shadow: var(--golge); }
+    }
+    .sepet.nisan { transform: translateY(-6px) scale(1.03); border-color: var(--hc); box-shadow: var(--golge); }
+    .sepet:active { transform: scale(.96); }
+
+    .pano {
+        width: 92%;
+        padding: 6px 4px 10px;
+        border: 2px solid var(--hc);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--hc) 8%, transparent);
+        text-align: center;
+    }
+    .pano-sayi { display: block; font-size: clamp(24px, 26cqw, 46px); font-weight: 800; line-height: 1; color: var(--hc); }
+    .pano-kare { display: block; width: 36%; height: 18px; margin: 3px auto -10px; border: 2px solid var(--hc); border-bottom: 0; opacity: .55; }
+    .cember { width: min(124px, 72%); margin-top: -4px; }
+    .cember svg { display: block; width: 100%; height: auto; overflow: visible; transform-origin: top center; }
+    .cember .ag { stroke: var(--murekkep-3); fill: none; }
+    .cember .halka { fill: color-mix(in srgb, var(--turuncu) 30%, var(--yuzey)); stroke: var(--turuncu); stroke-width: 2.5; }
+    .sepet.sallan .cember svg { animation: agSallan .55s cubic-bezier(.34, 1.56, .64, 1); }
+    @keyframes agSallan {
+        30% { transform: scale(1.16, .78) translateY(3px); }
+        65% { transform: scale(.93, 1.14); }
+    }
+    .sepet-ad { font-weight: 800; font-size: clamp(13px, 11cqw, 18px); text-align: center; line-height: 1.2; }
+    .sepet-kural {
+        min-height: 2.5em;
+        margin: 0 0 6px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px; line-height: 1.2; color: var(--murekkep-2); text-align: center;
+    }
+    .sepet-hap {
+        width: 100%;
+        padding: 5px 4px;
+        border-radius: 8px;
+        background: var(--hc);
+        color: var(--hy);
+        font-size: 14px; font-weight: 800; text-align: center;
+    }
+    .sepet.atildi { border-color: var(--dogru); background: color-mix(in srgb, var(--dogru) 10%, var(--yuzey)); }
+    .sepet.atildi .sepet-hap { background: var(--dogru); color: var(--kagit); }
+    .tik {
+        position: absolute; top: -10px; right: -8px;
+        width: 28px; height: 28px;
+        display: grid; place-items: center;
+        border-radius: 50%;
+        background: var(--dogru); color: var(--kagit);
+        border: 2px solid var(--yuzey);
+        z-index: 2;
+    }
+    .tik svg { width: 16px; height: 16px; }
+
+    @keyframes yanlisSalla {
+        20%, 60% { transform: translateX(-8px) rotate(-2deg); }
+        40%, 80% { transform: translateX(8px) rotate(2deg); }
+    }
+    .sepet.yanlis-salla { animation: yanlisSalla .45s ease-in-out; }
+    @keyframes eksikNabiz {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--turuncu) 85%, transparent); border-color: var(--turuncu); }
+        50% { transform: scale(1.06); box-shadow: 0 0 0 14px color-mix(in srgb, var(--turuncu) 0%, transparent); border-color: var(--yanlis); }
+    }
+    .sepet.eksik { animation: eksikNabiz .65s ease-in-out 3; }
+
+    /* ---------- atış yeri: ipucu, top, Tamam ---------- */
+    .atis {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        grid-template-areas: "sol top sag";
+        align-items: center;
+        gap: 20px;
+        padding: 4px 0;
+    }
+    .atis-sol { grid-area: sol; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+    .atis-sag { grid-area: sag; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+    .top-yeri { grid-area: top; position: relative; display: grid; place-items: center; }
+
+    .yonerge { font-size: 15px; color: var(--murekkep-2); max-width: 34ch; }
+    .yonerge b { color: var(--murekkep); }
+    .analiz {
+        max-width: 320px;
+        padding: 8px 12px;
+        border: 1.5px solid var(--mor);
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--mor) 8%, var(--yuzey));
+        font-size: 15px;
+    }
+    .analiz-baslik { font-weight: 800; color: var(--mor); margin-bottom: 2px; }
+    .analiz span { font-variant-numeric: tabular-nums; }
+
+    .top {
+        --cap: clamp(110px, 14vh, 136px);
+        width: var(--cap); height: var(--cap);
+        position: relative;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        border-radius: 50%;
+        border: 3px solid var(--turuncu);
+        background: color-mix(in srgb, var(--turuncu) 20%, var(--yuzey));
+        color: var(--murekkep);
+        cursor: grab;
+        touch-action: none;
+        animation: topSuz 2.8s ease-in-out infinite;
+        transition: transform .18s ease;
+    }
+    .top-dikis { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .top-dikis path { fill: none; stroke: var(--turuncu); stroke-width: 2; opacity: .4; }
+    .top > span { position: relative; }
+    .top.surukleniyor { animation: none; cursor: grabbing; z-index: 35; box-shadow: var(--golge); }
+    @keyframes topSuz { 50% { transform: translateY(-6px); } }
+    .top-etiket { font-size: 12px; font-weight: 700; color: var(--murekkep-2); }
+    .top-sayi { font-size: calc(var(--cap) * .3); font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
+    .top-basamak {
+        font-size: 12px; font-weight: 700;
+        padding: 0 8px; border-radius: 99px;
+        background: color-mix(in srgb, var(--turuncu) 22%, var(--yuzey));
+    }
+
+    .tamam { flex-direction: row; gap: 12px; padding: 8px 20px 8px 14px; min-height: 64px; text-align: left; white-space: normal; }
+    .tamam .svg { width: 30px; height: 30px; }
+    .tamam-ust { display: block; font-size: 20px; font-weight: 800; line-height: 1.1; }
+    .tamam-alt { display: block; font-size: 14px; font-weight: 700; opacity: .85; }
+
+    /* atış izi ve kıvılcımlar: bütün ekranın üstünde şeffaf tuval */
+    #throwCanvas { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 30; }
+
+    /* sepetin üstünde uçuşan +10 / −1 can */
+    .ucan-puan {
+        position: fixed;
+        z-index: 50;
+        pointer-events: none;
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 2px 12px;
+        border-radius: 99px;
+        border: 2px solid currentColor;
+        background: var(--yuzey);
+        font-size: 20px; font-weight: 800;
+        transform: translateX(-50%);
+        animation: puanUc .95s ease-out forwards;
+    }
+    .ucan-puan svg { width: 18px; height: 18px; }
+    @keyframes puanUc {
+        0% { opacity: 1; translate: 0 0; scale: .85; }
+        50% { opacity: 1; translate: 0 -26px; scale: 1.1; }
+        100% { opacity: 0; translate: 0 -48px; scale: 1; }
+    }
+
+    /* ---------- pencereler ---------- */
+    .kurallar { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; text-align: left; font-size: 16px; }
+    .kural { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1.5px solid var(--kenarlik); border-radius: 10px; background: var(--yuzey); }
+    .kural-no {
+        flex: none;
+        width: 38px; height: 38px;
+        display: grid; place-items: center;
+        border-radius: 8px;
+        background: var(--hc); color: var(--hy, var(--kagit));
+        font-weight: 800; font-size: 19px;
+    }
+    .kural[data-d="9"] { --hy: var(--murekkep); }
+    [data-tema="tahta"] .kural[data-d="9"] { --hy: var(--kagit); }
+    .kural-metin { font-size: 15px; color: var(--murekkep-2); }
+    .kural-metin strong { color: var(--murekkep); display: block; font-size: 16px; }
+    .eksikler { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 12px 0; }
+    .eksikler .rozet { color: var(--hc); font-size: 16px; padding: 4px 12px; }
+    .can-kaybi { margin-top: 4px; }
+    .ozet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; padding: 12px; border: 1.5px solid var(--kenarlik); border-radius: 12px; background: var(--yuzey); }
+    .ozet-ad { display: block; font-size: 14px; font-weight: 700; color: var(--murekkep-2); }
+    .ozet-deger { display: block; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+    /* ---------- ekran boyları ---------- */
+    @media (max-width: 900px) {
+        .sepet { flex-basis: calc((100% - 3 * var(--ara)) / 4); }
+    }
+    @media (max-width: 760px) {
+        .atis { grid-template-columns: auto 1fr; grid-template-areas: "top sag" "sol sol"; gap: 12px 16px; }
+        .atis-sag { align-items: stretch; }
+        .isabet { align-self: flex-start; }
+        .tamam { width: 100%; justify-content: center; }
+        .yonerge, .analiz { max-width: none; }
+    }
+    @media (max-width: 560px) {
+        .oyun { padding: 12px 12px 16px; }
+        .saha { gap: 10px; }
+        .bildirim-alt { font-size: 14px; }
+        .sepetler { --ara: 8px; padding-top: 10px; }
+        .sepet { padding: 8px 3px 6px; }
+        .pano { padding: 4px 2px 8px; }
+        .pano-kare { height: 12px; margin-bottom: -8px; }
+        .sepet-kural { font-size: 11.5px; min-height: 3.6em; margin-bottom: 4px; }
+        .sepet-ad { font-size: 12px; letter-spacing: -.01em; white-space: nowrap; }
+        .yonerge { display: none; } /* bildirimin alt satırı aynı şeyi söylüyor */
+        .sepet-hap { font-size: 12px; padding: 4px 2px; }
+        .tik { width: 24px; height: 24px; top: -8px; right: -5px; }
+        .top { --cap: 100px; }
+        .tamam { padding: 8px 12px; gap: 8px; }
+        .tamam-ust { font-size: 19px; }
+        .tamam-alt { font-size: 13px; }
+        /* telefonda Kurallar / İpucu yalnızca ikon: başlık iki satırda kalsın */
+        .bar-sag .arac { min-height: 36px; width: 36px; padding: 0; justify-content: center; }
+        .bar-sag .arac .svg { width: 18px; height: 18px; }
+        .arac-yazi { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+        .bar-sag .ikon-btn { width: 36px; height: 36px; }
+    }
+    /* yatay telefon: her şey tek ekrana sığsın */
+    @media (max-height: 520px) and (orientation: landscape) {
+        .oyun { padding: 8px 12px; }
+        .saha { gap: 8px; }
+        .bildirim-baslik { font-size: 15px; }
+        .bildirim-alt { font-size: 13px; }
+        .sepetler { --ara: 8px; padding-top: 8px; }
+        .sepet { flex-basis: calc((100% - 6 * var(--ara)) / 7); padding: 6px 4px; }
+        .pano { padding: 3px 2px 6px; }
+        .pano-sayi { font-size: 24px; }
+        .pano-kare { height: 10px; margin-bottom: -6px; }
+        .cember { width: min(60px, 64%); }
+        .sepet-ad { font-size: 13px; }
+        .sepet-kural { display: none; }
+        .sepet-hap { margin-top: 4px; font-size: 12px; padding: 3px 2px; }
+        .atis { grid-template-columns: 1fr auto auto; grid-template-areas: "sol top sag"; padding: 0; gap: 12px; }
+        .atis-sag { align-items: flex-end; gap: 6px; }
+        .atis-sol { gap: 4px; }
+        .isabet { align-self: flex-end; font-size: 12px; padding: 1px 8px; }
+        .tamam { width: auto; min-height: 52px; padding: 4px 14px 4px 10px; }
+        .tamam-ust { font-size: 17px; }
+        .tamam-alt { font-size: 12px; }
+        .analiz { font-size: 13px; padding: 4px 10px; }
+        .yonerge { display: none; } /* bildirim zaten nasıl oynanacağını söylüyor */
+        .top { --cap: 84px; }
+        .top-etiket, .top-basamak { font-size: 10px; }
+        .bar-sag .arac { min-height: 36px; }
+        .bar-sag .arac { width: 36px; padding: 0; }
+        .arac-yazi { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    }
+</style>
+</head>
+<body class="oyun-sayfasi">
+<header class="bar" id="bar">
+    <div class="bar-sag">
+        <span class="durum"><span class="durum-ad">Soru</span><b class="durum-deger" id="questionBadge">1</b></span>
+        <span class="durum" aria-label="Kalan can" title="Kalan can"><span class="durum-ad">Can</span><span class="kalpler" id="livesContainer"></span></span>
+        <span class="durum"><span class="durum-ad">Puan</span><b class="durum-deger" id="scoreDisplay">0</b></span>
+        <span class="durum"><span class="durum-ad">Rekor</span><b class="durum-deger" id="highScoreDisplay">0</b></span>
+        <button type="button" class="dugme arac" id="rulesBtn" title="Kurallar" onclick="toggleRulesModal(true)"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5zM12 6.5v13"/></svg><span class="arac-yazi">Kurallar</span></button>
+        <button type="button" class="dugme arac" id="hintBtn" title="İpucu" onclick="toggleHintPanel()" aria-pressed="false" aria-controls="hintPanel"><svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg><span class="arac-yazi">İpucu</span></button>
+        <button type="button" class="ikon-btn" id="soundBtn" onclick="toggleSound()" aria-pressed="true" aria-label="Ses" title="Ses"></button>
+    </div>
+</header>
+<script>Kabuk.bar('bolunebilme-sepeti');</script>
+
+<main class="oyun">
+    <div class="saha">
+        <!-- yedi sepet (2, 3, 4, 5, 6, 9, 10) -->
+        <section id="basketsContainer" class="sepetler" aria-label="Bölünebilme sepetleri"></section>
+
+        <!-- geri bildirim, top ve Tamam düğmesi -->
+        <section class="atis">
+            <div class="atis-sol">
+                <div id="feedbackBanner" class="bildirim" aria-live="polite">
+                    <span id="feedbackTitle" class="bildirim-baslik">Topu tam bölünebildiği tüm basket sepetlerine atın!</span>
+                    <span id="feedbackSub" class="bildirim-alt">Sepetlere doğrudan tıklayabilir veya topu sürükleyip bırakabilirsiniz. Başka böleni kalmadığında <b>Tamam</b> düğmesine basın.</span>
+                </div>
+                <div id="hintPanel" class="analiz" hidden>
+                    <div class="analiz-baslik">Pratik bölünebilme analizi</div>
+                    <div>Birler basamağı: <b><span id="hintLastDigit">-</span></b></div>
+                    <div>Son 2 basamak: <b><span id="hintLastTwo">-</span></b></div>
+                    <div>Rakamları toplamı: <b><span id="hintDigitSum">-</span></b></div>
+                </div>
+                <p id="defaultPrompt" class="yonerge"><b>Nasıl oynanır?</b> Yukarıdaki 7 sepetten bu sayıyı tam bölenlerin üzerine tıklayın veya topu fırlatın!</p>
+            </div>
+
+            <div class="top-yeri">
+                <div id="numberBall" class="top" title="Topu bir sepete sürükleyin">
+                    <svg class="top-dikis" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 2v96M2 50h96M18 14c14 18 14 54 0 72M82 14c-14 18-14 54 0 72"/></svg>
+                    <span class="top-etiket">Sayı topu</span>
+                    <span id="ballNumberText" class="top-sayi">360</span>
+                    <span id="ballDigitsBadge" class="top-basamak">3 basamaklı</span>
+                </div>
+            </div>
+
+            <div class="atis-sag">
+                <span class="rozet isabet">İsabetli sepet: <b id="thrownCount">0</b></span>
+                <button type="button" id="doneBtn" class="dugme ana tamam" onclick="handleDoneClick()">
+                    <svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                    <span><span class="tamam-ust">Tamam</span><span class="tamam-alt">Başka böleni yok (+10 puan)</span></span>
+                </button>
+            </div>
+        </section>
+    </div>
+</main>
+
+<!-- top uçuşu ve iz -->
+<canvas id="throwCanvas" aria-hidden="true"></canvas>
+
+<script>
+    /* =========================================================
+       1. YEDİ SEPET (2, 3, 4, 5, 6, 9, 10)
+       ========================================================= */
+    const BASKETS = [
+        { divisor: 2,  label: "2'ye bölünür",  shortRule: "Sonu çift (0,2,4,6,8)", color: 'var(--mavi)',
+          rule: "Birler basamağı <b>çift</b> (0, 2, 4, 6, 8) olan sayılar tam bölünür." },
+        { divisor: 3,  label: "3'e bölünür",   shortRule: "Rakam toplamı 3'ün katı", color: 'var(--yesil)',
+          rule: "<b>Rakamları toplamı</b> 3 veya 3'ün katı olan sayılar tam bölünür." },
+        { divisor: 4,  label: "4'e bölünür",   shortRule: "Son 2 basamak 00 / 4k", color: 'var(--mor)',
+          rule: "<b>Son iki basamağı</b> 00 veya 4'ün katı olan sayılar tam bölünür." },
+        { divisor: 5,  label: "5'e bölünür",   shortRule: "Son basamak 0 veya 5", color: 'var(--turuncu)',
+          rule: "Birler basamağı <b>0 veya 5</b> olan sayılar tam bölünür." },
+        { divisor: 6,  label: "6'ya bölünür",  shortRule: "Hem 2'ye hem 3'e bölünür", color: 'var(--kirmizi)',
+          rule: "Hem <b>2'ye</b> hem de <b>3'e</b> aynı anda bölünen sayılar 6'ya tam bölünür." },
+        { divisor: 9,  label: "9'a bölünür",   shortRule: "Rakam toplamı 9'un katı", color: 'var(--sari)',
+          rule: "<b>Rakamları toplamı</b> 9 veya 9'un katı olan sayılar tam bölünür." },
+        { divisor: 10, label: "10'a bölünür",  shortRule: "Birler basamağı 0", color: 'var(--murekkep)',
+          rule: "Birler basamağı <b>0</b> olan sayılar 10'a tam bölünür. (Sonu 0 olan sayılar 2 ve 5'e de bölünür!)" }
+    ];
+    const BASKET_OF = d => BASKETS.find(b => b.divisor === d);
+
+    const state = {
+        score: 0,
+        highScore: 0,
+        lives: 3,
+        maxLives: 3,
+        questionIndex: 1,
+        completedBalls: 0,
+        currentNumber: 360,
+        validDivisors: [],
+        foundDivisors: new Set(),
+        inFlightDivisors: new Set(),
+        isLocked: false,
+        soundEnabled: true,
+        hintVisible: false
+    };
+
+    const TIK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+    const KALP = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg>';
+
+    /* =========================================================
+       2. SEPETLERİ ÇİZ
+       ========================================================= */
+    function renderBaskets() {
+        const container = document.getElementById('basketsContainer');
+        if (!container) return;
+        container.innerHTML = '';
+
+        BASKETS.forEach(basket => {
+            const isScored = state.foundDivisors.has(basket.divisor);
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.id = `basket-${basket.divisor}`;
+            card.dataset.divisor = basket.divisor;
+            card.dataset.d = basket.divisor;
+            card.className = `sepet ${isScored ? 'atildi' : ''}`;
+            card.style.setProperty('--hc', basket.color);
+            card.setAttribute('aria-label', isScored ? `${basket.label}: atıldı` : `${basket.label} sepetine atın`);
+
+            card.onclick = () => evaluateBasketThrow(basket.divisor);
+            card.onpointerenter = () => { hoveredBasketDivisor = basket.divisor; };
+            card.onpointerleave = () => {
+                if (hoveredBasketDivisor === basket.divisor) hoveredBasketDivisor = null;
+            };
+
+            card.innerHTML = `
+                ${isScored ? `<span class="tik">${TIK}</span>` : ''}
+                <span class="pano">
+                    <span class="pano-sayi">${basket.divisor}</span>
+                    <span class="pano-kare"></span>
+                </span>
+                <span class="cember" id="rim-${basket.divisor}">
+                    <svg viewBox="0 0 100 62" aria-hidden="true">
+                        <path class="ag" d="M16 10 L26 56 L50 59 L74 56 L84 10" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path class="ag" d="M18 10 L38 57 M34 10 L55 58 M50 10 L70 56 M66 10 L76 42" stroke-width="2"/>
+                        <path class="ag" d="M82 10 L62 57 M66 10 L45 58 M50 10 L30 56 M34 10 L24 42" stroke-width="2"/>
+                        <path class="ag" d="M21 26 H79 M24 41 H76" stroke-width="2" stroke-dasharray="4 4"/>
+                        <rect class="halka" x="8" y="4" width="84" height="9" rx="4.5"/>
+                    </svg>
+                </span>
+                <span class="sepet-ad">${basket.label}</span>
+                <span class="sepet-kural">${basket.shortRule}</span>
+                <span class="sepet-hap">${isScored ? 'Atıldı' : 'Sepete atın'}</span>
+            `;
+
+            container.appendChild(card);
+        });
+    }
+
+    /* =========================================================
+       3. KAVİSLİ ATIŞ VE İZ (TUVAL)
+       ========================================================= */
+    const throwCanvas = document.getElementById('throwCanvas');
+    const throwCtx = throwCanvas.getContext('2d');
+    let activeProjectiles = [];
+    let trailParticles = [];
+    let fadingArcs = [];
+    let impactParticles = [];
+    let hoveredBasketDivisor = null;
+
+    // çizim renkleri temadan; tema değişince yeniden okunur
+    let R = {};
+    function readColors() {
+        for (const ad of ['murekkep', 'yuzey', 'turuncu', 'sari', 'mavi', 'mor', 'dogru', 'yanlis']) R[ad] = Kabuk.renk(ad);
+    }
+    readColors();
+    Kabuk.temaDegisince(readColors);
+    function withAlpha(hex, a) {
+        const n = parseInt(hex.slice(1), 16);
+        return `rgba(${n >> 16 & 255}, ${n >> 8 & 255}, ${n & 255}, ${a})`;
+    }
+
+    function resizeThrowCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        throwCanvas.width = window.innerWidth * dpr;
+        throwCanvas.height = window.innerHeight * dpr;
+        throwCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resizeThrowCanvas);
+
+    function getQuadraticBezierPoint(t, p0, p1, p2) {
+        const u = 1 - t;
+        return {
+            x: u * u * p0.x + 2 * u * t * p1.x + t * t * p2.x,
+            y: u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y
+        };
+    }
+
+    function computeArcControlPoint(start, end) {
+        const midX = (start.x + end.x) * 0.5;
+        const highestY = Math.min(start.y, end.y);
+        const horizontalDist = Math.abs(end.x - start.x);
+        const arcLift = Math.max(120, Math.min(240, 100 + horizontalDist * 0.25));
+        return {
+            x: midX,
+            y: Math.max(24, highestY - arcLift)
+        };
+    }
+
+    function getElementCenter(el) {
+        if (!el) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        const r = el.getBoundingClientRect();
+        return {
+            x: r.left + r.width / 2,
+            y: r.top + r.height / 2
+        };
+    }
+
+    function spawnImpactBurst(x, y, isSuccess) {
+        const palette = isSuccess
+            ? [R.dogru, R.sari, R.mavi, R.mor, R.turuncu]
+            : [R.yanlis, R.turuncu];
+        const count = isSuccess ? 28 : 18;
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.35;
+            const speed = (isSuccess ? 3.2 : 2.6) + Math.random() * 5;
+            impactParticles.push({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 2,
+                radius: 3.5 + Math.random() * 4,
+                color: palette[Math.floor(Math.random() * palette.length)],
+                alpha: 1,
+                decay: 0.025 + Math.random() * 0.015
+            });
+        }
+    }
+
+    function launchParabolicBall(divisor, startCoords, onImpactCallback) {
+        const ballEl = document.getElementById('numberBall');
+        const rimEl = document.getElementById(`rim-${divisor}`) || document.getElementById(`basket-${divisor}`);
+        const start = startCoords || getElementCenter(ballEl);
+        const end = getElementCenter(rimEl);
+        const control = computeArcControlPoint(start, end);
+        const isDivisible = state.currentNumber % divisor === 0;
+
+        playSound('whoosh');
+
+        activeProjectiles.push({
+            divisor,
+            numberText: String(state.currentNumber),
+            p0: start,
+            p1: control,
+            p2: end,
+            startTime: performance.now(),
+            duration: 540,
+            isDivisible,
+            sampledPath: [{ x: start.x, y: start.y }],
+            lastParticleTime: 0,
+            phase: 'flight',
+            onImpactCallback
+        });
+    }
+
+    // fosforlu kalemle bombeli iz, içinde kalemle kesik çizgi
+    function drawCurvedRibbonTrail(points, baseAlpha, color) {
+        if (!points || points.length < 2) return;
+        throwCtx.save();
+
+        for (let i = 1; i < points.length; i++) {
+            const progress = i / points.length;
+            const prev = points[i - 1];
+            const curr = points[i];
+            throwCtx.beginPath();
+            throwCtx.moveTo(prev.x, prev.y);
+            throwCtx.lineTo(curr.x, curr.y);
+            throwCtx.lineCap = 'round';
+            throwCtx.lineWidth = 3 + progress * 14;
+            throwCtx.strokeStyle = withAlpha(color, baseAlpha * progress * 0.4);
+            throwCtx.stroke();
+        }
+
+        throwCtx.beginPath();
+        throwCtx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+            throwCtx.lineTo(points[i].x, points[i].y);
+        }
+        throwCtx.setLineDash([7, 8]);
+        throwCtx.lineCap = 'round';
+        throwCtx.lineWidth = 2.5;
+        throwCtx.strokeStyle = withAlpha(R.murekkep, baseAlpha * 0.7);
+        throwCtx.stroke();
+        throwCtx.restore();
+    }
+
+    function drawFlyingBasketball(x, y, radius, rotation, numberText, isErrorTint = false) {
+        const kenar = isErrorTint ? R.yanlis : R.turuncu;
+        throwCtx.save();
+        throwCtx.translate(x, y);
+        throwCtx.rotate(rotation);
+
+        throwCtx.beginPath();
+        throwCtx.arc(0, 0, radius, 0, Math.PI * 2);
+        throwCtx.fillStyle = R.yuzey;
+        throwCtx.fill();
+        throwCtx.fillStyle = withAlpha(kenar, 0.22);
+        throwCtx.fill();
+        throwCtx.lineWidth = 2.5;
+        throwCtx.strokeStyle = kenar;
+        throwCtx.stroke();
+
+        // dikiş çizgileri
+        throwCtx.save();
+        throwCtx.clip();
+        throwCtx.strokeStyle = withAlpha(kenar, 0.5);
+        throwCtx.lineWidth = 1.5;
+        throwCtx.beginPath();
+        throwCtx.moveTo(-radius, 0); throwCtx.lineTo(radius, 0);
+        throwCtx.moveTo(0, -radius); throwCtx.lineTo(0, radius);
+        throwCtx.stroke();
+        throwCtx.restore();
+
+        throwCtx.fillStyle = R.murekkep;
+        throwCtx.font = `800 ${Math.max(11, Math.round(radius * 0.55))}px "Atkinson Hyperlegible Next", sans-serif`;
+        throwCtx.textAlign = 'center';
+        throwCtx.textBaseline = 'middle';
+        throwCtx.fillText(numberText, 0, 1);
+
+        throwCtx.restore();
+    }
+
+    function updateAndRenderThrowCanvas(now) {
+        throwCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+        // 1. Sepetin üstüne gelince kesik nişan yayı
+        if (hoveredBasketDivisor !== null && !state.isLocked && !state.foundDivisors.has(hoveredBasketDivisor)) {
+            const ballEl = document.getElementById('numberBall');
+            const rimEl = document.getElementById(`rim-${hoveredBasketDivisor}`) || document.getElementById(`basket-${hoveredBasketDivisor}`);
+            if (ballEl && rimEl) {
+                const p0 = getElementCenter(ballEl);
+                const p2 = getElementCenter(rimEl);
+                const p1 = computeArcControlPoint(p0, p2);
+
+                throwCtx.save();
+                throwCtx.beginPath();
+                throwCtx.moveTo(p0.x, p0.y);
+                throwCtx.quadraticCurveTo(p1.x, p1.y, p2.x, p2.y);
+                throwCtx.setLineDash([8, 8]);
+                throwCtx.lineDashOffset = -(now * 0.04) % 16;
+                throwCtx.lineWidth = 3;
+                throwCtx.strokeStyle = withAlpha(R.turuncu, 0.7);
+                throwCtx.stroke();
+                throwCtx.restore();
+            }
+        }
+
+        // 2. Kaybolmakta olan atış izleri
+        for (let i = fadingArcs.length - 1; i >= 0; i--) {
+            const arc = fadingArcs[i];
+            arc.alpha -= 0.022;
+            if (arc.alpha <= 0) {
+                fadingArcs.splice(i, 1);
+                continue;
+            }
+            drawCurvedRibbonTrail(arc.points, arc.alpha, arc.isSuccess ? R.dogru : R.yanlis);
+        }
+
+        // 3. Topun ardındaki kıvılcımlar
+        for (let i = trailParticles.length - 1; i >= 0; i--) {
+            const pt = trailParticles[i];
+            pt.x += pt.vx;
+            pt.y += pt.vy;
+            pt.alpha -= pt.decay;
+            pt.radius *= 0.985;
+            if (pt.alpha <= 0.02) {
+                trailParticles.splice(i, 1);
+                continue;
+            }
+            throwCtx.save();
+            throwCtx.globalAlpha = pt.alpha;
+            throwCtx.beginPath();
+            throwCtx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+            throwCtx.fillStyle = pt.color;
+            throwCtx.fill();
+            throwCtx.restore();
+        }
+
+        // 4. Uçan toplar
+        for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+            const proj = activeProjectiles[i];
+            if (proj.phase === 'flight') {
+                const elapsed = now - proj.startTime;
+                const rawT = Math.min(1, elapsed / proj.duration);
+                const t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
+
+                const pos = getQuadraticBezierPoint(t, proj.p0, proj.p1, proj.p2);
+                proj.sampledPath.push({ x: pos.x, y: pos.y });
+
+                drawCurvedRibbonTrail(proj.sampledPath, 0.95, R.turuncu);
+
+                if (now - proj.lastParticleTime > 16) {
+                    proj.lastParticleTime = now;
+                    trailParticles.push({
+                        x: pos.x + (Math.random() - 0.5) * 10,
+                        y: pos.y + (Math.random() - 0.5) * 10,
+                        vx: (Math.random() - 0.5) * 0.9,
+                        vy: (Math.random() - 0.5) * 0.9 + 0.3,
+                        radius: 3 + Math.random() * 3,
+                        color: Math.random() > 0.4 ? R.sari : R.turuncu,
+                        alpha: 0.8,
+                        decay: 0.03
+                    });
+                }
+
+                const arcScale = (1 - t * 0.38) + Math.sin(t * Math.PI) * 0.22;
+                const rot = t * Math.PI * 2.2 * (proj.p2.x >= proj.p0.x ? 1 : -1);
+                drawFlyingBasketball(pos.x, pos.y, 34 * arcScale, rot, proj.numberText);
+
+                if (rawT >= 1) {
+                    fadingArcs.push({
+                        points: proj.sampledPath.slice(),
+                        alpha: 0.85,
+                        isSuccess: proj.isDivisible
+                    });
+                    spawnImpactBurst(proj.p2.x, proj.p2.y, proj.isDivisible);
+
+                    if (proj.onImpactCallback) proj.onImpactCallback();
+
+                    if (proj.isDivisible) {
+                        activeProjectiles.splice(i, 1);
+                    } else {
+                        proj.phase = 'rimBounce';
+                        proj.bounceX = proj.p2.x;
+                        proj.bounceY = proj.p2.y;
+                        proj.vx = (proj.p2.x >= proj.p0.x ? 1 : -1) * 5;
+                        proj.vy = -6;
+                        proj.alpha = 1;
+                        proj.rotation = rot;
+                    }
+                }
+            } else if (proj.phase === 'rimBounce') {
+                proj.bounceX += proj.vx;
+                proj.bounceY += proj.vy;
+                proj.vy += 0.55;
+                proj.rotation += 0.2;
+                proj.alpha -= 0.045;
+                if (proj.alpha <= 0) {
+                    activeProjectiles.splice(i, 1);
+                    continue;
+                }
+                throwCtx.save();
+                throwCtx.globalAlpha = Math.max(0, proj.alpha);
+                drawFlyingBasketball(proj.bounceX, proj.bounceY, 24, proj.rotation, proj.numberText, true);
+                throwCtx.restore();
+            }
+        }
+
+        // 5. Çarpma kıvılcımları
+        for (let i = impactParticles.length - 1; i >= 0; i--) {
+            const p = impactParticles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.2;
+            p.alpha -= p.decay;
+            if (p.alpha <= 0) {
+                impactParticles.splice(i, 1);
+                continue;
+            }
+            throwCtx.save();
+            throwCtx.globalAlpha = p.alpha;
+            throwCtx.beginPath();
+            throwCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            throwCtx.fillStyle = p.color;
+            throwCtx.fill();
+            throwCtx.restore();
+        }
+
+        requestAnimationFrame(updateAndRenderThrowCanvas);
+    }
+
+    /* =========================================================
+       4. SES (WEB AUDIO API)
+       ========================================================= */
+    let audioCtx = null;
+    function playSound(type) {
+        if (!state.soundEnabled) return;
+        try {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+
+            if (type === 'whoosh') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(210, now);
+                osc.frequency.exponentialRampToValueAtTime(440, now + 0.16);
+                osc.frequency.exponentialRampToValueAtTime(170, now + 0.4);
+                gain.gain.setValueAtTime(0.01, now);
+                gain.gain.linearRampToValueAtTime(0.12, now + 0.12);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.42);
+            } else if (type === 'correct') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.12);
+                gain.gain.setValueAtTime(0.22, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'wrong') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(160, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.26);
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'complete') {
+                [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+                    gain.gain.setValueAtTime(0.18, now + idx * 0.07);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.24);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.07);
+                    osc.stop(now + idx * 0.07 + 0.24);
+                });
+            }
+        } catch (e) {}
+    }
+
+    const SES_ACIK = '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>';
+    const SES_KAPALI = '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/>';
+    function updateSoundButton() {
+        const btn = document.getElementById('soundBtn');
+        btn.innerHTML = `<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${state.soundEnabled ? SES_ACIK : SES_KAPALI}</svg>`;
+        btn.setAttribute('aria-pressed', state.soundEnabled);
+    }
+
+    function toggleSound() {
+        state.soundEnabled = !state.soundEnabled;
+        updateSoundButton();
+    }
+
+    /* =========================================================
+       5. SAYI ÜRETİCİ VE AÇIKLAMALAR
+       ========================================================= */
+    function generateSmartNumber() {
+        const isFourDigit = Math.random() < 0.25;
+        const min = isFourDigit ? 1000 : 100;
+        const max = isFourDigit ? 4999 : 999;
+        const roll = Math.random();
+        let candidate = 360;
+
+        if (roll < 0.15) {
+            do {
+                candidate = Math.floor(Math.random() * (max - min + 1)) + min;
+            } while (candidate % 2 === 0 || candidate % 3 === 0 || candidate % 5 === 0);
+        } else if (roll < 0.45) {
+            const mults = [18, 36, 45, 60, 72, 90];
+            const m = mults[Math.floor(Math.random() * mults.length)];
+            const minF = Math.ceil(min / m);
+            const maxF = Math.floor(max / m);
+            candidate = m * (Math.floor(Math.random() * (maxF - minF + 1)) + minF);
+        } else {
+            candidate = Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        return candidate;
+    }
+
+    function getDigitsBreakdownString(num) {
+        const digits = String(num).split('');
+        const sum = digits.reduce((acc, d) => acc + parseInt(d, 10), 0);
+        return `${digits.join(' + ')} = ${sum}`;
+    }
+
+    function getWhyNotDivisibleExplanation(num, divisor) {
+        const lastDigit = num % 10;
+        const lastTwo = String(num).slice(-2);
+        const sumStr = getDigitsBreakdownString(num);
+        switch (divisor) {
+            case 2: return `${num} sayısının birler basamağı (${lastDigit}) çift olmadığı için 2'ye tam bölünmez.`;
+            case 3: return `${num} sayısının rakamları toplamı (${sumStr}) 3'ün katı olmadığı için 3'e tam bölünmez.`;
+            case 4: return `${num} sayısının son iki basamağı (${lastTwo}) 4'ün katı olmadığı için 4'e tam bölünmez.`;
+            case 5: return `${num} sayısının birler basamağı (${lastDigit}) 0 veya 5 olmadığı için 5'e tam bölünmez.`;
+            case 6: return `${num} sayısı hem 2'ye hem 3'e aynı anda bölünemediği için 6'ya tam bölünmez.`;
+            case 9: return `${num} sayısının rakamları toplamı (${sumStr}) 9'un katı olmadığı için 9'a tam bölünmez.`;
+            case 10: return `${num} sayısının birler basamağı (${lastDigit}) 0 olmadığı için 10'a tam bölünmez.`;
+            default: return `${num} sayısı ${divisor} ile tam bölünmez.`;
+        }
+    }
+
+    /* =========================================================
+       6. OYUN AKIŞI VE GERİ BİLDİRİM
+       ========================================================= */
+    function updateHUD() {
+        document.getElementById('scoreDisplay').textContent = state.score;
+        if (state.score > state.highScore) {
+            state.highScore = state.score;
+            try { localStorage.setItem('bolunebilme_rekor', String(state.highScore)); } catch (e) {}
+        }
+        document.getElementById('highScoreDisplay').textContent = state.highScore;
+        document.getElementById('questionBadge').textContent = state.questionIndex;
+        document.getElementById('thrownCount').textContent = state.foundDivisors.size;
+        document.getElementById('livesContainer').innerHTML = Kabuk.kalpler(Math.max(0, state.lives), state.maxLives);
+
+        const n = state.currentNumber;
+        document.getElementById('hintLastDigit').textContent = n % 10;
+        document.getElementById('hintLastTwo').textContent = String(n).slice(-2);
+        document.getElementById('hintDigitSum').textContent = getDigitsBreakdownString(n);
+    }
+
+    function setFeedback(type, title, subtitle) {
+        const banner = document.getElementById('feedbackBanner');
+        document.getElementById('feedbackTitle').textContent = title;
+        document.getElementById('feedbackSub').innerHTML = subtitle;
+        banner.className = 'bildirim' + (type === 'success' ? ' dogru' : type === 'error' ? ' yanlis' : '');
+    }
+
+    function spawnFloatingPoints(targetEl, html, isPositive) {
+        if (!targetEl) return;
+        const r = targetEl.getBoundingClientRect();
+        const el = document.createElement('div');
+        el.className = 'ucan-puan';
+        el.style.color = isPositive ? 'var(--dogru)' : 'var(--yanlis)';
+        el.style.left = `${r.left + r.width / 2}px`;
+        el.style.top = `${r.top + 10}px`;
+        el.innerHTML = html;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 950);
+    }
+
+    function loadNewBall() {
+        state.isLocked = false;
+        state.foundDivisors.clear();
+        state.inFlightDivisors.clear();
+        state.currentNumber = generateSmartNumber();
+        state.validDivisors = BASKETS.map(b => b.divisor).filter(d => state.currentNumber % d === 0);
+
+        document.getElementById('ballNumberText').textContent = state.currentNumber;
+        document.getElementById('ballDigitsBadge').textContent = `${String(state.currentNumber).length} basamaklı`;
+
+        renderBaskets();
+        updateHUD();
+    }
+
+    function evaluateBasketThrow(divisor, customStartCoords = null) {
+        if (state.isLocked) return;
+        if (state.foundDivisors.has(divisor) || state.inFlightDivisors.has(divisor)) {
+            setFeedback('neutral', `${divisor} sepetine zaten basket attınız!`, `Başka böleni varsa diğer sepetlere atın, yoksa <b>Tamam</b> düğmesine basın.`);
+            return;
+        }
+
+        state.inFlightDivisors.add(divisor);
+        const isDivisible = state.currentNumber % divisor === 0;
+
+        launchParabolicBall(divisor, customStartCoords, () => {
+            state.inFlightDivisors.delete(divisor);
+            if (state.isLocked) return;
+
+            if (isDivisible) {
+                state.foundDivisors.add(divisor);
+                state.score += 10;
+                playSound('correct');
+                renderBaskets();
+                updateHUD();
+
+                const updatedCard = document.getElementById(`basket-${divisor}`);
+                if (updatedCard) {
+                    updatedCard.classList.add('sallan');
+                    spawnFloatingPoints(updatedCard, '+10', true);
+                }
+
+                setFeedback(
+                    'success',
+                    `Harika basket! ${state.currentNumber} sayısı ${divisor} ile tam bölünür! (+10 puan)`,
+                    `Başka böleni varsa diğer sepetlere de atın, kalmadıysa <b>Tamam</b> düğmesine basın.`
+                );
+            } else {
+                state.lives -= 1;
+                playSound('wrong');
+                updateHUD();
+
+                const card = document.getElementById(`basket-${divisor}`);
+                if (card) {
+                    card.classList.remove('yanlis-salla');
+                    void card.offsetWidth;
+                    card.classList.add('yanlis-salla');
+                    spawnFloatingPoints(card, '−1 ' + KALP, false);
+                }
+
+                setFeedback('error', `Çemberden döndü! (−1 can)`, getWhyNotDivisibleExplanation(state.currentNumber, divisor));
+
+                if (state.lives <= 0) {
+                    state.isLocked = true;
+                    setTimeout(triggerGameOver, 900);
+                }
+            }
+        });
+    }
+
+    function handleDoneClick() {
+        if (state.isLocked || state.inFlightDivisors.size > 0) return;
+
+        const missed = state.validDivisors.filter(d => !state.foundDivisors.has(d));
+        if (missed.length === 0) {
+            state.isLocked = true;
+            state.score += 10;
+            state.completedBalls += 1;
+            state.questionIndex += 1;
+            playSound('complete');
+            updateHUD();
+
+            spawnFloatingPoints(document.getElementById('doneBtn'), '+10', true);
+
+            if (state.validDivisors.length === 0) {
+                setFeedback('success', `Tebrikler! ${state.currentNumber} sayısının bu sepetlerde hiç böleni yoktu! (+10 puan)`, `Yeni sayı topu geliyor...`);
+            } else {
+                setFeedback('success', `Mükemmel! ${state.currentNumber} sayısının tüm bölenlerini (${state.validDivisors.join(', ')}) buldunuz! (+10 puan)`, `Yeni sayı topu geliyor...`);
+            }
+
+            setTimeout(loadNewBall, 1050);
+        } else {
+            state.isLocked = true;
+            state.lives -= 1;
+            playSound('wrong');
+            updateHUD();
+
+            missed.forEach(d => {
+                const el = document.getElementById(`basket-${d}`);
+                if (el) el.classList.add('eksik');
+            });
+
+            setFeedback('error', `Eksik sepet bıraktınız! (−1 can)`, `${state.currentNumber} sayısı <b>${missed.join(', ')}</b> ile de tam bölünüyordu.`);
+
+            if (state.lives <= 0) {
+                setTimeout(triggerGameOver, 1100);
+            } else {
+                showMissedModal(state.currentNumber, missed);
+            }
+        }
+    }
+
+    function showMissedModal(num, missedList) {
+        const rozetler = missedList.map(d => {
+            const b = BASKET_OF(d);
+            return `<span class="rozet" style="--hc:${b.color}">${b.label}</span>`;
+        }).join('');
+        Kabuk.pencere({
+            baslik: 'Eksik sepet bıraktınız!',
+            html: `<p><b>${num}</b> sayısını aşağıdaki sepetlere atmayı unuttunuz:</p>
+                   <div class="eksikler">${rozetler}</div>
+                   <p class="rozet yanlis can-kaybi">${KALP.replace('<svg', '<svg width="16" height="16"')} 1 can kaybettiniz</p>`,
+            dugme: 'Sıradaki topa geçin'
+        }).then(closeMissedModalAndContinue);
+    }
+
+    function closeMissedModalAndContinue() {
+        state.questionIndex += 1;
+        loadNewBall();
+    }
+
+    function triggerGameOver() {
+        const msg = state.score >= 120
+            ? 'Harika bir performans! Bölünebilme kurallarını çok iyi kavramışsınız!'
+            : 'Kuralları tekrar gözden geçirip rekorunuzu kırmaya hazır mısınız?';
+        Kabuk.pencere({
+            baslik: 'Oyun bitti!',
+            html: `<p>${msg}</p>
+                   <div class="ozet">
+                       <div><span class="ozet-ad">Puan</span><span class="ozet-deger" style="color:var(--dogru)">${state.score}</span></div>
+                       <div><span class="ozet-ad">Rekor</span><span class="ozet-deger" style="color:var(--turuncu)">${state.highScore}</span></div>
+                       <div><span class="ozet-ad">Tamamlanan</span><span class="ozet-deger" style="color:var(--kalem)">${state.completedBalls} top</span></div>
+                   </div>`,
+            dugme: 'Tekrar oynayın'
+        }).then(startNewGame);
+    }
+
+    function startNewGame() {
+        state.score = 0;
+        state.lives = 3;
+        state.questionIndex = 1;
+        state.completedBalls = 0;
+        state.isLocked = false;
+        setFeedback('neutral', 'Yeni oyun başladı! Topu tam bölünebildiği tüm sepetlere atın!', 'Sepetlere doğrudan tıklayabilir veya topu sürükleyip bırakabilirsiniz.');
+        loadNewBall();
+    }
+
+    function toggleRulesModal() {
+        Kabuk.pencere({
+            baslik: 'Bölünebilme kuralları',
+            html: `<ul class="kurallar">${BASKETS.map(b => `
+                <li class="kural" data-d="${b.divisor}" style="--hc:${b.color}">
+                    <span class="kural-no">${b.divisor}</span>
+                    <span class="kural-metin"><strong>${b.divisor} ile bölünebilme</strong>${b.rule}</span>
+                </li>`).join('')}</ul>`,
+            dugme: 'Anladım, oyuna dönün'
+        });
+    }
+
+    function toggleHintPanel() {
+        state.hintVisible = !state.hintVisible;
+        document.getElementById('hintPanel').hidden = !state.hintVisible;
+        document.getElementById('defaultPrompt').hidden = state.hintVisible;
+        document.getElementById('hintBtn').setAttribute('aria-pressed', state.hintVisible);
+    }
+
+    /* =========================================================
+       7. TOPU SÜRÜKLEYİP BIRAKMA (fare ve dokunma)
+       ========================================================= */
+    function setupDragAndDrop() {
+        const ball = document.getElementById('numberBall');
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let targetDivisor = null;
+
+        // top parmağın/imlecin altında durduğu için en üstteki öğe toptur; altındaki sepeti ara
+        const basketAt = (x, y) => {
+            for (const el of document.elementsFromPoint(x, y)) {
+                const card = el.closest('.sepet');
+                if (card) return card;
+            }
+            return null;
+        };
+
+        ball.addEventListener('pointerdown', (e) => {
+            if (state.isLocked) return;
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            ball.setPointerCapture(e.pointerId);
+            ball.classList.add('surukleniyor');
+        });
+
+        ball.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            ball.style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
+
+            const basketCard = basketAt(e.clientX, e.clientY);
+            document.querySelectorAll('.sepet').forEach(c => c.classList.remove('nisan'));
+            if (basketCard && basketCard.dataset.divisor) {
+                basketCard.classList.add('nisan');
+                targetDivisor = parseInt(basketCard.dataset.divisor, 10);
+                hoveredBasketDivisor = targetDivisor;
+            } else {
+                targetDivisor = null;
+                hoveredBasketDivisor = null;
+            }
+        });
+
+        const finishDrag = (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            const releasePos = { x: e.clientX, y: e.clientY };
+            ball.classList.remove('surukleniyor');
+            ball.style.transform = '';
+            document.querySelectorAll('.sepet').forEach(c => c.classList.remove('nisan'));
+            hoveredBasketDivisor = null;
+
+            if (targetDivisor !== null && e.type === 'pointerup') {
+                evaluateBasketThrow(targetDivisor, releasePos);
+            }
+            targetDivisor = null;
+        };
+
+        ball.addEventListener('pointerup', finishDrag);
+        ball.addEventListener('pointercancel', finishDrag);
+    }
+
+    try {
+        const saved = localStorage.getItem('bolunebilme_rekor');
+        if (saved) state.highScore = parseInt(saved, 10) || 0;
+    } catch (e) {}
+
+    updateSoundButton();
+    resizeThrowCanvas();
+    requestAnimationFrame(updateAndRenderThrowCanvas);
+    setupDragAndDrop();
+    startNewGame();
+</script>
+</body>
+</html>
