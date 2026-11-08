@@ -5,6 +5,8 @@ Mustafa'nın tek tek yazdığı matematik/fen oyun HTML'lerini (`mustafa-htmls/`
 - Repo: github.com/yusuferendolek/matematik-dersleri (`main`)
 - Vercel projesi: `mustafa-cubukcu` (Hobby), GitHub'a bağlı; `main`'e her push otomatik yayınlanır → https://mustafa-cubukcu.vercel.app
 - Yerel `.vercel/` ve `.env.local` (Vercel CLI oluşturur) git'e girmez.
+- **`cicekdev` branch'i** GitHub Pages'te yayınlanır → https://yusuferendolek.github.io/matematik-dersleri/ (kökteki `index.html` `site/`'a yönlendirir, `.nojekyll` dosyalar işlenmeden yayınlansın diye). `vercel.app` Turkcell'de engelli olduğu için bu ikinci adres var. `main`'den tek farkı ana sayfadaki fotoğraf (`site/photo/cicek.jfif`, `.ana-foto`). `main`'e her değişiklikten sonra `git switch cicekdev && git merge main && git push` ile o branch da güncellenir.
+- GitHub Actions (CI) hesap fatura sorunu yüzünden kilitli ("account is locked due to a billing issue"); testler yerelde çalıştırılır, Vercel build'i de `check.js`'i çalıştırır.
 
 ## Kullanıcının kararları
 
@@ -14,7 +16,7 @@ Mustafa'nın tek tek yazdığı matematik/fen oyun HTML'lerini (`mustafa-htmls/`
 - Oyun seçimi başlığın **solundan** yapılır (İçindekiler çekmecesi), oklarla önceki/sonraki oyuna geçilir.
 - Mat/Fen seçici **yok**: iki ders de her zaman listelenir.
 - Karanlık mod var (sistem ayarıyla başlar, seçim hatırlanır).
-- Ana sayfada fotoğraf yok (önce vardı, kullanıcı kaldırttı).
+- `main`'de ana sayfada fotoğraf yok (kullanıcı kaldırttı); fotoğraf yalnızca `cicekdev` branch'inde.
 - Tekrar etmeyen her oyun sitede: `mat4-1 yuvarlama` ile `mat5-3 yuvarlama` birebir aynı (tek oyun); kesir boyamanın v2'si kullanılır.
 - Oyunların mantığına dokunulmaz; görünüm ortak temaya taşınır, gerçek hatalar ve yanlış metinler düzeltilir.
 - **İnternetsiz** çalışır: dışarıdan kaynak (CDN, Google Fonts, Tailwind, Font Awesome, Chart.js) yüklenmez. `site/index.html` çift tıklanınca da çalışmalı.
