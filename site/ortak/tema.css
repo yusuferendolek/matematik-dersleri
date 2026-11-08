@@ -54,6 +54,7 @@
 /* ---------- Defter (açık) ---------- */
 :root, [data-tema="defter"] {
   --kagit: #F8FAFD;
+  --foto-kenar: #FFFFFF;
   --cizgi: #DCE5F1;
   --yuzey: #FFFFFF;
   --yuzey-2: #EEF2F8;
@@ -79,6 +80,7 @@
 /* ---------- Tahta (koyu) ---------- */
 [data-tema="tahta"] {
   --kagit: #1E3530;
+  --foto-kenar: #DDE3DB;     /* tahtada bembeyaz kenar göz almasın */
   --cizgi: rgba(238, 242, 232, .07);
   --yuzey: #24403A;
   --yuzey-2: #2B4A43;
@@ -374,6 +376,27 @@ a.satir:hover { background: color-mix(in srgb, var(--murekkep) 6%, transparent);
   padding: calc(var(--kare) * 2) 32px calc(var(--kare) * 3) calc(var(--kenar) + 40px);
 }
 .ana-ic { max-width: 1120px; }
+/* deftere bantla yapıştırılmış fotoğraf baskısı */
+.ana-foto {
+  position: relative;
+  width: clamp(200px, 26vw, 300px);
+  margin: 12px 0 calc(var(--kare) * 2) 8px;
+  padding: 10px 10px 12px;
+  background: var(--foto-kenar);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .08), 0 10px 24px rgba(28, 37, 71, .16);
+  transform: rotate(-2deg);
+}
+.ana-foto img { display: block; width: 100%; height: auto; }
+.ana-foto::before {
+  content: "";
+  position: absolute;
+  top: -12px; left: 50%;
+  width: 96px; height: 26px;
+  margin-left: -48px;
+  background: rgba(238, 226, 178, .72);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+  transform: rotate(-4deg);
+}
 
 /* oyun sayfası: başlık + oyun alanı ekranı doldurur */
 .oyun-sayfasi { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
